@@ -10,7 +10,9 @@
   --gold: #c49a45;
   --line: rgba(75, 57, 34, 0.2);
   --shadow: 0 24px 60px rgba(64, 45, 25, 0.16);
+  --shadow-soft: 0 12px 34px rgba(64, 45, 25, 0.12);
   --radius: 8px;
+  --radius-lg: 14px;
 }
 
 * {
@@ -38,6 +40,10 @@ a {
   text-decoration: none;
 }
 
+button {
+  font: inherit;
+}
+
 img {
   max-width: 100%;
   display: block;
@@ -50,7 +56,7 @@ img {
   overflow: hidden;
   background:
     linear-gradient(120deg, rgba(244, 234, 215, 0.95), rgba(229, 210, 173, 0.86)),
-    url("images/chengdu-map.png") center / cover;
+    url("./chengdu-map.png") center / cover;
   border-bottom: 1px solid var(--line);
 }
 
@@ -89,9 +95,14 @@ main,
 
 .navlinks {
   display: flex;
+  flex-wrap: wrap;
   gap: 22px;
   color: var(--ink-soft);
   font-size: 0.94rem;
+}
+
+.navlinks a {
+  transition: color 160ms ease;
 }
 
 .navlinks a:hover,
@@ -128,6 +139,7 @@ h1 {
   font-size: clamp(4rem, 13vw, 9rem);
   line-height: 0.9;
   font-weight: 900;
+  letter-spacing: -0.04em;
 }
 
 h2 {
@@ -151,7 +163,7 @@ h3 {
 }
 
 .intro {
-  max-width: 720px;
+  max-width: 760px;
   margin-bottom: 32px;
   color: var(--ink-soft);
   font-size: 1.08rem;
@@ -173,16 +185,33 @@ h3 {
   border: 1px solid var(--ink);
   border-radius: var(--radius);
   font-weight: 700;
-  transition: transform 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .btn:hover {
   transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn:focus-visible,
+.map-marker:focus-visible {
+  outline: 3px solid rgba(168, 79, 54, 0.35);
+  outline-offset: 4px;
 }
 
 .btn.primary {
   color: #fffaf0;
   background: var(--ink);
+}
+
+.btn.primary:hover {
+  background: var(--cinnabar-dark);
+  border-color: var(--cinnabar-dark);
 }
 
 .btn.ghost,
@@ -289,17 +318,33 @@ section {
 .map-markers {
   position: absolute;
   inset: 0;
+  z-index: 2;
 }
 
 .map-marker {
   position: absolute;
   width: 22px;
   height: 22px;
+  padding: 0;
   border: 3px solid #fff8e7;
   border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(36, 33, 28, 0.16), 0 10px 22px rgba(36, 33, 28, 0.28);
+  box-shadow:
+    0 0 0 4px rgba(36, 33, 28, 0.16),
+    0 10px 22px rgba(36, 33, 28, 0.28);
   cursor: pointer;
   transform: translate(-50%, -50%);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.map-marker:hover,
+.map-marker.active {
+  transform: translate(-50%, -50%) scale(1.18);
+  box-shadow:
+    0 0 0 5px rgba(36, 33, 28, 0.18),
+    0 12px 28px rgba(36, 33, 28, 0.32);
 }
 
 .map-marker::after {
@@ -307,17 +352,21 @@ section {
   position: absolute;
   left: 18px;
   top: -11px;
+  z-index: 3;
   min-width: max-content;
   padding: 2px 8px;
   border: 1px solid rgba(36, 33, 28, 0.18);
-  background: rgba(255, 250, 240, 0.88);
+  background: rgba(255, 250, 240, 0.92);
   color: var(--ink);
   font-size: 0.78rem;
   font-weight: 700;
   opacity: 0;
   transform: translateX(-4px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
   pointer-events: none;
+  white-space: nowrap;
 }
 
 .map-marker:hover::after,
@@ -345,12 +394,14 @@ section {
   position: absolute;
   left: 16px;
   bottom: 16px;
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid rgba(36, 33, 28, 0.16);
-  background: rgba(255, 250, 240, 0.86);
+  background: rgba(255, 250, 240, 0.88);
+  backdrop-filter: blur(4px);
   font-size: 0.86rem;
   font-weight: 700;
 }
@@ -398,14 +449,21 @@ section {
 
 .meta-grid {
   display: grid;
-  grid-template-columns: 70px 1fr;
-  gap: 6px 12px;
+  grid-template-columns: 82px 1fr;
+  gap: 7px 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   color: var(--ink-soft);
-  font-size: 0.95rem;
+  font-size: 0.94rem;
 }
 
 .meta-grid strong {
   color: var(--ink);
+}
+
+.point-card p {
+  color: var(--ink-soft);
 }
 
 .point-media {
@@ -455,6 +513,16 @@ section {
   padding: 16px;
   border: 1px solid var(--line);
   background: rgba(255, 250, 240, 0.58);
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.route-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 250, 240, 0.78);
+  box-shadow: var(--shadow-soft);
 }
 
 .route-card::before {
@@ -495,6 +563,11 @@ section {
   color: var(--qing-deep);
 }
 
+.btn.contribute:hover {
+  border-color: var(--qing-deep);
+  background: rgba(111, 155, 139, 0.2);
+}
+
 .site-footer {
   max-width: 1180px;
   margin: 0 auto;
@@ -517,9 +590,17 @@ section {
   .route-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .detail-panel {
+    min-height: auto;
+  }
 }
 
 @media (max-width: 680px) {
+  body {
+    line-height: 1.65;
+  }
+
   .site-hero {
     min-height: 86vh;
     padding-bottom: 52px;
@@ -541,9 +622,37 @@ section {
     font-size: clamp(3.2rem, 18vw, 5.5rem);
   }
 
+  h2 {
+    font-size: clamp(1.85rem, 9vw, 2.7rem);
+  }
+
+  .subtitle {
+    font-size: clamp(1.26rem, 6vw, 1.8rem);
+  }
+
+  .intro {
+    font-size: 1rem;
+  }
+
+  main {
+    padding-inline: 16px;
+  }
+
+  section {
+    margin: 54px 0;
+  }
+
+  .section-band {
+    padding: 22px 18px;
+  }
+
   .file-list div,
   .meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .file-list div {
+    gap: 4px;
   }
 
   .map-panel,
@@ -553,6 +662,26 @@ section {
 
   .map-panel {
     min-height: 0;
+    overflow: visible;
+  }
+
+  .map-panel::after {
+    border-width: 8px;
+  }
+
+  .map-marker {
+    width: 24px;
+    height: 24px;
+  }
+
+  .map-marker::after {
+    display: none;
+  }
+
+  .legend {
+    position: static;
+    margin-top: 10px;
+    width: 100%;
   }
 
   .point-media,
@@ -560,10 +689,17 @@ section {
     grid-template-columns: 1fr;
   }
 
-  .legend {
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
+  .route-card {
+    min-height: auto;
+    position: relative;
+    padding-left: 72px;
+  }
+
+  .route-card::before {
+    position: absolute;
+    left: 16px;
+    top: 18px;
+    margin-bottom: 0;
   }
 
   .site-footer {
