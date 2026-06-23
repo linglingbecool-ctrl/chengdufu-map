@@ -52,6 +52,7 @@ function renderOptionalRow(label, value) {
 }
 
 function renderDetail(point) {
+ function renderDetail(point) {
   detailEl.innerHTML = `
     <article class="point-card">
       <span class="type-pill">${escapeHtml(point.type)}</span>
@@ -59,6 +60,24 @@ function renderDetail(point) {
       <div>
         <p class="detail-kicker">Point Detail</p>
         <h3>${escapeHtml(point.nameModern)}</h3>
+      </div>
+
+      <div class="point-media">
+        <figure>
+          <img
+            src="./${escapeHtml(point.oldImage)}"
+            alt="${escapeHtml(point.nameAncient)}古图局部图"
+          >
+          <figcaption>古图局部图</figcaption>
+        </figure>
+
+        <figure>
+          <img
+            src="./${escapeHtml(point.currentImage)}"
+            alt="${escapeHtml(point.nameModern)}今景图"
+          >
+          <figcaption>今景图</figcaption>
+        </figure>
       </div>
 
       <div class="meta-grid">
@@ -79,20 +98,12 @@ function renderDetail(point) {
       <p>${escapeHtml(point.quick)}</p>
       <p>${escapeHtml(point.extended)}</p>
 
-      <div class="point-media">
-        <figure>
-          <img src="${escapeHtml(point.oldImage)}" alt="${escapeHtml(point.nameAncient)}古图局部图">
-          <figcaption>古图局部图</figcaption>
-        </figure>
-        <figure>
-          <img src="${escapeHtml(point.currentImage)}" alt="${escapeHtml(point.nameModern)}今景图">
-          <figcaption>今景图</figcaption>
-        </figure>
-      </div>
-
-      <p class="source">来源：${escapeHtml(point.source)}</p>
+      <p class="source">
+        来源：${escapeHtml(point.source)}
+      </p>
     </article>
   `;
+}
 }
 
 function renderMarkers(points) {
