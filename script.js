@@ -52,9 +52,8 @@ function renderOptionalRow(label, value) {
 }
 
 function renderDetail(point) {
- function renderDetail(point) {
   detailEl.innerHTML = `
-    <article class="point-card">
+    <div class="point-card">
       <span class="type-pill">${escapeHtml(point.type)}</span>
 
       <div>
@@ -101,11 +100,9 @@ function renderDetail(point) {
       <p class="source">
         来源：${escapeHtml(point.source)}
       </p>
-    </article>
+    </div>
   `;
 }
-}
-
 function renderMarkers(points) {
   markersEl.innerHTML = "";
 
