@@ -1,3 +1,18 @@
+// ==============================
+// 腾讯云 CloudBase 初始化
+// ==============================
+
+const app = cloudbase.init({
+  env: "chengdufu-map-d4g459au02132689"
+});
+
+const db = app.database();
+
+
+// ==============================
+// 点位状态配置
+// ==============================
+
 const statusClass = {
   "存续点": "status-existing",
   "变迁点": "status-changed",
@@ -13,6 +28,7 @@ const statusLabel = {
   uncertain: "不确定点"
 };
 
+
 const citywalkOrder = [
   "jiuyanqiao",
   "wuhouci",
@@ -22,9 +38,17 @@ const citywalkOrder = [
   "hongpailou"
 ];
 
+
+
 const markersEl = document.querySelector("#mapMarkers");
 const detailEl = document.querySelector("#pointDetail");
 const routeListEl = document.querySelector("#routeList");
+
+
+
+// ==============================
+// 工具函数
+// ==============================
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -35,140 +59,511 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+
+
 function getStatusClass(point) {
   return statusClass[point.status] || "status-uncertain";
 }
+
+
 
 function getStatusLabel(point) {
   return statusLabel[point.status] || point.status || "待校核";
 }
 
+
+
 function renderOptionalRow(label, value) {
+
   if (!value) return "";
+
   return `
     <strong>${escapeHtml(label)}</strong>
     <span>${escapeHtml(value)}</span>
   `;
+
 }
 
+
+
+// ==============================
+// 用户城市记忆投稿按钮
+// ==============================
+
+function renderContributionButton(point){
+
+  return `
+
+    <button 
+      class="memory-btn"
+      onclick="submitMemory('${point.id}')">
+
+      留下我的城市记忆
+
+    </button>
+
+  `;
+
+}
+
+
+
+// ==============================
+// 点位详情
+// ==============================
+
+
 function renderDetail(point) {
+
   detailEl.innerHTML = `
+
     <div class="point-card">
-      <span class="type-pill">${escapeHtml(point.type)}</span>
+
+      <span class="type-pill">
+        ${escapeHtml(point.type)}
+      </span>
+
 
       <div>
-        <p class="detail-kicker">Point Detail</p>
-        <h3>${escapeHtml(point.nameModern)}</h3>
+
+        <p class="detail-kicker">
+          Point Detail
+        </p>
+
+        <h3>
+          ${escapeHtml(point.nameModern)}
+        </h3>
+
       </div>
 
+
+
       <div class="point-media">
+
+
         <figure>
+
           <img
             src="./${escapeHtml(point.oldImage)}"
             alt="${escapeHtml(point.nameAncient)}古图局部图"
           >
-          <figcaption>古图局部图</figcaption>
+
+          <figcaption>
+            古图局部图
+          </figcaption>
+
         </figure>
 
+
+
         <figure>
+
           <img
             src="./${escapeHtml(point.currentImage)}"
             alt="${escapeHtml(point.nameModern)}今景图"
           >
-          <figcaption>今景图</figcaption>
+
+          <figcaption>
+            今景图
+          </figcaption>
+
         </figure>
+
+
       </div>
+
+
+
 
       <div class="meta-grid">
-        <strong>古图名</strong>
-        <span>${escapeHtml(point.nameAncient)}</span>
 
-        <strong>今名</strong>
-        <span>${escapeHtml(point.nameModern)}</span>
 
-        <strong>状态</strong>
-        <span>${escapeHtml(getStatusLabel(point))}</span>
+        <strong>
+          古图名
+        </strong>
 
-        ${renderOptionalRow("可信度", point.confidence)}
-        ${renderOptionalRow("判断依据", point.evidence)}
-        ${renderOptionalRow("校勘备注", point.note)}
+        <span>
+          ${escapeHtml(point.nameAncient)}
+        </span>
+
+
+
+        <strong>
+          今名
+        </strong>
+
+        <span>
+          ${escapeHtml(point.nameModern)}
+        </span>
+
+
+
+        <strong>
+          状态
+        </strong>
+
+        <span>
+          ${escapeHtml(getStatusLabel(point))}
+        </span>
+
+
+        ${renderOptionalRow(
+          "可信度",
+          point.confidence
+        )}
+
+
+
+        ${renderOptionalRow(
+          "判断依据",
+          point.evidence
+        )}
+
+
+
+        ${renderOptionalRow(
+          "校勘备注",
+          point.note
+        )}
+
+
       </div>
 
-      <p>${escapeHtml(point.quick)}</p>
-      <p>${escapeHtml(point.extended)}</p>
+
+
+
+      <p>
+        ${escapeHtml(point.quick)}
+      </p>
+
+
+      <p>
+        ${escapeHtml(point.extended)}
+      </p>
+
+
+
 
       <p class="source">
-        来源：${escapeHtml(point.source)}
+
+        来源：
+        ${escapeHtml(point.source)}
+
       </p>
+
+
+
+      <!-- 新增城市记忆入口 -->
+
+      ${renderContributionButton(point)}
+
+
     </div>
+
   `;
+
 }
+
+
+
+
+// ==============================
+// 渲染地图点
+// ==============================
+
+
 function renderMarkers(points) {
+
   markersEl.innerHTML = "";
 
-  points.forEach((point, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `map-marker ${getStatusClass(point)}`;
-    button.style.left = `${point.x}%`;
-    button.style.top = `${point.y}%`;
-    button.setAttribute("aria-label", point.nameModern);
-    button.setAttribute("title", `${point.nameModern}｜${getStatusLabel(point)}`);
 
-    button.addEventListener("click", () => {
-      document
+  points.forEach((point,index)=>{
+
+
+    const button=document.createElement("button");
+
+
+    button.type="button";
+
+
+    button.className=
+      `map-marker ${getStatusClass(point)}`;
+
+
+
+    button.style.left=
+      `${point.x}%`;
+
+    button.style.top=
+      `${point.y}%`;
+
+
+
+    button.setAttribute(
+      "aria-label",
+      point.nameModern
+    );
+
+
+
+    button.setAttribute(
+      "title",
+      `${point.nameModern}｜${getStatusLabel(point)}`
+    );
+
+
+
+
+    button.addEventListener(
+      "click",
+      ()=>{
+
+
+        document
         .querySelectorAll(".map-marker")
-        .forEach((marker) => marker.classList.remove("active"));
+        .forEach(marker=>{
 
-      button.classList.add("active");
-      renderDetail(point);
-    });
+          marker.classList.remove(
+            "active"
+          );
+
+        });
+
+
+
+        button.classList.add(
+          "active"
+        );
+
+
+        renderDetail(point);
+
+
+      }
+
+    );
+
+
 
     markersEl.appendChild(button);
 
-    if (index === 0) {
-      button.classList.add("active");
+
+
+    if(index===0){
+
+      button.classList.add(
+        "active"
+      );
+
       renderDetail(point);
+
     }
+
+
   });
+
+
 }
 
-function renderRoute(points) {
-  const pointMap = new Map(points.map((point) => [point.id, point]));
 
-  routeListEl.innerHTML = citywalkOrder
-    .map((id) => pointMap.get(id))
+
+// ==============================
+// Citywalk路线
+// ==============================
+
+
+function renderRoute(points){
+
+  const pointMap =
+    new Map(
+      points.map(
+        point=>[
+          point.id,
+          point
+        ]
+      )
+    );
+
+
+  routeListEl.innerHTML =
+
+    citywalkOrder
+
+    .map(
+      id=>pointMap.get(id)
+    )
+
     .filter(Boolean)
-    .map((point) => `
+
+    .map(point=>`
+
       <li class="route-card">
-        <h3>${escapeHtml(point.nameModern)}</h3>
-        <p>${escapeHtml(point.routeNote)}</p>
+
+        <h3>
+          ${escapeHtml(point.nameModern)}
+        </h3>
+
+
+        <p>
+          ${escapeHtml(point.routeNote)}
+        </p>
+
+
       </li>
+
     `)
+
     .join("");
+
 }
 
-async function init() {
-  try {
-    const response = await fetch("./points.json");
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+
+
+// ==============================
+// 初始化地图
+// ==============================
+
+
+async function init(){
+
+
+  try{
+
+
+    const response =
+      await fetch("./points.json");
+
+
+
+    if(!response.ok){
+
+      throw new Error(
+        `HTTP ${response.status}`
+      );
+
     }
 
-    const points = await response.json();
+
+
+    const points =
+      await response.json();
+
+
 
     renderMarkers(points);
+
+
     renderRoute(points);
-  } catch (error) {
-    detailEl.innerHTML = `
-      <p class="empty-state">
-        点位数据暂时无法加载。请检查 points.json 是否位于仓库根目录，并确认 GitHub Pages 已完成部署。
-      </p>
-    `;
-    routeListEl.innerHTML = "";
-    console.error("Failed to load points.json", error);
+
+
+
   }
+
+  catch(error){
+
+
+    detailEl.innerHTML=`
+
+      <p class="empty-state">
+
+      点位数据暂时无法加载。
+
+      </p>
+
+    `;
+
+
+    console.error(
+      "Failed to load points.json",
+      error
+    );
+
+  }
+
+
 }
+
+
+
+
+
+// ==============================
+// 提交城市记忆
+// ==============================
+
+
+async function submitMemory(pointId){
+
+
+  const content =
+    prompt(
+      "请输入你的城市记忆："
+    );
+
+
+
+  if(!content){
+
+    return;
+
+  }
+
+
+
+
+  try{
+
+
+    await db
+    .collection("contributions")
+    .add({
+
+
+      pointId:pointId,
+
+
+      content:content,
+
+
+      status:"待审核",
+
+
+      createdAt:
+        new Date()
+
+
+    });
+
+
+
+    alert(
+      "感谢你的城市记忆贡献！"
+    );
+
+
+
+  }
+
+  catch(error){
+
+
+    console.error(
+      error
+    );
+
+
+    alert(
+      "提交失败，请稍后再试"
+    );
+
+
+  }
+
+
+}
+
+
+
 
 init();
