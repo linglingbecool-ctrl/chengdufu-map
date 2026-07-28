@@ -706,3 +706,44 @@ section {
     flex-direction: column;
   }
 }
+.memory-btn {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #8b3a2b;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.memory-btn:hover {
+  opacity: 0.88;
+}
+
+.memory-help {
+  margin-top: 8px;
+  color: #756b5e;
+  font-size: 13px;
+}
+
+.point-media-placeholder {
+  padding: 28px 18px;
+  border: 1px dashed #b8aa94;
+  border-radius: 8px;
+  background: rgba(255, 250, 239, 0.75);
+  color: #756b5e;
+  text-align: center;
+}
+
+.map-marker-basic {
+  transform: scale(0.72);
+  opacity: 0.82;
+}
+
+.map-marker-basic.active {
+  transform: scale(1);
+  opacity: 1;
+}
