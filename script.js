@@ -1,9 +1,9 @@
 // ===============================================
 // 成都府图：50点原型 + CloudBase 图文城市记忆投稿
-// 版本：2026-07-29-10
+// 版本：2026-07-29-11
 // ===============================================
 
-const APP_VERSION = "20260729-10";
+const APP_VERSION = "20260729-11";
 const CLOUDBASE_ENV_ID = "chengdufu-map-d4g459au02132689e";
 const CLOUDBASE_REGION = "ap-shanghai";
 
@@ -773,6 +773,61 @@ async function uploadContributionImages(
   return fileIDs;
 }
 
+/**
+ * 投稿写入 contributions 后，自动调用 processContribution 云函数。
+ */
+async function triggerContributionProcessing(submissionId) {
+  if (!submissionId) {
+    throw new Error("缺少投稿记录 ID");
+  }
+
+  if (!cloudApp || typeof cloudApp.callFunction !== "function") {
+    throw new Error("CloudBase 云函数调用模块不可用");
+  }
+
+  const response = await cloudApp.callFunction({
+    name: "processContribution",
+    data: {
+      submissionId
+    },
+    parse: true
+  });
+
+  if (response?.code) {
+    throw new Error(
+      response.message ||
+      response.code
+    );
+  }
+
+  let result = response?.result;
+
+  // 兼容少数情况下仍返回 JSON 字符串。
+  if (typeof result === "string") {
+    try {
+      result = JSON.parse(result);
+    } catch {
+      throw new Error(
+        "云函数返回内容无法解析"
+      );
+    }
+  }
+
+  if (!result?.ok) {
+    throw new Error(
+      result?.message ||
+      "云函数处理投稿失败"
+    );
+  }
+
+  console.log(
+    "投稿自动处理结果：",
+    result
+  );
+
+  return result;
+}
+
 async function handleContributionSubmit(event) {
   event.preventDefault();
 
@@ -888,20 +943,68 @@ async function handleContributionSubmit(event) {
       );
     }
 
+    const submissionId =
+      addResult?._id ||
+      addResult?.id;
+
+    if (!submissionId) {
+      throw new Error(
+        "投稿已保存，但没有取得投稿记录 ID"
+      );
+    }
+
     console.log(
-      "图文城市记忆提交成功：",
+      "图文城市记忆保存成功：",
       addResult
     );
 
     statusElement.textContent =
-      "提交成功，内容已进入待处理队列。";
+      "投稿已保存，正在启动自动处理流程……";
+
+    let processingStarted = false;
+    let processingMessage = "";
+
+    try {
+      const processingResult =
+        await triggerContributionProcessing(
+          submissionId
+        );
+
+      processingStarted = true;
+      processingMessage =
+        processingResult.message ||
+        "投稿已进入自动处理流程。";
+
+      statusElement.textContent =
+        processingMessage;
+    } catch (processingError) {
+      // 云函数调用失败时，不删除已经成功保存的投稿。
+      console.error(
+        "自动处理启动失败：",
+        processingError
+      );
+
+      processingMessage =
+        "投稿已经保存，但自动处理暂未启动，管理员可稍后重新处理。";
+
+      statusElement.textContent =
+        processingMessage;
+      statusElement.classList.add("is-error");
+    }
 
     window.setTimeout(() => {
       closeContributionModal();
-      alert(
-        `提交成功：共上传 ${imageFileIds.length} 张照片。`
-      );
-    }, 500);
+
+      if (processingStarted) {
+        alert(
+          `提交成功：共上传 ${imageFileIds.length} 张照片，投稿已进入自动处理流程。`
+        );
+      } else {
+        alert(
+          `投稿已保存：共上传 ${imageFileIds.length} 张照片，但自动处理暂未启动。`
+        );
+      }
+    }, 700);
   } catch (error) {
     console.error(
       "图文投稿失败：",
