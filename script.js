@@ -1,9 +1,9 @@
 // ===============================================
 // 成都府图：50点原型 + CloudBase 图文城市记忆投稿
-// 版本：2026-07-29-9
+// 版本：2026-07-29-10
 // ===============================================
 
-const APP_VERSION = "20260729-9";
+const APP_VERSION = "20260729-10";
 const CLOUDBASE_ENV_ID = "chengdufu-map-d4g459au02132689e";
 const CLOUDBASE_REGION = "ap-shanghai";
 
@@ -473,7 +473,25 @@ function ensureContributionModal() {
             支持 JPG、PNG、WebP；每张不超过5MB。
           </small>
         </label>
+<label class="contribution-consent">
+  <input
+    id="consentToPublish"
+    type="checkbox"
+  >
+  <span>
+    我同意该投稿经审核后在本项目中公开展示
+  </span>
+</label>
 
+<label class="contribution-consent">
+  <input
+    id="rightsConfirmed"
+    type="checkbox"
+  >
+  <span>
+    我确认上传的文字、照片由本人提供，或已获得相关权利人的授权
+  </span>
+</label>
         <div
           class="contribution-preview"
           id="contributionPreview"
@@ -776,6 +794,12 @@ async function handleContributionSubmit(event) {
 
   const files = getSelectedImages();
 
+  const consentToPublish =
+    document.querySelector("#consentToPublish")?.checked === true;
+
+  const rightsConfirmed =
+    document.querySelector("#rightsConfirmed")?.checked === true;
+
   const statusElement =
     document.querySelector("#contributionStatus");
 
@@ -787,6 +811,20 @@ async function handleContributionSubmit(event) {
   if (!content && files.length === 0) {
     statusElement.textContent =
       "请至少填写一段文字，或上传一张照片。";
+    statusElement.classList.add("is-error");
+    return;
+  }
+
+  if (!consentToPublish) {
+    statusElement.textContent =
+      "请勾选“同意该投稿经审核后公开展示”。";
+    statusElement.classList.add("is-error");
+    return;
+  }
+
+  if (!rightsConfirmed) {
+    statusElement.textContent =
+      "请确认投稿材料由本人提供，或已获得相关权利人的授权。";
     statusElement.classList.add("is-error");
     return;
   }
@@ -830,6 +868,10 @@ async function handleContributionSubmit(event) {
           imageFileIds,
           imageCount: imageFileIds.length,
           videoFileIds: [],
+
+          consentToPublish,
+          rightsConfirmed,
+
           status: "pending",
           sourceType: "public_ugc",
           createdAt: new Date()
