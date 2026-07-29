@@ -10,11 +10,6 @@
     />
    <link rel="stylesheet" href="./style.css?v=20260728-8" />
 
-<script
-  src="./cloudbase.full.js?v=20260729-5"
-  onload="console.log('CloudBase SDK 本地加载成功')"
-  onerror="console.error('CloudBase SDK 本地加载失败')"
-></script>
   </head>
 
   <body>
@@ -225,7 +220,21 @@
       <a href="#top">返回顶部</a>
       <span>图绘成都 · 四川大学图书馆古籍特藏数字人文导览原型</span>
     </footer>
+<script type="module">
+  
+  try {
+    const sdkModule = await import(
+      "https://unpkg.com/@cloudbase/js-sdk@3.4.8/dist/index.esm.js"
+    );
 
-<script src="./script.js?v=20260729-5"></script>
+    window.cloudbase = sdkModule.default;
+
+    console.log("CloudBase SDK v3 加载成功");
+
+    await import("./script.js?v=20260729-6");
+  } catch (error) {
+    console.error("CloudBase SDK v3 加载失败：", error);
+  }
+</script>    
   </body>
 </html>
