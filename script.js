@@ -3,7 +3,7 @@
 // 版本：2026-07-29-2
 // ===============================================
 
-const APP_VERSION = "20260729-2";
+const APP_VERSION = "20260729-3";
 const CLOUDBASE_ENV_ID = "chengdufu-map-d4g459au02132689e";
 const CLOUDBASE_REGION = "ap-shanghai";
 
