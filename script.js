@@ -1,15 +1,19 @@
 // ===============================================
 // 成都府图：50点原型 + CloudBase 城市记忆投稿
-// 版本：2026-07-28-6
+// 版本：2026-07-29-2
 // ===============================================
 
-const APP_VERSION = "20260728-6";
+const APP_VERSION = "20260729-2";
 const CLOUDBASE_ENV_ID = "chengdufu-map-d4g459au02132689e";
 const CLOUDBASE_REGION = "ap-shanghai";
 
 let cloudApp = null;
 let cloudDb = null;
 let cloudReady = false;
+
+let markersEl = null;
+let detailEl = null;
+let routeListEl = null;
 
 const statusClass = {
   "存续点": "status-existing",
@@ -38,14 +42,9 @@ const citywalkOrder = [
   "hongpailou"
 ];
 
-let markersEl = null;
-let detailEl = null;
-let routeListEl = null;
-
 /**
  * 初始化 CloudBase。
- * 兼容当前 v3 SDK，同时保留对部分 v2 登录接口的兼容处理。
- * CloudBase 失败不会影响地图和详情卡显示。
+ * CloudBase 连接失败不会阻止地图、点位详情和投稿按钮显示。
  */
 async function initCloudBase() {
   if (!window.cloudbase || typeof window.cloudbase.init !== "function") {
@@ -61,33 +60,19 @@ async function initCloudBase() {
       region: CLOUDBASE_REGION
     });
 
-    // 优先使用 CloudBase v3 登录方式。
     if (
-      cloudApp.auth &&
-      typeof cloudApp.auth.signInAnonymously === "function"
+      !cloudApp.auth ||
+      typeof cloudApp.auth.signInAnonymously !== "function"
     ) {
-      const result = await cloudApp.auth.signInAnonymously();
+      throw new Error(
+        "当前 CloudBase SDK 中未找到匿名登录接口 signInAnonymously"
+      );
+    }
 
-      if (result?.error) {
-        throw result.error;
-      }
-    } else if (typeof cloudApp.auth === "function") {
-      // 兼容部分 v2 SDK。
-      const authInstance = cloudApp.auth({
-        persistence: "local"
-      });
+    const { error } = await cloudApp.auth.signInAnonymously();
 
-      if (typeof authInstance.signInAnonymously === "function") {
-        await authInstance.signInAnonymously();
-      } else if (
-        typeof authInstance.anonymousAuthProvider === "function"
-      ) {
-        await authInstance.anonymousAuthProvider().signIn();
-      } else {
-        throw new Error("当前 CloudBase SDK 不支持已配置的匿名登录方式");
-      }
-    } else {
-      throw new Error("未找到 CloudBase 身份认证模块");
+    if (error) {
+      throw error;
     }
 
     cloudDb = cloudApp.database();
@@ -101,7 +86,7 @@ async function initCloudBase() {
 
     console.error("CloudBase 初始化失败：", error);
     console.warn(
-      "地图与50个点位仍可正常浏览；投稿功能需要检查匿名登录、安全域名及数据库权限。"
+      "地图和50个点位仍可正常浏览；投稿功能需要检查匿名登录、安全来源及数据库权限。"
     );
 
     return false;
@@ -178,7 +163,7 @@ function renderPointMedia(point) {
   `;
 }
 
-function renderDetail(point) {
+function renderDetail(point, shouldScroll = false) {
   if (!detailEl) return;
 
   const detailLevelText =
@@ -237,11 +222,28 @@ function renderDetail(point) {
     </div>
   `;
 
+  // 按钮使用 data-memory-button 属性，不能再用不存在的 #memoryButton。
   const memoryButton = detailEl.querySelector("[data-memory-button]");
 
   if (memoryButton) {
     memoryButton.addEventListener("click", () => {
       submitMemory(point);
+    });
+  }
+
+  // 窄屏或开发者工具打开时，详情栏可能位于地图下方。
+  // 用户点击点位后自动滚动到详情卡。
+  if (
+    shouldScroll &&
+    window.matchMedia("(max-width: 1100px)").matches
+  ) {
+    const detailPanel = detailEl.closest(".detail-panel") || detailEl;
+
+    window.requestAnimationFrame(() => {
+      detailPanel.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
     });
   }
 }
@@ -252,16 +254,27 @@ function renderMarkers(points) {
   markersEl.innerHTML = "";
 
   points.forEach((point, index) => {
+    const x = Number(point.x);
+    const y = Number(point.y);
+
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      console.warn("点位坐标无效，已跳过：", point);
+      return;
+    }
+
     const button = document.createElement("button");
 
     button.type = "button";
     button.className = `map-marker ${getStatusClass(point)}`;
-    button.style.left = `${Number(point.x)}%`;
-    button.style.top = `${Number(point.y)}%`;
-    button.setAttribute("aria-label", point.nameModern || point.nameAncient);
+    button.style.left = `${x}%`;
+    button.style.top = `${y}%`;
+    button.setAttribute(
+      "aria-label",
+      point.nameModern || point.nameAncient || "历史点位"
+    );
     button.setAttribute(
       "title",
-      `${point.nameModern || point.nameAncient}｜${getStatusLabel(point)}`
+      `${point.nameModern || point.nameAncient || "历史点位"}｜${getStatusLabel(point)}`
     );
 
     if (point.detailLevel === "basic") {
@@ -274,7 +287,7 @@ function renderMarkers(points) {
         .forEach((marker) => marker.classList.remove("active"));
 
       button.classList.add("active");
-      renderDetail(point);
+      renderDetail(point, true);
     });
 
     markersEl.appendChild(button);
@@ -310,7 +323,7 @@ function renderRoute(points) {
 async function submitMemory(point) {
   if (!cloudReady || !cloudDb) {
     alert(
-      "云端投稿服务尚未连接。\n\n地图和点位可以正常浏览。请检查 CloudBase 匿名登录、安全域名和 contributions 集合权限后再提交。"
+      "云端投稿服务尚未连接。\n\n地图和点位可以正常浏览。请检查 CloudBase 匿名登录、安全来源和 contributions 集合权限后再提交。"
     );
     return;
   }
@@ -326,7 +339,7 @@ async function submitMemory(point) {
   );
 
   try {
-    await cloudDb.collection("contributions").add({
+    const result = await cloudDb.collection("contributions").add({
       pointId: point.id,
       pointName: point.nameModern,
       originalContent: content.trim(),
@@ -339,6 +352,7 @@ async function submitMemory(point) {
       createdAt: new Date()
     });
 
+    console.log("城市记忆提交成功：", result);
     alert("提交成功。该内容已进入城市记忆待处理队列。");
   } catch (error) {
     console.error("投稿失败：", error);
@@ -361,18 +375,22 @@ async function loadPoints() {
   });
 
   if (!response.ok) {
-    throw new Error(`读取 points.json 失败：HTTP ${response.status}`);
+    throw new Error(
+      `读取 points.json 失败：HTTP ${response.status}`
+    );
   }
 
   const points = await response.json();
 
   if (!Array.isArray(points)) {
-    throw new TypeError("points.json 的最外层必须是数组");
+    throw new TypeError(
+      "points.json 的最外层必须是数组"
+    );
   }
 
   if (points.length < 50) {
     console.warn(
-      `当前只读取到 ${points.length} 个点位；预期为50个。请确认 points.json 已覆盖并完成部署。`
+      `当前只读取到 ${points.length} 个点位；预期为50个。请确认 points.json 已完成部署。`
     );
   } else {
     console.log(`已读取 ${points.length} 个点位`);
@@ -394,7 +412,7 @@ async function init() {
   }
 
   try {
-    // 先加载并显示地图；CloudBase连接失败不会阻止50点展示。
+    // 先加载并显示地图；CloudBase失败不会阻止50点展示。
     const points = await loadPoints();
 
     renderMarkers(points);
@@ -410,7 +428,6 @@ async function init() {
     `;
 
     routeListEl.innerHTML = "";
-
     console.error("网站初始化失败：", error);
   }
 }
