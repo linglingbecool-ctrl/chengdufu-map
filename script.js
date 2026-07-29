@@ -1,11 +1,19 @@
 // ===============================================
-// 成都府图：50点原型 + CloudBase 城市记忆投稿
-// 版本：2026-07-29-4
+// 成都府图：50点原型 + CloudBase 图文城市记忆投稿
+// 版本：2026-07-29-9
 // ===============================================
 
-const APP_VERSION = "20260729-6";
+const APP_VERSION = "20260729-9";
 const CLOUDBASE_ENV_ID = "chengdufu-map-d4g459au02132689e";
 const CLOUDBASE_REGION = "ap-shanghai";
+
+const MAX_IMAGE_COUNT = 3;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp"
+];
 
 let cloudApp = null;
 let cloudDb = null;
@@ -14,6 +22,9 @@ let cloudReady = false;
 let markersEl = null;
 let detailEl = null;
 let routeListEl = null;
+
+let activeContributionPoint = null;
+let previewObjectUrls = [];
 
 const statusClass = {
   "存续点": "status-existing",
@@ -44,12 +55,7 @@ const citywalkOrder = [
 
 /**
  * 初始化 CloudBase。
- *
- * 支持：
- * 1. CloudBase Web SDK v3：app.auth.signInAnonymously()
- * 2. CloudBase Web SDK v2/兼容接口：app.auth().anonymousAuthProvider().signIn()
- *
- * CloudBase 连接失败不会影响地图、50个点位和详情卡显示。
+ * 兼容 CloudBase Web SDK v2 和 v3 的匿名登录接口。
  */
 async function initCloudBase() {
   if (!window.cloudbase || typeof window.cloudbase.init !== "function") {
@@ -66,10 +72,6 @@ async function initCloudBase() {
       region: CLOUDBASE_REGION
     });
 
-    if (!cloudApp) {
-      throw new Error("CloudBase 初始化没有返回应用实例");
-    }
-
     let loginSucceeded = false;
 
     // CloudBase Web SDK v3
@@ -77,8 +79,7 @@ async function initCloudBase() {
       cloudApp.auth &&
       typeof cloudApp.auth.signInAnonymously === "function"
     ) {
-      const loginResult =
-        await cloudApp.auth.signInAnonymously();
+      const loginResult = await cloudApp.auth.signInAnonymously();
 
       if (loginResult?.error) {
         throw loginResult.error;
@@ -88,7 +89,7 @@ async function initCloudBase() {
       console.log("CloudBase v3 匿名登录成功");
     }
 
-    // CloudBase Web SDK v2 或兼容模式
+    // CloudBase Web SDK v2 / 兼容模式
     else if (typeof cloudApp.auth === "function") {
       const authInstance = cloudApp.auth({
         persistence: "local"
@@ -127,9 +128,7 @@ async function initCloudBase() {
     }
 
     if (typeof cloudApp.database !== "function") {
-      throw new Error(
-        "CloudBase 数据库模块未加载"
-      );
+      throw new Error("CloudBase 数据库模块未加载");
     }
 
     cloudDb = cloudApp.database();
@@ -145,13 +144,9 @@ async function initCloudBase() {
     cloudReady = false;
     cloudDb = null;
 
-    console.error(
-      "CloudBase 连接失败：",
-      error
-    );
-
+    console.error("CloudBase 连接失败：", error);
     console.warn(
-      "地图与50个点位仍可正常浏览。投稿功能请检查匿名登录、安全来源和 contributions 权限。"
+      "地图与50个点位仍可正常浏览。投稿功能请检查匿名登录、安全来源、云存储权限和 contributions 权限。"
     );
 
     return false;
@@ -246,9 +241,7 @@ function renderDetail(point, shouldScroll = false) {
         <p class="detail-kicker">
           ${detailLevelText}
         </p>
-        <h3>
-          ${escapeHtml(point.nameModern)}
-        </h3>
+        <h3>${escapeHtml(point.nameModern)}</h3>
       </div>
 
       ${renderPointMedia(point)}
@@ -268,17 +261,8 @@ function renderDetail(point, shouldScroll = false) {
         ${renderOptionalRow("校勘备注", point.note)}
       </div>
 
-      ${
-        point.quick
-          ? `<p>${escapeHtml(point.quick)}</p>`
-          : ""
-      }
-
-      ${
-        point.extended
-          ? `<p>${escapeHtml(point.extended)}</p>`
-          : ""
-      }
+      ${point.quick ? `<p>${escapeHtml(point.quick)}</p>` : ""}
+      ${point.extended ? `<p>${escapeHtml(point.extended)}</p>` : ""}
 
       <button
         type="button"
@@ -289,7 +273,7 @@ function renderDetail(point, shouldScroll = false) {
       </button>
 
       <p class="memory-help">
-        可提交现场观察、家庭留影、旧照片线索或口述记忆。
+        可提交文字、现场照片、家庭留影或旧照片线索；每次最多3张图片。
       </p>
     </div>
   `;
@@ -299,7 +283,7 @@ function renderDetail(point, shouldScroll = false) {
 
   if (memoryButton) {
     memoryButton.addEventListener("click", () => {
-      submitMemory(point);
+      openContributionModal(point);
     });
   }
 
@@ -307,8 +291,7 @@ function renderDetail(point, shouldScroll = false) {
     const detailPanel =
       detailEl.closest(".detail-panel") || detailEl;
 
-    const rect =
-      detailPanel.getBoundingClientRect();
+    const rect = detailPanel.getBoundingClientRect();
 
     const panelOutsideViewport =
       rect.top >= window.innerHeight ||
@@ -336,15 +319,11 @@ function renderMarkers(points) {
     const y = Number(point.y);
 
     if (!Number.isFinite(x) || !Number.isFinite(y)) {
-      console.warn(
-        "点位坐标无效，已跳过：",
-        point
-      );
+      console.warn("点位坐标无效，已跳过：", point);
       return;
     }
 
-    const button =
-      document.createElement("button");
+    const button = document.createElement("button");
 
     button.type = "button";
     button.className =
@@ -396,10 +375,7 @@ function renderRoute(points) {
   if (!routeListEl) return;
 
   const pointMap = new Map(
-    points.map((point) => [
-      point.id,
-      point
-    ])
+    points.map((point) => [point.id, point])
   );
 
   routeListEl.innerHTML = citywalkOrder
@@ -408,93 +384,494 @@ function renderRoute(points) {
     .map(
       (point) => `
         <li class="route-card">
-          <h3>
-            ${escapeHtml(point.nameModern)}
-          </h3>
-          <p>
-            ${escapeHtml(point.routeNote)}
-          </p>
+          <h3>${escapeHtml(point.nameModern)}</h3>
+          <p>${escapeHtml(point.routeNote)}</p>
         </li>
       `
     )
     .join("");
 }
 
-async function submitMemory(point) {
-  if (!cloudReady || !cloudDb) {
+/* ===============================================
+   图文投稿弹窗
+   =============================================== */
+
+function ensureContributionModal() {
+  if (document.querySelector("#contributionModal")) {
+    return;
+  }
+
+  const modal = document.createElement("div");
+  modal.id = "contributionModal";
+  modal.className = "contribution-modal";
+  modal.hidden = true;
+
+  modal.innerHTML = `
+    <div
+      class="contribution-modal__backdrop"
+      data-close-contribution-modal
+    ></div>
+
+    <section
+      class="contribution-modal__dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contributionModalTitle"
+    >
+      <button
+        type="button"
+        class="contribution-modal__close"
+        aria-label="关闭投稿窗口"
+        data-close-contribution-modal
+      >
+        ×
+      </button>
+
+      <p class="detail-kicker">
+        Public Contribution
+      </p>
+
+      <h2 id="contributionModalTitle">
+        留下城市记忆
+      </h2>
+
+      <p
+        class="contribution-modal__point"
+        id="contributionPointName"
+      ></p>
+
+      <form id="contributionForm">
+        <label class="contribution-field">
+          <span>文字说明</span>
+          <textarea
+            id="contributionContent"
+            rows="5"
+            maxlength="1200"
+            placeholder="写下你的现场观察、家庭记忆、口述线索或照片说明。"
+          ></textarea>
+        </label>
+
+        <label class="contribution-field">
+          <span>大约时间</span>
+          <input
+            id="contributionTime"
+            type="text"
+            maxlength="80"
+            placeholder="例如：2000年前后、童年时期、2026年7月"
+          >
+        </label>
+
+        <label class="contribution-field">
+          <span>上传照片（最多3张）</span>
+          <input
+            id="contributionImages"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+          >
+          <small>
+            支持 JPG、PNG、WebP；每张不超过5MB。
+          </small>
+        </label>
+
+        <div
+          class="contribution-preview"
+          id="contributionPreview"
+          aria-live="polite"
+        ></div>
+
+        <p
+          class="contribution-status"
+          id="contributionStatus"
+          aria-live="polite"
+        ></p>
+
+        <div class="contribution-actions-row">
+          <button
+            type="button"
+            class="btn ghost"
+            data-close-contribution-modal
+          >
+            取消
+          </button>
+
+          <button
+            type="submit"
+            class="btn primary"
+            id="contributionSubmit"
+          >
+            提交城市记忆
+          </button>
+        </div>
+      </form>
+    </section>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal
+    .querySelectorAll("[data-close-contribution-modal]")
+    .forEach((element) => {
+      element.addEventListener("click", closeContributionModal);
+    });
+
+  modal
+    .querySelector("#contributionImages")
+    .addEventListener("change", handleImageSelection);
+
+  modal
+    .querySelector("#contributionForm")
+    .addEventListener("submit", handleContributionSubmit);
+
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      !modal.hidden
+    ) {
+      closeContributionModal();
+    }
+  });
+}
+
+function openContributionModal(point) {
+  if (!cloudReady || !cloudDb || !cloudApp) {
     alert(
       "云端投稿服务尚未连接。\n\n" +
-      "地图和点位可以正常浏览。\n\n" +
-      "请检查：\n" +
-      "1. CloudBase 匿名登录是否开启；\n" +
-      "2. linglingbecool-ctrl.github.io 是否已加入安全来源；\n" +
-      "3. contributions 集合是否允许匿名用户新增本人数据。"
+      "地图和点位可以正常浏览，请稍后再试。"
     );
     return;
   }
 
-  const content = window.prompt(
-    `请写下你与“${point.nameModern}”有关的记忆或现场观察：`
-  );
+  ensureContributionModal();
 
-  if (!content || !content.trim()) return;
+  activeContributionPoint = point;
 
-  const approximateTime = window.prompt(
-    "这段记忆大约发生在什么时间？\n" +
-    "例如：2000年前后、童年时期、2026年7月"
-  );
+  const modal =
+    document.querySelector("#contributionModal");
+
+  const form =
+    modal.querySelector("#contributionForm");
+
+  form.reset();
+  clearPreviewUrls();
+
+  modal.querySelector("#contributionPreview").innerHTML = "";
+  modal.querySelector("#contributionStatus").textContent = "";
+  modal.querySelector("#contributionPointName").textContent =
+    `当前点位：${point.nameModern}`;
+
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+
+  window.requestAnimationFrame(() => {
+    modal
+      .querySelector("#contributionContent")
+      .focus();
+  });
+}
+
+function closeContributionModal() {
+  const modal =
+    document.querySelector("#contributionModal");
+
+  if (!modal) return;
+
+  modal.hidden = true;
+  activeContributionPoint = null;
+  document.body.classList.remove("modal-open");
+  clearPreviewUrls();
+}
+
+function clearPreviewUrls() {
+  previewObjectUrls.forEach((url) => {
+    URL.revokeObjectURL(url);
+  });
+
+  previewObjectUrls = [];
+}
+
+function getSelectedImages() {
+  const input =
+    document.querySelector("#contributionImages");
+
+  return input
+    ? Array.from(input.files || [])
+    : [];
+}
+
+function validateImages(files) {
+  if (files.length > MAX_IMAGE_COUNT) {
+    throw new Error(
+      `每次最多上传${MAX_IMAGE_COUNT}张照片。`
+    );
+  }
+
+  files.forEach((file) => {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      throw new Error(
+        `“${file.name}”格式不支持，请使用 JPG、PNG 或 WebP。`
+      );
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      throw new Error(
+        `“${file.name}”超过5MB，请压缩后再上传。`
+      );
+    }
+  });
+}
+
+function handleImageSelection() {
+  const preview =
+    document.querySelector("#contributionPreview");
+
+  const status =
+    document.querySelector("#contributionStatus");
+
+  const input =
+    document.querySelector("#contributionImages");
+
+  const files =
+    Array.from(input.files || []);
+
+  clearPreviewUrls();
+  preview.innerHTML = "";
+  status.textContent = "";
 
   try {
-    const result =
+    validateImages(files);
+  } catch (error) {
+    input.value = "";
+    status.textContent = error.message;
+    status.classList.add("is-error");
+    return;
+  }
+
+  status.classList.remove("is-error");
+
+  files.forEach((file) => {
+    const url = URL.createObjectURL(file);
+    previewObjectUrls.push(url);
+
+    const figure = document.createElement("figure");
+    figure.innerHTML = `
+      <img
+        src="${url}"
+        alt="${escapeHtml(file.name)}预览"
+      >
+      <figcaption>
+        ${escapeHtml(file.name)}
+      </figcaption>
+    `;
+
+    preview.appendChild(figure);
+  });
+}
+
+function getFileExtension(file) {
+  const nameParts = file.name.split(".");
+  const extension =
+    nameParts.length > 1
+      ? nameParts.pop().toLowerCase()
+      : "";
+
+  const extensionMap = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp"
+  };
+
+  return extensionMap[file.type] || extension || "jpg";
+}
+
+function createRandomId() {
+  if (
+    window.crypto &&
+    typeof window.crypto.randomUUID === "function"
+  ) {
+    return window.crypto
+      .randomUUID()
+      .replaceAll("-", "");
+  }
+
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).slice(2)
+  );
+}
+
+async function uploadContributionImages(
+  point,
+  files,
+  statusElement
+) {
+  const fileIDs = [];
+
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index];
+    const extension = getFileExtension(file);
+
+    const cloudPath =
+      `contributions/images/${point.id}/` +
+      `${Date.now()}_${index + 1}_${createRandomId()}.${extension}`;
+
+    statusElement.textContent =
+      `正在上传第 ${index + 1}/${files.length} 张照片……`;
+
+    const uploadResult =
+      await cloudApp.uploadFile({
+        cloudPath,
+        filePath: file,
+        onUploadProgress(progressEvent) {
+          if (!progressEvent.total) return;
+
+          const percent =
+            Math.round(
+              (progressEvent.loaded * 100) /
+              progressEvent.total
+            );
+
+          statusElement.textContent =
+            `正在上传第 ${index + 1}/${files.length} 张照片：${percent}%`;
+        }
+      });
+
+    if (uploadResult?.code) {
+      throw new Error(
+        uploadResult.message ||
+        uploadResult.code
+      );
+    }
+
+    if (!uploadResult?.fileID) {
+      throw new Error(
+        `第 ${index + 1} 张照片上传后未返回 fileID`
+      );
+    }
+
+    fileIDs.push(uploadResult.fileID);
+  }
+
+  return fileIDs;
+}
+
+async function handleContributionSubmit(event) {
+  event.preventDefault();
+
+  if (!activeContributionPoint) {
+    return;
+  }
+
+  const content =
+    document
+      .querySelector("#contributionContent")
+      .value
+      .trim();
+
+  const approximateTime =
+    document
+      .querySelector("#contributionTime")
+      .value
+      .trim();
+
+  const files = getSelectedImages();
+
+  const statusElement =
+    document.querySelector("#contributionStatus");
+
+  const submitButton =
+    document.querySelector("#contributionSubmit");
+
+  statusElement.classList.remove("is-error");
+
+  if (!content && files.length === 0) {
+    statusElement.textContent =
+      "请至少填写一段文字，或上传一张照片。";
+    statusElement.classList.add("is-error");
+    return;
+  }
+
+  try {
+    validateImages(files);
+
+    submitButton.disabled = true;
+    submitButton.textContent = "正在提交……";
+
+    let imageFileIds = [];
+
+    if (files.length > 0) {
+      imageFileIds =
+        await uploadContributionImages(
+          activeContributionPoint,
+          files,
+          statusElement
+        );
+    }
+
+    statusElement.textContent =
+      "照片上传完成，正在保存投稿记录……";
+
+    const materialType =
+      files.length > 0 && content
+        ? "text_image"
+        : files.length > 0
+          ? "image"
+          : "text";
+
+    const addResult =
       await cloudDb
         .collection("contributions")
         .add({
-          pointId: point.id,
-          pointName: point.nameModern,
-          originalContent: content.trim(),
-          approximateTime:
-            (approximateTime || "").trim(),
-          materialType: "text",
-          imageFileIds: [],
+          pointId: activeContributionPoint.id,
+          pointName: activeContributionPoint.nameModern,
+          originalContent: content,
+          approximateTime,
+          materialType,
+          imageFileIds,
+          imageCount: imageFileIds.length,
           videoFileIds: [],
           status: "pending",
           sourceType: "public_ugc",
           createdAt: new Date()
         });
 
-    if (result?.error) {
-      throw result.error;
+    if (addResult?.error) {
+      throw addResult.error;
     }
 
-    if (result?.code) {
+    if (addResult?.code) {
       throw new Error(
-        result.message || result.code
+        addResult.message ||
+        addResult.code
       );
     }
 
     console.log(
-      "城市记忆提交成功：",
-      result
+      "图文城市记忆提交成功：",
+      addResult
     );
 
-    alert(
-      "提交成功。该内容已进入城市记忆待处理队列。"
-    );
+    statusElement.textContent =
+      "提交成功，内容已进入待处理队列。";
+
+    window.setTimeout(() => {
+      closeContributionModal();
+      alert(
+        `提交成功：共上传 ${imageFileIds.length} 张照片。`
+      );
+    }, 500);
   } catch (error) {
     console.error(
-      "城市记忆投稿失败：",
+      "图文投稿失败：",
       error
     );
 
-    alert(
-      "提交失败。\n\n" +
-      "请打开浏览器 Console 查看具体错误。\n\n" +
-      "重点检查：\n" +
-      "1. contributions 权限；\n" +
-      "2. 匿名登录；\n" +
-      "3. 安全来源；\n" +
-      "4. 身份认证中的匿名用户数据库访问权限。"
-    );
+    statusElement.textContent =
+      `提交失败：${error.message || "请稍后重试"}`;
+    statusElement.classList.add("is-error");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "提交城市记忆";
   }
 }
 
@@ -556,15 +933,15 @@ async function init() {
     return;
   }
 
+  ensureContributionModal();
+
   try {
-    // 先加载地图；腾讯云连接失败不影响页面浏览。
     const points =
       await loadPoints();
 
     renderMarkers(points);
     renderRoute(points);
 
-    // 地图渲染完成后再连接腾讯云。
     await initCloudBase();
   } catch (error) {
     detailEl.innerHTML = `
