@@ -223,7 +223,8 @@ function renderDetail(point, shouldScroll = false) {
   `;
 
   // 按钮使用 data-memory-button 属性，不能再用不存在的 #memoryButton。
-  const memoryButton = detailEl.querySelector("[data-memory-button]");
+   const memoryButton =
+    detailEl.querySelector("[data-memory-button]");
 
   if (memoryButton) {
     memoryButton.addEventListener("click", () => {
@@ -231,23 +232,27 @@ function renderDetail(point, shouldScroll = false) {
     });
   }
 
-  // 窄屏或开发者工具打开时，详情栏可能位于地图下方。
-  // 用户点击点位后自动滚动到详情卡。
-  if (
-    shouldScroll &&
-    window.matchMedia("(max-width: 1100px)").matches
-  ) {
-    const detailPanel = detailEl.closest(".detail-panel") || detailEl;
+  if (shouldScroll) {
+    const detailPanel =
+      detailEl.closest(".detail-panel") || detailEl;
 
-    window.requestAnimationFrame(() => {
-      detailPanel.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
+    const rect = detailPanel.getBoundingClientRect();
+
+    const panelOutsideViewport =
+      rect.top >= window.innerHeight ||
+      rect.bottom <= 0 ||
+      rect.left >= window.innerWidth;
+
+    if (panelOutsideViewport) {
+      window.requestAnimationFrame(() => {
+        detailPanel.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
       });
-    });
+    }
   }
 }
-
 function renderMarkers(points) {
   if (!markersEl) return;
 
