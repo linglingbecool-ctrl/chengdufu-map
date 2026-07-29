@@ -198,16 +198,6 @@ function renderDetail(point, shouldScroll = false) {
       ${point.quick ? `<p>${escapeHtml(point.quick)}</p>` : ""}
       ${point.extended ? `<p>${escapeHtml(point.extended)}</p>` : ""}
 
-      ${
-        point.source
-          ? `
-            <p class="source">
-              来源：${escapeHtml(point.source)}
-            </p>
-          `
-          : ""
-      }
-
       <button
         type="button"
         class="memory-btn"
