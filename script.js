@@ -1,9 +1,9 @@
 // ===============================================
 // 成都府图：50点原型 + CloudBase 图文城市记忆投稿
-// 版本：2026-07-29-11
+// 版本：2026-08-07-01
 // ===============================================
 
-const APP_VERSION = "20260729-11";
+const APP_VERSION = "20260807-01";
 const CLOUDBASE_ENV_ID = "chengdufu-map-d4g459au02132689e";
 const CLOUDBASE_REGION = "ap-shanghai";
 
@@ -223,46 +223,108 @@ function renderPointMedia(point) {
   `;
 }
 
+function renderParagraphs(text) {
+  if (!text) return "";
+
+  return String(text)
+    .split(/\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .join("");
+}
+
 function renderDetail(point, shouldScroll = false) {
   if (!detailEl) return;
 
-  const detailLevelText =
-    point.detailLevel === "basic"
-      ? "Candidate Point"
-      : "Point Detail";
+  const isBasicPoint = point.detailLevel === "basic";
+
+  const detailLevelText = isBasicPoint
+    ? "资料整理中"
+    : "官方点位介绍";
+
+  const title = point.nameModern || point.nameAncient || "历史点位";
+
+  const coreMetaHtml = `
+    <div class="meta-grid">
+      <strong>点位类型</strong>
+      <span>${escapeHtml(point.type || "历史点位")}</span>
+
+      <strong>点位状态</strong>
+      <span>${escapeHtml(getStatusLabel(point))}</span>
+
+      <strong>古图标注</strong>
+      <span>${escapeHtml(point.nameAncient || "待校核")}</span>
+
+      <strong>今日名称</strong>
+      <span>${escapeHtml(point.nameModern || "待校核")}</span>
+
+      ${point.routeNote ? `
+        <strong>城市线索</strong>
+        <span>${escapeHtml(point.routeNote)}</span>
+      ` : ""}
+    </div>
+  `;
+
+  const basicMetaHtml = `
+    <div class="meta-grid">
+      <strong>点位类型</strong>
+      <span>${escapeHtml(point.type || "历史点位")}</span>
+
+      <strong>点位状态</strong>
+      <span>资料整理中</span>
+
+      <strong>古图标注</strong>
+      <span>${escapeHtml(point.nameAncient || "待校核")}</span>
+
+      <strong>今日名称</strong>
+      <span>${escapeHtml(point.nameModern || "待校核")}</span>
+    </div>
+  `;
+
+  const basicContentHtml = `
+    <div class="empty-state">
+      <p>
+        该点位已完成地图标注，基础历史资料正在整理中。
+        公众仍可提交与此地有关的照片、故事或口述线索。
+      </p>
+    </div>
+  `;
+
+  const coreContentHtml = `
+    ${point.quick ? `
+      <div class="official-summary">
+        <h4>点位导读</h4>
+        <p>${escapeHtml(point.quick)}</p>
+      </div>
+    ` : ""}
+
+    ${point.extended ? `
+      <div class="official-intro">
+        <h4>历史简介</h4>
+        ${renderParagraphs(point.extended)}
+      </div>
+    ` : ""}
+  `;
 
   detailEl.innerHTML = `
-    <div class="point-card">
+    <div class="point-card ${isBasicPoint ? "point-card-basic" : "point-card-core"}">
       <span class="type-pill">
-        ${escapeHtml(point.type)}
+        ${escapeHtml(point.type || "历史点位")}
       </span>
 
       <div>
         <p class="detail-kicker">
           ${detailLevelText}
         </p>
-        <h3>${escapeHtml(point.nameModern)}</h3>
+        <h3>${escapeHtml(title)}</h3>
       </div>
 
-      ${renderPointMedia(point)}
+      ${isBasicPoint ? "" : renderPointMedia(point)}
 
-      <div class="meta-grid">
-        <strong>古图名</strong>
-        <span>${escapeHtml(point.nameAncient)}</span>
+      ${isBasicPoint ? basicMetaHtml : coreMetaHtml}
 
-        <strong>今名</strong>
-        <span>${escapeHtml(point.nameModern)}</span>
-
-        <strong>状态</strong>
-        <span>${escapeHtml(getStatusLabel(point))}</span>
-
-        ${renderOptionalRow("可信度", point.confidence)}
-        ${renderOptionalRow("判断依据", point.evidence)}
-        ${renderOptionalRow("校勘备注", point.note)}
-      </div>
-
-      ${point.quick ? `<p>${escapeHtml(point.quick)}</p>` : ""}
-      ${point.extended ? `<p>${escapeHtml(point.extended)}</p>` : ""}
+      ${isBasicPoint ? basicContentHtml : coreContentHtml}
 
       <button
         type="button"
