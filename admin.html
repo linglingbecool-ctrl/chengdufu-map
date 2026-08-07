@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>馆员审核台｜图绘成都</title>
+  <meta name="description" content="图绘成都公众城市记忆馆员审核台：查看AI初审结果并进行人工终审。">
+  <link rel="stylesheet" href="./admin.css?v=20260807-admin1">
+  <script
+    src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"
+    onload="console.log('CloudBase SDK 2.27.1 加载成功')"
+    onerror="console.error('CloudBase SDK 2.27.1 加载失败')"
+  ></script>
+</head>
+<body>
+  <header class="admin-header">
+    <div class="admin-header__inner">
+      <div>
+        <p class="eyebrow">LIBRARIAN REVIEW CONSOLE</p>
+        <h1>馆员审核台</h1>
+        <p class="subtitle">AI 初审 · 馆员终审 · 城市记忆公开</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn ghost" href="./index.html" target="_blank" rel="noopener">查看公众端</a>
+        <button class="btn primary" id="refreshButton" type="button">刷新待审队列</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="status-panel">
+      <div>
+        <span class="status-dot" id="connectionDot"></span>
+        <strong id="connectionText">正在连接 CloudBase…</strong>
+      </div>
+      <p id="authMessage">正在验证馆员身份。</p>
+    </section>
+
+    <section class="dashboard" id="dashboard" hidden>
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span>待人工审核</span>
+          <strong id="statTotal">0</strong>
+        </article>
+        <article class="stat-card stat-pass">
+          <span>AI 建议通过</span>
+          <strong id="statPass">0</strong>
+        </article>
+        <article class="stat-card stat-review">
+          <span>AI 建议复核</span>
+          <strong id="statReview">0</strong>
+        </article>
+        <article class="stat-card stat-reject">
+          <span>AI 建议拒绝</span>
+          <strong id="statReject">0</strong>
+        </article>
+      </div>
+
+      <div class="toolbar">
+        <div>
+          <p class="section-label">Review Queue</p>
+          <h2>待审投稿</h2>
+        </div>
+        <label class="filter-control">
+          <span>筛选 AI 建议</span>
+          <select id="suggestionFilter">
+            <option value="all">全部</option>
+            <option value="pass">PASS · 建议通过</option>
+            <option value="review">REVIEW · 重点复核</option>
+            <option value="reject">REJECT · 建议拒绝</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="queue-message" id="queueMessage" hidden></div>
+      <div class="review-list" id="reviewList"></div>
+    </section>
+  </main>
+
+  <template id="reviewCardTemplate">
+    <article class="review-card">
+      <div class="review-card__top">
+        <div>
+          <p class="review-point"></p>
+          <h3 class="review-time"></h3>
+        </div>
+        <div class="review-badges"></div>
+      </div>
+
+      <div class="review-grid">
+        <section class="panel user-panel">
+          <p class="panel-label">公众投稿</p>
+          <div class="submission-text"></div>
+          <div class="submission-images"></div>
+          <dl class="submission-meta"></dl>
+        </section>
+
+        <section class="panel ai-panel">
+          <p class="panel-label">AI 初审</p>
+          <div class="ai-score"></div>
+
+          <div class="ai-field">
+            <strong>摘要</strong>
+            <p class="ai-summary"></p>
+          </div>
+
+          <div class="ai-field">
+            <strong>初审理由</strong>
+            <p class="ai-reason"></p>
+          </div>
+
+          <div class="ai-field">
+            <strong>标签</strong>
+            <div class="ai-tags"></div>
+          </div>
+
+          <div class="ai-field">
+            <strong>风险提示</strong>
+            <div class="risk-grid"></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="human-review">
+        <p class="panel-label">馆员终审</p>
+        <p class="human-review__help">
+          AI 结果仅作为辅助。公开、继续核验或不予公开均由馆员决定。
+        </p>
+
+        <label class="review-note">
+          <span>审核备注（可选）</span>
+          <textarea
+            rows="2"
+            maxlength="500"
+            placeholder="例如：图片与点位一致，授权字段完整；或需要进一步核验照片时间。"
+          ></textarea>
+        </label>
+
+        <div class="review-actions">
+          <button type="button" class="action-btn approve" data-decision="approved">批准公开</button>
+          <button type="button" class="action-btn hold" data-decision="needs_review">继续核验</button>
+          <button type="button" class="action-btn reject" data-decision="rejected">不予公开</button>
+        </div>
+
+        <p class="card-status" aria-live="polite"></p>
+      </section>
+    </article>
+  </template>
+
+  <script src="./admin.js?v=20260807-admin1"></script>
+</body>
+</html>
