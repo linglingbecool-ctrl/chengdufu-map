@@ -26,6 +26,7 @@ html {
 body {
   margin: 0;
   color: var(--ink);
+
   background:
     linear-gradient(
       90deg,
@@ -37,13 +38,16 @@ body {
       transparent 1px
     ),
     var(--paper);
+
   background-size: 28px 28px;
+
   font-family:
     "Songti SC",
     "Noto Serif CJK SC",
     "Source Han Serif SC",
     Georgia,
     serif;
+
   line-height: 1.7;
 }
 
@@ -82,6 +86,7 @@ p {
 
 .site-hero {
   min-height: 92vh;
+
   padding:
     24px
     clamp(20px, 4vw, 64px)
@@ -103,8 +108,11 @@ p {
 
 .site-hero::after {
   content: "";
+
   position: absolute;
+
   inset: auto 0 0;
+
   height: 34%;
 
   background:
@@ -122,22 +130,27 @@ p {
 main,
 .site-footer {
   position: relative;
+
   z-index: 1;
 }
 
 .topbar {
   display: flex;
+
   justify-content: space-between;
   align-items: center;
+
   gap: 24px;
 
   max-width: 1180px;
+
   margin: 0 auto;
 }
 
 .brand {
   font-size: 1.05rem;
   font-weight: 700;
+
   letter-spacing: 0.12em;
 
   border-bottom:
@@ -147,15 +160,20 @@ main,
 .navlinks {
   display: flex;
   flex-wrap: wrap;
+
+  align-items: center;
+
   gap: 22px;
 
   color: var(--ink-soft);
+
   font-size: 0.94rem;
 }
 
 .navlinks a,
 .site-footer a {
-  transition: color 160ms ease;
+  transition:
+    color 160ms ease;
 }
 
 .navlinks a:hover,
@@ -165,6 +183,7 @@ main,
 
 .hero-inner {
   width: min(900px, 100%);
+
   max-width: 1180px;
 
   margin: 18vh auto 0;
@@ -181,6 +200,7 @@ main,
   font-weight: 700;
 
   letter-spacing: 0.18em;
+
   text-transform: uppercase;
 }
 
@@ -191,6 +211,7 @@ h1 {
     clamp(4rem, 13vw, 9rem);
 
   line-height: 0.9;
+
   font-weight: 900;
 
   letter-spacing: -0.04em;
@@ -209,11 +230,13 @@ h3 {
   margin-bottom: 8px;
 
   font-size: 1.5rem;
+
   line-height: 1.25;
 }
 
 .subtitle {
   max-width: 780px;
+
   margin-bottom: 22px;
 
   color: var(--qing-deep);
@@ -226,9 +249,11 @@ h3 {
 
 .intro {
   max-width: 760px;
+
   margin-bottom: 32px;
 
   color: var(--ink-soft);
+
   font-size: 1.08rem;
 }
 
@@ -239,7 +264,9 @@ h3 {
 .hero-actions,
 .contribute-actions {
   display: flex;
+
   flex-wrap: wrap;
+
   gap: 12px;
 }
 
@@ -261,6 +288,7 @@ h3 {
   border-radius: var(--radius);
 
   font-weight: 700;
+
   cursor: pointer;
 
   transition:
@@ -273,6 +301,7 @@ h3 {
 
 .btn:hover {
   transform: translateY(-2px);
+
   box-shadow: var(--shadow-soft);
 }
 
@@ -287,11 +316,13 @@ h3 {
 
 .btn.primary {
   color: #fffaf0;
+
   background: var(--ink);
 }
 
 .btn.primary:hover {
   background: var(--cinnabar-dark);
+
   border-color: var(--cinnabar-dark);
 }
 
@@ -380,11 +411,13 @@ section {
 
 .file-list dt {
   color: var(--cinnabar-dark);
+
   font-weight: 700;
 }
 
 .file-list dd {
   margin: 0;
+
   color: var(--ink-soft);
 }
 
@@ -422,6 +455,7 @@ section {
   position: relative;
 
   min-width: 0;
+
   width: 100%;
 
   aspect-ratio:
@@ -465,6 +499,7 @@ section {
 
 .map-markers {
   position: absolute;
+
   inset: 0;
 
   z-index: 2;
@@ -596,7 +631,9 @@ section {
   opacity: 1;
 }
 
-/* 宸叉湁瀹℃牳閫氳繃鍏紬璁板繂鐨勭偣浣� */
+/* =========================
+   审核通过的公共城市记忆点亮
+   ========================= */
 
 .map-marker.memory-lit {
   z-index: 5;
@@ -618,8 +655,13 @@ section {
     infinite;
 }
 
+/*
+ * 这里使用 Unicode 转义，而不是直接写 ✦，
+ * 防止宋体/CJK 字体回退时显示成奇怪汉字。
+ */
+
 .map-marker.memory-lit::before {
-  content: "鉁�";
+  content: "\2726";
 
   position: absolute;
 
@@ -645,7 +687,14 @@ section {
 
   color: var(--cinnabar);
 
+  font-family:
+    Arial,
+    "Helvetica Neue",
+    sans-serif;
+
   font-size: 11px;
+
+  font-weight: 700;
 
   line-height: 1;
 
@@ -740,6 +789,7 @@ section {
   display: block;
 
   width: 100%;
+
   min-width: 0;
 
   min-height: 520px;
@@ -798,6 +848,7 @@ section {
   color: var(--cinnabar-dark);
 
   font-size: 0.82rem;
+
   font-weight: 700;
 }
 
@@ -970,6 +1021,12 @@ section {
 
 .memory-status-strip__spark {
   color: var(--cinnabar);
+
+  font-family:
+    Arial,
+    "Helvetica Neue",
+    sans-serif;
+
   font-size: 1rem;
 }
 
@@ -1085,6 +1142,7 @@ section {
   color: var(--cinnabar-dark);
 
   font-size: 0.82rem;
+
   font-weight: 700;
 }
 
@@ -1092,6 +1150,7 @@ section {
   color: var(--qing-deep);
 
   font-size: 0.75rem;
+
   font-weight: 700;
 
   letter-spacing: 0.04em;
@@ -1168,6 +1227,7 @@ section {
   color: #fff;
 
   font-size: 16px;
+
   font-weight: 600;
 
   cursor: pointer;
@@ -1253,6 +1313,7 @@ section {
   color: var(--cinnabar);
 
   font-weight: 900;
+
   font-size: 1.8rem;
 
   line-height: 1;
@@ -1292,6 +1353,7 @@ section {
   color: var(--cinnabar-dark);
 
   font-size: 0.78rem;
+
   font-weight: 700;
 }
 
@@ -1509,6 +1571,10 @@ span {
   padding: 10px;
 }
 
+.contribution-field select {
+  min-height: 48px;
+}
+
 .contribution-field small {
   color: #796c5c;
 }
@@ -1612,7 +1678,724 @@ span {
 .contribution-actions-row
 button:disabled {
   cursor: wait;
+
   opacity: 0.65;
+}
+
+/* =================================================
+   我的城市记忆 · 个人身份与徽章
+   ================================================= */
+
+.memory-nav-button {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 0;
+
+  border: 0;
+
+  border-bottom:
+    1px solid transparent;
+
+  background: transparent;
+
+  color: var(--ink-soft);
+
+  cursor: pointer;
+
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.memory-nav-button:hover,
+.memory-nav-button:focus-visible {
+  color: var(--cinnabar-dark);
+
+  border-bottom-color:
+    var(--cinnabar);
+}
+
+.memory-nav-count {
+  min-width: 20px;
+  height: 20px;
+
+  padding:
+    0
+    6px;
+
+  display: inline-grid;
+
+  place-items: center;
+
+  border-radius: 999px;
+
+  background:
+    var(--cinnabar);
+
+  color: #fffaf0;
+
+  font-size: 0.72rem;
+
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+/* =========================
+   个人地图足迹
+   ========================= */
+
+.map-marker.my-memory-processing {
+  outline:
+    2px dashed
+    rgba(126, 53, 40, 0.92);
+
+  outline-offset: 6px;
+}
+
+.map-marker.my-memory-approved {
+  outline:
+    2px solid
+    rgba(53, 95, 87, 0.95);
+
+  outline-offset: 7px;
+}
+
+/* =========================
+   我的城市记忆侧边面板
+   ========================= */
+
+.my-memory-panel[hidden] {
+  display: none;
+}
+
+.my-memory-panel {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 10020;
+}
+
+.my-memory-panel__backdrop {
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    rgba(39, 29, 22, 0.52);
+
+  backdrop-filter:
+    blur(3px);
+}
+
+.my-memory-panel__dialog {
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  width:
+    min(520px, 92vw);
+
+  height: 100%;
+
+  overflow-y: auto;
+
+  padding:
+    34px
+    28px
+    48px;
+
+  border-left:
+    1px solid
+    rgba(123, 88, 57, 0.28);
+
+  background:
+    linear-gradient(
+      180deg,
+      #fffaf1 0%,
+      #f5ead7 100%
+    );
+
+  box-shadow:
+    -24px 0 60px
+    rgba(44, 31, 20, 0.22);
+}
+
+.my-memory-panel__close {
+  position: absolute;
+
+  top: 16px;
+  right: 18px;
+
+  width: 40px;
+  height: 40px;
+
+  display: grid;
+
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(75, 57, 34, 0.15);
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 250, 240, 0.74);
+
+  color: var(--cinnabar-dark);
+
+  font-size: 28px;
+
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.my-memory-panel__content {
+  min-width: 0;
+}
+
+.my-memory-panel__content
+>
+h2 {
+  margin-right: 54px;
+}
+
+.my-memory-loading {
+  padding:
+    42px
+    0;
+
+  color: var(--ink-soft);
+
+  text-align: center;
+}
+
+/* =========================
+   共建者身份卡
+   ========================= */
+
+.my-identity-card {
+  display: grid;
+
+  grid-template-columns:
+    72px
+    minmax(0, 1fr);
+
+  gap: 18px;
+
+  align-items: center;
+
+  margin-top: 22px;
+
+  padding: 22px;
+
+  border:
+    1px solid
+    rgba(196, 154, 69, 0.34);
+
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(196, 154, 69, 0.13),
+      rgba(255, 250, 240, 0.76)
+    );
+}
+
+.my-identity-card.is-contributor {
+  border-color:
+    rgba(168, 79, 54, 0.34);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(168, 79, 54, 0.12),
+      rgba(196, 154, 69, 0.16),
+      rgba(255, 250, 240, 0.8)
+    );
+}
+
+.my-identity-card__seal {
+  width: 64px;
+  height: 64px;
+
+  display: grid;
+
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(126, 53, 40, 0.34);
+
+  border-radius: 50%;
+
+  background:
+    var(--cinnabar-dark);
+
+  color: #fff7e7;
+
+  font-size: 1.9rem;
+
+  font-weight: 900;
+}
+
+.my-identity-card__eyebrow {
+  margin:
+    0
+    0
+    4px;
+
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.7rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.18em;
+}
+
+.my-identity-card h3 {
+  margin-bottom: 7px;
+}
+
+.my-identity-card
+p:last-child {
+  margin: 0;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.9rem;
+}
+
+/* =========================
+   个人统计
+   ========================= */
+
+.my-memory-stats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+
+  margin-top: 14px;
+}
+
+.my-memory-stats
+>
+div {
+  padding:
+    14px
+    10px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 9px;
+
+  background:
+    rgba(255, 250, 240, 0.62);
+
+  text-align: center;
+}
+
+.my-memory-stats strong {
+  display: block;
+
+  color: var(--ink);
+
+  font-size: 1.55rem;
+
+  line-height: 1.1;
+}
+
+.my-memory-stats span {
+  display: block;
+
+  margin-top: 5px;
+
+  color: var(--ink-soft);
+
+  font-size: 0.76rem;
+}
+
+/* =========================
+   徽章 / 足迹分区
+   ========================= */
+
+.my-memory-section {
+  margin:
+    34px
+    0
+    0;
+
+  padding-top: 24px;
+
+  border-top:
+    1px solid
+    var(--line);
+}
+
+.my-memory-section__head {
+  display: flex;
+
+  align-items: end;
+
+  justify-content:
+    space-between;
+
+  gap: 16px;
+
+  margin-bottom: 14px;
+}
+
+.my-memory-section__head
+.section-label {
+  margin-bottom: 4px;
+}
+
+.my-memory-section__head h3 {
+  margin: 0;
+}
+
+.my-memory-section__head
+>
+span {
+  color:
+    var(--ink-soft);
+
+  font-size: 0.78rem;
+
+  text-align: right;
+}
+
+/* =========================
+   徽章
+   ========================= */
+
+.my-badges-grid {
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    1fr;
+
+  gap: 10px;
+}
+
+.my-badge {
+  position: relative;
+
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    46px
+    minmax(0, 1fr);
+
+  gap: 11px;
+
+  align-items: center;
+
+  padding: 14px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 250, 240, 0.54);
+}
+
+.my-badge.is-locked {
+  opacity: 0.56;
+
+  filter:
+    grayscale(0.35);
+}
+
+.my-badge.is-unlocked {
+  border-color:
+    rgba(196, 154, 69, 0.5);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 250, 240, 0.86),
+      rgba(196, 154, 69, 0.15)
+    );
+
+  box-shadow:
+    0
+    8px
+    22px
+    rgba(64, 45, 25, 0.09);
+}
+
+.my-badge__icon {
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(126, 53, 40, 0.2);
+
+  border-radius: 50%;
+
+  background:
+    rgba(168, 79, 54, 0.08);
+
+  font-family:
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    Arial,
+    sans-serif;
+
+  font-size: 1.35rem;
+
+  line-height: 1;
+}
+
+.my-badge strong {
+  display: block;
+
+  font-size: 0.88rem;
+}
+
+.my-badge p {
+  margin:
+    3px
+    0
+    0;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.7rem;
+
+  line-height: 1.45;
+}
+
+.my-badge__state {
+  grid-column:
+    1 / -1;
+
+  justify-self: start;
+
+  padding:
+    2px
+    7px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(111, 155, 139, 0.12);
+
+  color:
+    var(--qing-deep);
+
+  font-size: 0.68rem;
+
+  font-weight: 800;
+}
+
+.my-badge.is-locked
+.my-badge__state {
+  background:
+    rgba(97, 87, 68, 0.08);
+
+  color:
+    var(--ink-soft);
+}
+
+/* =========================
+   我的足迹
+   ========================= */
+
+.my-footprints {
+  display: grid;
+
+  gap: 10px;
+}
+
+.my-footprint-card {
+  padding: 15px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 250, 240, 0.62);
+}
+
+.my-footprint-card__head {
+  display: flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap: 12px;
+
+  margin-bottom: 8px;
+}
+
+.my-footprint-card__head
+>
+div {
+  min-width: 0;
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+
+  gap: 7px;
+}
+
+.my-footprint-card__type {
+  padding:
+    2px
+    7px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(196, 154, 69, 0.12);
+
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.7rem;
+}
+
+.my-footprint-status {
+  flex:
+    0
+    0
+    auto;
+
+  padding:
+    3px
+    8px;
+
+  border-radius: 999px;
+
+  font-size: 0.72rem;
+
+  font-weight: 800;
+}
+
+.my-footprint-status.is-processing {
+  background:
+    rgba(196, 154, 69, 0.14);
+
+  color: #8b6823;
+}
+
+.my-footprint-status.is-approved {
+  background:
+    rgba(111, 155, 139, 0.16);
+
+  color:
+    var(--qing-deep);
+}
+
+.my-footprint-status.is-rejected {
+  background:
+    rgba(168, 79, 54, 0.12);
+
+  color:
+    var(--cinnabar-dark);
+}
+
+.my-footprint-card
+>
+p {
+  margin:
+    0
+    0
+    9px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.86rem;
+}
+
+.my-footprint-card__meta {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap:
+    6px
+    12px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.72rem;
+}
+
+.my-memory-empty {
+  padding: 24px;
+
+  border:
+    1px dashed
+    rgba(117, 107, 94, 0.42);
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 250, 240, 0.44);
+
+  text-align: center;
+}
+
+.my-memory-empty strong {
+  display: block;
+
+  margin-bottom: 5px;
+}
+
+.my-memory-empty p {
+  margin: 0;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.86rem;
 }
 
 /* =========================
@@ -1662,6 +2445,7 @@ button:disabled {
 
   .site-hero {
     min-height: 86vh;
+
     padding-bottom: 52px;
   }
 
@@ -1743,6 +2527,7 @@ button:disabled {
 
   .map-marker {
     width: 24px;
+
     height: 24px;
   }
 
@@ -1795,6 +2580,44 @@ button:disabled {
   .site-footer {
     flex-direction: column;
   }
+
+  .my-memory-panel__dialog {
+    width: 100%;
+
+    padding:
+      28px
+      18px
+      42px;
+  }
+
+  .my-identity-card {
+    grid-template-columns:
+      58px
+      minmax(0, 1fr);
+
+    padding: 18px;
+  }
+
+  .my-identity-card__seal {
+    width: 52px;
+    height: 52px;
+
+    font-size: 1.5rem;
+  }
+
+  .my-memory-stats {
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+
+  .my-badges-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-memory-section__head {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 620px) {
@@ -1844,1285 +2667,5 @@ button:disabled {
 
   .map-marker.memory-lit {
     animation: none;
-  }
-}
-/* =========================================
-   鍩庡競璁板繂鐐逛寒鏁堟灉
-   ========================================= */
-
-.map-marker.memory-lit {
-  z-index: 5;
-
-  box-shadow:
-    0 0 0 4px rgba(255, 248, 231, 0.95),
-    0 0 0 9px rgba(196, 154, 69, 0.32),
-    0 0 26px rgba(196, 154, 69, 0.9),
-    0 12px 28px rgba(36, 33, 28, 0.34);
-
-  animation: memoryGlow 2.2s ease-in-out infinite;
-}
-
-.map-marker.memory-lit::before {
-  content: "鉁�";
-
-  position: absolute;
-  right: -10px;
-  top: -13px;
-
-  z-index: 6;
-
-  display: grid;
-  place-items: center;
-
-  width: 18px;
-  height: 18px;
-
-  border: 1px solid rgba(126, 53, 40, 0.24);
-  border-radius: 50%;
-
-  background: #fff8e7;
-  color: var(--cinnabar);
-
-  font-size: 11px;
-  line-height: 1;
-
-  box-shadow:
-    0 4px 12px rgba(64, 45, 25, 0.2);
-}
-
-@keyframes memoryGlow {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 4px rgba(255, 248, 231, 0.95),
-      0 0 0 8px rgba(196, 154, 69, 0.22),
-      0 0 18px rgba(196, 154, 69, 0.62),
-      0 12px 28px rgba(36, 33, 28, 0.3);
-  }
-
-  50% {
-    box-shadow:
-      0 0 0 4px rgba(255, 248, 231, 1),
-      0 0 0 13px rgba(196, 154, 69, 0.13),
-      0 0 34px rgba(196, 154, 69, 0.95),
-      0 14px 32px rgba(36, 33, 28, 0.34);
-  }
-}
-
-/* =========================
-   璇︽儏椤碉細鍩庡競璁板繂鐘舵€�
-   ========================= */
-
-.memory-status-strip {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-
-  padding: 11px 13px;
-
-  border: 1px solid rgba(196, 154, 69, 0.32);
-  border-radius: 8px;
-
-  background: rgba(196, 154, 69, 0.1);
-
-  color: var(--ink-soft);
-  font-size: 0.9rem;
-}
-
-.memory-status-strip.is-lit {
-  border-color: rgba(168, 79, 54, 0.3);
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(196, 154, 69, 0.18),
-      rgba(111, 155, 139, 0.1)
-    );
-
-  color: var(--cinnabar-dark);
-  font-weight: 700;
-}
-
-.memory-status-strip__spark {
-  color: var(--cinnabar);
-  font-size: 1rem;
-}
-
-/* =========================
-   鍩庡競璁板繂鍒楄〃
-   ========================= */
-
-.memory-section {
-  margin-top: 2px;
-  padding-top: 18px;
-
-  border-top: 1px solid var(--line);
-}
-
-.memory-section__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 14px;
-
-  margin-bottom: 12px;
-}
-
-.memory-section__head h4 {
-  margin: 0;
-
-  color: var(--cinnabar-dark);
-  font-size: 0.96rem;
-}
-
-.memory-count {
-  padding: 3px 9px;
-
-  border: 1px solid rgba(53, 95, 87, 0.2);
-  border-radius: 999px;
-
-  background: rgba(111, 155, 139, 0.12);
-
-  color: var(--qing-deep);
-
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.memory-empty {
-  padding: 16px;
-
-  border: 1px dashed rgba(117, 107, 94, 0.42);
-  border-radius: 8px;
-
-  background: rgba(255, 250, 240, 0.42);
-}
-
-.memory-empty strong {
-  display: block;
-
-  margin-bottom: 4px;
-
-  color: var(--ink);
-}
-
-.memory-empty p {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.memory-list {
-  display: grid;
-  gap: 12px;
-}
-
-.memory-card {
-  padding: 14px;
-
-  border: 1px solid var(--line);
-  border-radius: 8px;
-
-  background: rgba(255, 250, 240, 0.62);
-}
-
-.memory-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 8px;
-
-  margin-bottom: 8px;
-}
-
-.memory-card__time {
-  color: var(--cinnabar-dark);
-
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.memory-card__label {
-  color: var(--qing-deep);
-
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.memory-card__text {
-  margin: 0;
-
-  color: var(--ink-soft);
-
-  font-size: 0.92rem;
-
-  white-space: pre-wrap;
-}
-
-.memory-card__images {
-  display: grid;
-
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
-
-  gap: 8px;
-
-  margin-top: 11px;
-}
-
-.memory-card__images img {
-  width: 100%;
-
-  aspect-ratio: 1;
-
-  object-fit: cover;
-
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-
-/* Citywalk 宸叉湁鍩庡競璁板繂 */
-
-.route-card.has-memory {
-  border-color: rgba(196, 154, 69, 0.42);
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255, 250, 240, 0.8),
-      rgba(196, 154, 69, 0.08)
-    );
-}
-
-.route-memory-note {
-  display: inline-block;
-
-  margin-top: 10px;
-
-  color: var(--cinnabar-dark);
-
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-@media (max-width: 680px) {
-  .memory-card__images {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .map-marker.memory-lit {
-    animation: none;
-  }
-}
-
-/* =================================================
-   鎴戠殑鍩庡競璁板繂 路 涓汉韬唤涓庡窘绔�
-   ================================================= */
-
-.memory-nav-button {
-  display: inline-flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  padding: 0;
-
-  border: 0;
-
-  border-bottom:
-    1px solid
-    transparent;
-
-  background: transparent;
-
-  color:
-    var(--ink-soft);
-
-  cursor: pointer;
-
-  transition:
-    color 160ms ease,
-    border-color 160ms ease;
-}
-
-.memory-nav-button:hover,
-.memory-nav-button:focus-visible {
-  color:
-    var(--cinnabar-dark);
-
-  border-bottom-color:
-    var(--cinnabar);
-}
-
-.memory-nav-count {
-  min-width: 20px;
-  height: 20px;
-
-  padding:
-    0
-    6px;
-
-  display: inline-grid;
-
-  place-items: center;
-
-  border-radius:
-    999px;
-
-  background:
-    var(--cinnabar);
-
-  color:
-    #fffaf0;
-
-  font-size:
-    0.72rem;
-
-  font-weight:
-    800;
-
-  line-height: 1;
-}
-
-/*
- * 涓汉瓒宠抗鐘舵€併€�
- *
- * 瀹℃牳涓彧浠ｈ〃鈥滄垜鍦ㄨ繖閲岀暀涓嬭繃璁板繂鈥濓紝
- * 涓嶇瓑浜庡叕鍏卞湴鍥惧凡缁忔寮忕偣浜€�
- */
-
-.map-marker.my-memory-processing {
-  outline:
-    2px dashed
-    rgba(
-      126,
-      53,
-      40,
-      0.92
-    );
-
-  outline-offset:
-    6px;
-}
-
-.map-marker.my-memory-approved {
-  outline:
-    2px solid
-    rgba(
-      53,
-      95,
-      87,
-      0.95
-    );
-
-  outline-offset:
-    7px;
-}
-
-/* =========================
-   鎴戠殑鍩庡競璁板繂渚ц竟闈㈡澘
-   ========================= */
-
-.my-memory-panel[hidden] {
-  display: none;
-}
-
-.my-memory-panel {
-  position: fixed;
-
-  inset: 0;
-
-  z-index: 10020;
-}
-
-.my-memory-panel__backdrop {
-  position: absolute;
-
-  inset: 0;
-
-  background:
-    rgba(
-      39,
-      29,
-      22,
-      0.52
-    );
-
-  backdrop-filter:
-    blur(3px);
-}
-
-.my-memory-panel__dialog {
-  position: absolute;
-
-  top: 0;
-  right: 0;
-
-  width:
-    min(
-      520px,
-      92vw
-    );
-
-  height: 100%;
-
-  overflow-y: auto;
-
-  padding:
-    34px
-    28px
-    48px;
-
-  border-left:
-    1px solid
-    rgba(
-      123,
-      88,
-      57,
-      0.28
-    );
-
-  background:
-    linear-gradient(
-      180deg,
-      #fffaf1 0%,
-      #f5ead7 100%
-    );
-
-  box-shadow:
-    -24px
-    0
-    60px
-    rgba(
-      44,
-      31,
-      20,
-      0.22
-    );
-}
-
-.my-memory-panel__close {
-  position: absolute;
-
-  top: 16px;
-  right: 18px;
-
-  width: 40px;
-  height: 40px;
-
-  display: grid;
-
-  place-items: center;
-
-  border:
-    1px solid
-    rgba(
-      75,
-      57,
-      34,
-      0.15
-    );
-
-  border-radius:
-    50%;
-
-  background:
-    rgba(
-      255,
-      250,
-      240,
-      0.74
-    );
-
-  color:
-    var(--cinnabar-dark);
-
-  font-size: 28px;
-
-  line-height: 1;
-
-  cursor: pointer;
-}
-
-.my-memory-panel__content {
-  min-width: 0;
-}
-
-.my-memory-panel__content
->
-h2 {
-  margin-right: 54px;
-}
-
-.my-memory-loading {
-  padding:
-    42px
-    0;
-
-  color:
-    var(--ink-soft);
-
-  text-align: center;
-}
-
-/* =========================
-   鍏卞缓鑰呰韩浠藉崱
-   ========================= */
-
-.my-identity-card {
-  display: grid;
-
-  grid-template-columns:
-    72px
-    minmax(
-      0,
-      1fr
-    );
-
-  gap: 18px;
-
-  align-items: center;
-
-  margin-top: 22px;
-
-  padding: 22px;
-
-  border:
-    1px solid
-    rgba(
-      196,
-      154,
-      69,
-      0.34
-    );
-
-  border-radius:
-    14px;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(
-        196,
-        154,
-        69,
-        0.13
-      ),
-      rgba(
-        255,
-        250,
-        240,
-        0.76
-      )
-    );
-}
-
-.my-identity-card.is-contributor {
-  border-color:
-    rgba(
-      168,
-      79,
-      54,
-      0.34
-    );
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(
-        168,
-        79,
-        54,
-        0.12
-      ),
-      rgba(
-        196,
-        154,
-        69,
-        0.16
-      ),
-      rgba(
-        255,
-        250,
-        240,
-        0.8
-      )
-    );
-}
-
-.my-identity-card__seal {
-  width: 64px;
-  height: 64px;
-
-  display: grid;
-
-  place-items: center;
-
-  border:
-    1px solid
-    rgba(
-      126,
-      53,
-      40,
-      0.34
-    );
-
-  border-radius:
-    50%;
-
-  background:
-    var(
-      --cinnabar-dark
-    );
-
-  color:
-    #fff7e7;
-
-  font-size:
-    1.9rem;
-
-  font-weight: 900;
-}
-
-.my-identity-card__eyebrow {
-  margin:
-    0
-    0
-    4px;
-
-  color:
-    var(
-      --cinnabar-dark
-    );
-
-  font-size:
-    0.7rem;
-
-  font-weight: 800;
-
-  letter-spacing:
-    0.18em;
-}
-
-.my-identity-card h3 {
-  margin-bottom: 7px;
-}
-
-.my-identity-card
-p:last-child {
-  margin: 0;
-
-  color:
-    var(--ink-soft);
-
-  font-size:
-    0.9rem;
-}
-
-/* =========================
-   涓汉缁熻
-   ========================= */
-
-.my-memory-stats {
-  display: grid;
-
-  grid-template-columns:
-    repeat(
-      4,
-      minmax(
-        0,
-        1fr
-      )
-    );
-
-  gap: 8px;
-
-  margin-top: 14px;
-}
-
-.my-memory-stats
->
-div {
-  padding:
-    14px
-    10px;
-
-  border:
-    1px solid
-    var(--line);
-
-  border-radius:
-    9px;
-
-  background:
-    rgba(
-      255,
-      250,
-      240,
-      0.62
-    );
-
-  text-align: center;
-}
-
-.my-memory-stats strong {
-  display: block;
-
-  color:
-    var(--ink);
-
-  font-size:
-    1.55rem;
-
-  line-height: 1.1;
-}
-
-.my-memory-stats span {
-  display: block;
-
-  margin-top: 5px;
-
-  color:
-    var(--ink-soft);
-
-  font-size:
-    0.76rem;
-}
-
-/* =========================
-   寰界珷 / 瓒宠抗鍒嗗尯
-   ========================= */
-
-.my-memory-section {
-  margin:
-    34px
-    0
-    0;
-
-  padding-top: 24px;
-
-  border-top:
-    1px solid
-    var(--line);
-}
-
-.my-memory-section__head {
-  display: flex;
-
-  align-items: end;
-
-  justify-content:
-    space-between;
-
-  gap: 16px;
-
-  margin-bottom: 14px;
-}
-
-.my-memory-section__head
-.section-label {
-  margin-bottom: 4px;
-}
-
-.my-memory-section__head h3 {
-  margin: 0;
-}
-
-.my-memory-section__head
->
-span {
-  color:
-    var(--ink-soft);
-
-  font-size:
-    0.78rem;
-
-  text-align: right;
-}
-
-/* =========================
-   寰界珷
-   ========================= */
-
-.my-badges-grid {
-  display: grid;
-
-  grid-template-columns:
-    1fr
-    1fr;
-
-  gap: 10px;
-}
-
-.my-badge {
-  position: relative;
-
-  min-width: 0;
-
-  display: grid;
-
-  grid-template-columns:
-    46px
-    minmax(
-      0,
-      1fr
-    );
-
-  gap: 11px;
-
-  align-items: center;
-
-  padding: 14px;
-
-  border:
-    1px solid
-    var(--line);
-
-  border-radius:
-    10px;
-
-  background:
-    rgba(
-      255,
-      250,
-      240,
-      0.54
-    );
-}
-
-.my-badge.is-locked {
-  opacity: 0.56;
-
-  filter:
-    grayscale(0.35);
-}
-
-.my-badge.is-unlocked {
-  border-color:
-    rgba(
-      196,
-      154,
-      69,
-      0.5
-    );
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(
-        255,
-        250,
-        240,
-        0.86
-      ),
-      rgba(
-        196,
-        154,
-        69,
-        0.15
-      )
-    );
-
-  box-shadow:
-    0
-    8px
-    22px
-    rgba(
-      64,
-      45,
-      25,
-      0.09
-    );
-}
-
-.my-badge__icon {
-  width: 44px;
-  height: 44px;
-
-  display: grid;
-
-  place-items: center;
-
-  border:
-    1px solid
-    rgba(
-      126,
-      53,
-      40,
-      0.2
-    );
-
-  border-radius:
-    50%;
-
-  background:
-    rgba(
-      168,
-      79,
-      54,
-      0.08
-    );
-
-  font-size:
-    1.35rem;
-
-  line-height: 1;
-}
-
-.my-badge strong {
-  display: block;
-
-  font-size:
-    0.88rem;
-}
-
-.my-badge p {
-  margin:
-    3px
-    0
-    0;
-
-  color:
-    var(--ink-soft);
-
-  font-size:
-    0.7rem;
-
-  line-height: 1.45;
-}
-
-.my-badge__state {
-  grid-column:
-    1 / -1;
-
-  justify-self: start;
-
-  padding:
-    2px
-    7px;
-
-  border-radius:
-    999px;
-
-  background:
-    rgba(
-      111,
-      155,
-      139,
-      0.12
-    );
-
-  color:
-    var(
-      --qing-deep
-    );
-
-  font-size:
-    0.68rem;
-
-  font-weight: 800;
-}
-
-.my-badge.is-locked
-.my-badge__state {
-  background:
-    rgba(
-      97,
-      87,
-      68,
-      0.08
-    );
-
-  color:
-    var(--ink-soft);
-}
-
-/* =========================
-   鎴戠殑瓒宠抗
-   ========================= */
-
-.my-footprints {
-  display: grid;
-
-  gap: 10px;
-}
-
-.my-footprint-card {
-  padding: 15px;
-
-  border:
-    1px solid
-    var(--line);
-
-  border-radius:
-    10px;
-
-  background:
-    rgba(
-      255,
-      250,
-      240,
-      0.62
-    );
-}
-
-.my-footprint-card__head {
-  display: flex;
-
-  align-items:
-    flex-start;
-
-  justify-content:
-    space-between;
-
-  gap: 12px;
-
-  margin-bottom: 8px;
-}
-
-.my-footprint-card__head
->
-div {
-  min-width: 0;
-
-  display: flex;
-
-  flex-wrap: wrap;
-
-  align-items: center;
-
-  gap: 7px;
-}
-
-.my-footprint-card__type {
-  padding:
-    2px
-    7px;
-
-  border-radius:
-    999px;
-
-  background:
-    rgba(
-      196,
-      154,
-      69,
-      0.12
-    );
-
-  color:
-    var(
-      --cinnabar-dark
-    );
-
-  font-size:
-    0.7rem;
-}
-
-.my-footprint-status {
-  flex:
-    0
-    0
-    auto;
-
-  padding:
-    3px
-    8px;
-
-  border-radius:
-    999px;
-
-  font-size:
-    0.72rem;
-
-  font-weight: 800;
-}
-
-.my-footprint-status.is-processing {
-  background:
-    rgba(
-      196,
-      154,
-      69,
-      0.14
-    );
-
-  color:
-    #8b6823;
-}
-
-.my-footprint-status.is-approved {
-  background:
-    rgba(
-      111,
-      155,
-      139,
-      0.16
-    );
-
-  color:
-    var(
-      --qing-deep
-    );
-}
-
-.my-footprint-status.is-rejected {
-  background:
-    rgba(
-      168,
-      79,
-      54,
-      0.12
-    );
-
-  color:
-    var(
-      --cinnabar-dark
-    );
-}
-
-.my-footprint-card
->
-p {
-  margin:
-    0
-    0
-    9px;
-
-  color:
-    var(
-      --ink-soft
-    );
-
-  font-size:
-    0.86rem;
-}
-
-.my-footprint-card__meta {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  gap:
-    6px
-    12px;
-
-  color:
-    var(
-      --ink-soft
-    );
-
-  font-size:
-    0.72rem;
-}
-
-.my-memory-empty {
-  padding: 24px;
-
-  border:
-    1px dashed
-    rgba(
-      117,
-      107,
-      94,
-      0.42
-    );
-
-  border-radius:
-    10px;
-
-  background:
-    rgba(
-      255,
-      250,
-      240,
-      0.44
-    );
-
-  text-align: center;
-}
-
-.my-memory-empty strong {
-  display: block;
-
-  margin-bottom: 5px;
-}
-
-.my-memory-empty p {
-  margin: 0;
-
-  color:
-    var(
-      --ink-soft
-    );
-
-  font-size:
-    0.86rem;
-}
-
-/* =========================
-   璁板繂绫诲瀷涓嬫媺妗�
-   ========================= */
-
-.contribution-field select {
-  min-height: 48px;
-
-  appearance: auto;
-}
-
-/* =========================
-   鎴戠殑鍩庡競璁板繂 路 绉诲姩绔�
-   ========================= */
-
-@media (max-width: 680px) {
-  .my-memory-panel__dialog {
-    width: 100%;
-
-    padding:
-      28px
-      18px
-      42px;
-  }
-
-  .my-identity-card {
-    grid-template-columns:
-      58px
-      minmax(
-        0,
-        1fr
-      );
-
-    padding: 18px;
-  }
-
-  .my-identity-card__seal {
-    width: 52px;
-    height: 52px;
-
-    font-size:
-      1.5rem;
-  }
-
-  .my-memory-stats {
-    grid-template-columns:
-      1fr
-      1fr;
-  }
-
-  .my-badges-grid {
-    grid-template-columns:
-      1fr;
-  }
-
-  .my-memory-section__head {
-    align-items:
-      flex-start;
   }
 }
