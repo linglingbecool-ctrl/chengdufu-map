@@ -1,394 +1,75 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
+图绘成都
+项目档案 交互地图 Citywalk 公众共创 说明
+四川大学图书馆古籍特藏资源活化展示
 
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
+图绘成都
 
-    <title>
-      图绘成都：川大馆藏《全图·成都府图》数字导览
-    </title>
+川大馆藏《全图·成都府图》数字导览
 
-    <meta
-      name="description"
-      content="基于四川大学图书馆馆藏《清初四川通省山川形胜全图》中的四川成都府图，制作面向公众的古图浏览、点位点击、古今对照与 Citywalk 数字导览。"
-    />
+从四川大学图书馆馆藏《清初四川通省山川形胜全图》中的“四川成都府”图出发，将古地图中的桥梁、寺观、祠庙、城址与交通节点转化为可浏览、可点击、可行走的数字导览资源，并结合地方文献、古今影像与公众城市记忆，呈现成都城市空间的历史变迁。
 
- <link
-  rel="stylesheet"
-  href="./style.css?v=20260729-10"
-/>
+进入古图导览 查看 Citywalk
+Project File
+项目档案
 
-    <!--
-      CloudBase Web SDK 2.27.1
+《清初四川通省山川形胜全图》以一县一图的方式描绘清初四川山川形胜、府州县治、道路桥梁与人文名胜。本站依据四川大学图书馆馆藏图像资料，将古图信息转化为公众可浏览、可点击、可延展的城市导览单元。
 
-      说明：
-      1. 该版本高于匿名登录要求的 2.0；
-      2. 直接提供浏览器可使用的完整 SDK；
-      3. 不再使用旧的本地 1.7.1 文件；
-      4. 不再使用 unpkg / esm.run 模块导入。
-    -->
-    <script
-      src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"
-      onload="console.log('CloudBase SDK 2.27.1 加载成功')"
-      onerror="console.error('CloudBase SDK 2.27.1 加载失败')"
-    ></script>
-  </head>
+项目以馆藏古地图为视觉入口，以《成都通览》《成都街巷志》等地方文献为重点点位的知识依据，并通过公众提交的照片、故事与口述线索补充文献之外的城市生活记忆。
 
-  <body>
-    <header
-      class="site-hero"
-      id="top"
-    >
-      <nav
-        class="topbar"
-        aria-label="站点导航"
-      >
-        <a
-          class="brand"
-          href="#top"
-        >
-          图绘成都
-        </a>
+题名
+《清初四川通省山川形胜全图》“四川成都府”图
+时代
+清乾隆初年
+形态
+绢本设色绘本，一县一图，青绿山水，共 150 幅
+馆藏单位
+四川大学图书馆
+图像价值
+记录清初成都府城、桥梁、寺观、祠庙、城址与交通节点，是理解成都城市空间、地名沿革和地方文化记忆的重要图像文献。
+资料依据
+四川大学图书馆馆藏图像资料、《成都通览》《成都街巷志》等地方文献、古今影像与实地观察记录。
+内容结构
+六个重点点位提供经地方文献核实的历史介绍；其余点位先保留基础地图标注，并逐步补充资料。公众可为任一点位提交照片、故事与口述线索。
+Interactive Map
+古图点位导览
 
-        <div class="navlinks">
-          <a href="#archive">项目档案</a>
-          <a href="#map">交互地图</a>
-          <a href="#citywalk">Citywalk</a>
-          <a href="#cocreate">公众共创</a>
-          <a href="#about">说明</a>
-        </div>
-      </nav>
+点击地图上的点位，查看古图名称、今日对应地点、点位类型与历史介绍。标记颜色表示点位的存续、变迁或待考状态；也可以在详情卡中留下与该地点有关的照片、故事或口述记忆。
 
-      <div class="hero-inner">
-        <p class="eyebrow">
-          四川大学图书馆古籍特藏资源活化展示
-        </p>
+四川成都府古图底图
+存续点 变迁点 待考点
+Point Detail
+请选择地图点位，查看古今对照信息。
 
-        <h1>图绘成都</h1>
+Citywalk Route
+一日步行路线
 
-        <p class="subtitle">
-          川大馆藏《全图·成都府图》数字导览
-        </p>
+以“桥、祠、寺、宫、城、驿路”为线索，将古图中的文化地标转译为可行走的城市阅读路线。
 
-        <p class="intro">
-          从四川大学图书馆馆藏《清初四川通省山川形胜全图》中的“四川成都府”图出发，将古地图中的桥梁、寺观、祠庙、城址与交通节点转化为可浏览、可点击、可行走的数字导览资源，引导公众观察成都近三百年的城市空间变迁。
-        </p>
+路线主题
+从桥梁交通、祠庙记忆、佛寺空间、道教宫观、城址变迁到城南交通节点，观察古图中的空间节点如何在现代城市中延续、转化或消失。
+推荐时长
+半日到一日，可根据实地交通情况分段完成。
+适合对象
+高校师生、图书馆读者活动、城市文化爱好者、来馆参观与研学团队。
+使用方式
+可先在线阅读古图与重点点位介绍，再按照路线实地观察；回到对应点位详情卡，还可以提交现场照片、家庭旧照或个人故事。
+Public Contribution
+公众共创 · 城市记忆
 
-        <div class="hero-actions">
-          <a
-            class="btn primary"
-            href="#map"
-          >
-            进入古图导览
-          </a>
+城市历史不仅存在于地方文献中，也保存在家庭照片、个人经历、口述故事与日常观察里。选择一个地图点位，留下你与这个地方有关的城市记忆。
 
-          <a
-            class="btn ghost"
-            href="#citywalk"
-          >
-            查看 Citywalk
-          </a>
-        </div>
-      </div>
-    </header>
+01 选择地点
+在交互地图中点击与你的照片或故事相关的历史点位。
+02 提交记忆
+点击点位详情中的“留下我的城市记忆”，可填写文字并上传最多 3 张照片。
+03 审核整理
+投稿进入云端后进行整理与审核，经确认的材料将作为该点位城市记忆档案的补充。
+去地图留下城市记忆
+About
+项目说明
 
-    <main>
-      <section
-        class="archive-section section-band"
-        id="archive"
-        aria-labelledby="archive-title"
-      >
-        <div class="section-label">
-          Project File
-        </div>
+本项目是四川大学图书馆古籍特藏资源数字化活化与公众共创实践。页面以馆藏《清初四川通省山川形胜全图》为核心图像资源，结合地方文献与当代城市空间，探索古地图资源在城市阅读、公共教育、数字人文与文化传播中的应用。
 
-        <div class="archive-grid">
-          <div>
-            <h2 id="archive-title">
-              项目档案
-            </h2>
+六个重点点位的基础介绍依据相关地方文献整理；其余点位资料将逐步补充。公众投稿须经审核后方可进入后续展示，上传者需确认相关文字与影像的使用授权。
 
-            <p>
-              《清初四川通省山川形胜全图》以一县一图的方式描绘清初四川山川形胜、府州县治、道路桥梁与人文名胜。本站依据四川大学图书馆馆藏图像资料及“全图项目”整理素材，将古图信息拆解为公众可浏览、可点击、可延展的城市导览单元。
-            </p>
-
-            <p>
-              本项目尝试将馆藏古地图从静态图像转化为数字化展示资源，使古籍特藏进入公共阅读、城市教育、研学导览与文化传播场景。
-            </p>
-          </div>
-
-          <dl class="file-list">
-            <div>
-              <dt>题名</dt>
-              <dd>
-                《清初四川通省山川形胜全图》“四川成都府”图
-              </dd>
-            </div>
-
-            <div>
-              <dt>时代</dt>
-              <dd>清乾隆初年</dd>
-            </div>
-
-            <div>
-              <dt>形态</dt>
-              <dd>
-                绢本设色绘本，一县一图，青绿山水，共 150 幅
-              </dd>
-            </div>
-
-            <div>
-              <dt>馆藏单位</dt>
-              <dd>四川大学图书馆</dd>
-            </div>
-
-            <div>
-              <dt>图像价值</dt>
-              <dd>
-                记录清初成都府城、桥梁、寺观、祠庙、城址与交通节点，是理解成都城市空间、地名沿革和地方文化记忆的重要图像文献。
-              </dd>
-            </div>
-
-            <div>
-              <dt>资料依据</dt>
-              <dd>
-                四川大学图书馆馆藏图像资料、古图局部图像、现地影像、地方文献线索与实地观察记录。
-              </dd>
-            </div>
-
-            <div>
-              <dt>释读原则</dt>
-              <dd>
-                点位释读综合古图标注、空间方位、现代地名、道路水系与现地材料进行判断；部分地点仍属初步推定，后续将继续校核。
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <section
-        class="map-section"
-        id="map"
-        aria-labelledby="map-title"
-      >
-        <div class="section-heading">
-          <div>
-            <div class="section-label">
-              Interactive Map
-            </div>
-
-            <h2 id="map-title">
-              古图点位导览
-            </h2>
-          </div>
-
-          <p>
-            点击地图上的点位，查看古图名称、今日对应地点、空间类型、状态判断、释读依据与延展说明。标记颜色表示点位的存续、变迁或待考状态。
-          </p>
-        </div>
-
-        <div class="map-workbench">
-          <div
-            class="map-panel"
-            aria-label="成都府古图"
-          >
-            <img
-              class="map-image"
-              src="./chengdu-map.png"
-              alt="四川成都府古图底图"
-            />
-
-            <div
-              class="map-markers"
-              id="mapMarkers"
-              aria-label="地图点位"
-            ></div>
-
-            <div
-              class="legend"
-              aria-label="点位图例"
-            >
-              <span>
-                <i class="dot status-existing"></i>
-                存续点
-              </span>
-
-              <span>
-                <i class="dot status-changed"></i>
-                变迁点
-              </span>
-
-              <span>
-                <i class="dot status-uncertain"></i>
-                不确定点
-              </span>
-            </div>
-          </div>
-
-          <aside
-            class="detail-panel"
-            aria-live="polite"
-          >
-            <div class="detail-kicker">
-              Point Detail
-            </div>
-
-            <article
-              class="point-card"
-              id="pointDetail"
-            >
-              <p class="empty-state">
-                请选择地图点位，查看古今对照信息。
-              </p>
-            </article>
-          </aside>
-        </div>
-      </section>
-
-      <section
-        class="citywalk-section section-band"
-        id="citywalk"
-        aria-labelledby="citywalk-title"
-      >
-        <div class="section-heading">
-          <div>
-            <div class="section-label">
-              Citywalk Route
-            </div>
-
-            <h2 id="citywalk-title">
-              一日步行路线
-            </h2>
-          </div>
-
-          <p>
-            以“桥、祠、寺、宫、城、驿路”为线索，将古图中的文化地标转译为可行走的城市阅读路线。
-          </p>
-        </div>
-
-        <dl class="file-list">
-          <div>
-            <dt>路线主题</dt>
-            <dd>
-              从桥梁交通、祠庙记忆、佛寺空间、道教宫观、城址变迁到驿路方向，观察清代成都府图中的空间节点如何在现代城市中延续、转化或消失。
-            </dd>
-          </div>
-
-          <div>
-            <dt>推荐时长</dt>
-            <dd>
-              半日到一日，可根据实地交通情况分段完成。
-            </dd>
-          </div>
-
-          <div>
-            <dt>适合对象</dt>
-            <dd>
-              高校师生、图书馆读者活动、城市文化爱好者、来馆参观与研学团队。
-            </dd>
-          </div>
-
-          <div>
-            <dt>使用方式</dt>
-            <dd>
-              可先在线查看古图点位，再按照路线实地观察，最后补充照片、地名线索与现场记录。
-            </dd>
-          </div>
-        </dl>
-
-        <ol
-          class="route-list"
-          id="routeList"
-        ></ol>
-      </section>
-
-      <section
-        class="cocreate-section"
-        id="cocreate"
-        aria-labelledby="cocreate-title"
-      >
-        <div>
-          <div class="section-label">
-            Public Contribution
-          </div>
-
-          <h2 id="cocreate-title">
-            公众共创
-          </h2>
-
-          <p>
-            古图导览仍在继续校勘。欢迎补充地名材料、实地照片与口述线索，让城市记忆被更多人共同看见。
-          </p>
-        </div>
-
-        <div class="contribute-actions">
-          <a
-            class="btn contribute"
-            href="mailto:160576249@qq.com?subject=成都府图点位补充&body=点位名称：%0A现代地点：%0A线索来源：%0A补充说明："
-            aria-label="我为点位补一条"
-          >
-            我为点位补一条
-          </a>
-
-          <a
-            class="btn contribute"
-            href="mailto:160576249@qq.com?subject=成都府图古今同框照片提交&body=拍摄地点：%0A拍摄时间：%0A照片说明：%0A是否允许展示："
-            aria-label="上传古今同框照片"
-          >
-            上传古今同框照片
-          </a>
-
-          <a
-            class="btn contribute"
-            href="mailto:160576249@qq.com?subject=成都府图地名线索提交&body=地名线索：%0A相关地点：%0A资料来源：%0A补充说明："
-            aria-label="提交地名线索"
-          >
-            提交地名线索
-          </a>
-        </div>
-      </section>
-
-      <section
-        class="about-section section-band"
-        id="about"
-        aria-labelledby="about-title"
-      >
-        <div class="section-label">
-          About
-        </div>
-
-        <h2 id="about-title">
-          项目说明
-        </h2>
-
-        <p>
-          本项目为四川大学图书馆古籍特藏资源数字化展示原型。页面内容基于馆藏《清初四川通省山川形胜全图》相关图像资料整理而成，旨在探索古地图资源在城市阅读、公共教育与数字人文展示中的应用。
-        </p>
-
-        <p>
-          页面中的图片、文字与点位说明仅用于学习、研究和文化传播。部分点位释读仍在校勘中，正式发布前应继续核验馆藏图像授权、点位释读依据、现地影像来源与公众投稿授权。
-        </p>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <a href="#top">
-        返回顶部
-      </a>
-
-      <span>
-        图绘成都 · 四川大学图书馆古籍特藏数字人文导览原型
-      </span>
-    </footer>
-
-    <!--
-      必须放在 CloudBase SDK 后面。
-      script.js 会调用 window.cloudbase。
-    -->
-<script src="./script.js?v=20260807-02"></script>
-  </body>
-</html>
+返回顶部 图绘成都 · 四川大学图书馆古籍特藏数字导览与城市记忆共创
