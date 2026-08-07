@@ -17,7 +17,10 @@
       content="基于四川大学图书馆馆藏《清初四川通省山川形胜全图》中的“四川成都府”图，结合地方文献、古今影像与公众投稿，呈现成都城市空间变迁与城市记忆。"
     />
 
-   <link rel="stylesheet" href="./style.css?v=20260807-05" />
+    <link
+      rel="stylesheet"
+      href="./style.css?v=20260807-06"
+    />
 
     <!-- CloudBase Web SDK 2.27.1 -->
     <script
@@ -44,11 +47,43 @@
         </a>
 
         <div class="navlinks">
-          <a href="#archive">项目档案</a>
-          <a href="#map">交互地图</a>
-          <a href="#citywalk">Citywalk</a>
-          <a href="#cocreate">公众共创</a>
-          <a href="#about">说明</a>
+          <a href="#archive">
+            项目档案
+          </a>
+
+          <a href="#map">
+            交互地图
+          </a>
+
+          <a href="#citywalk">
+            Citywalk
+          </a>
+
+          <a href="#cocreate">
+            公众共创
+          </a>
+
+          <button
+            type="button"
+            class="memory-nav-button"
+            id="myMemoryButton"
+            aria-haspopup="dialog"
+            aria-controls="myMemoryPanel"
+          >
+            我的记忆
+
+            <span
+              class="memory-nav-count"
+              id="myMemoryCount"
+              hidden
+            >
+              0
+            </span>
+          </button>
+
+          <a href="#about">
+            说明
+          </a>
         </div>
       </nav>
 
@@ -57,7 +92,9 @@
           四川大学图书馆古籍特藏资源活化展示
         </p>
 
-        <h1>图绘成都</h1>
+        <h1>
+          图绘成都
+        </h1>
 
         <p class="subtitle">
           川大馆藏《全图·成都府图》数字导览
@@ -81,6 +118,16 @@
           >
             查看 Citywalk
           </a>
+
+          <button
+            type="button"
+            class="btn ghost"
+            id="myMemoryHeroButton"
+            aria-haspopup="dialog"
+            aria-controls="myMemoryPanel"
+          >
+            我的城市记忆
+          </button>
         </div>
       </div>
     </header>
@@ -113,47 +160,70 @@
 
           <dl class="file-list">
             <div>
-              <dt>题名</dt>
+              <dt>
+                题名
+              </dt>
+
               <dd>
                 《清初四川通省山川形胜全图》“四川成都府”图
               </dd>
             </div>
 
             <div>
-              <dt>时代</dt>
-              <dd>清乾隆初年</dd>
+              <dt>
+                时代
+              </dt>
+
+              <dd>
+                清乾隆初年
+              </dd>
             </div>
 
             <div>
-              <dt>形态</dt>
+              <dt>
+                形态
+              </dt>
+
               <dd>
                 绢本设色绘本，一县一图，青绿山水，共 150 幅
               </dd>
             </div>
 
             <div>
-              <dt>馆藏单位</dt>
+              <dt>
+                馆藏单位
+              </dt>
+
               <dd>
                 四川大学图书馆
               </dd>
             </div>
 
             <div>
-              <dt>图像价值</dt>
+              <dt>
+                图像价值
+              </dt>
+
               <dd>
                 记录清初成都府城、桥梁、寺观、祠庙、城址与交通节点，是理解成都城市空间、地名沿革和地方文化记忆的重要图像文献。
               </dd>
             </div>
 
             <div>
-              <dt>资料依据</dt>
+              <dt>
+                资料依据
+              </dt>
+
               <dd>
                 四川大学图书馆馆藏图像资料、《成都通览》《成都街巷志》等地方文献、古今影像与实地观察记录。
               </dd>
             </div>
 
             <div>
-              <dt>内容结构</dt>
+              <dt>
+                内容结构
+              </dt>
+
               <dd>
                 六个重点点位提供经地方文献核实的历史介绍；其余点位先保留基础地图标注，并逐步补充资料。公众可为任一点位提交照片、故事与口述线索。
               </dd>
@@ -206,17 +276,26 @@
               aria-label="点位图例"
             >
               <span>
-                <i class="dot status-existing"></i>
+                <i
+                  class="dot status-existing"
+                ></i>
+
                 存续点
               </span>
 
               <span>
-                <i class="dot status-changed"></i>
+                <i
+                  class="dot status-changed"
+                ></i>
+
                 变迁点
               </span>
 
               <span>
-                <i class="dot status-uncertain"></i>
+                <i
+                  class="dot status-uncertain"
+                ></i>
+
                 待考点
               </span>
             </div>
@@ -266,28 +345,40 @@
 
         <dl class="file-list">
           <div>
-            <dt>路线主题</dt>
+            <dt>
+              路线主题
+            </dt>
+
             <dd>
               从桥梁交通、祠庙记忆、佛寺空间、道教宫观、城址变迁到城南交通节点，观察古图中的空间节点如何在现代城市中延续、转化或消失。
             </dd>
           </div>
 
           <div>
-            <dt>推荐时长</dt>
+            <dt>
+              推荐时长
+            </dt>
+
             <dd>
               半日到一日，可根据实地交通情况分段完成。
             </dd>
           </div>
 
           <div>
-            <dt>适合对象</dt>
+            <dt>
+              适合对象
+            </dt>
+
             <dd>
               高校师生、图书馆读者活动、城市文化爱好者、来馆参观与研学团队。
             </dd>
           </div>
 
           <div>
-            <dt>使用方式</dt>
+            <dt>
+              使用方式
+            </dt>
+
             <dd>
               可先在线阅读古图与重点点位介绍，再按照路线实地观察；回到对应点位详情卡，还可以提交现场照片、家庭旧照或个人故事。
             </dd>
@@ -322,23 +413,42 @@
 
         <dl class="file-list">
           <div>
-            <dt>01 选择地点</dt>
+            <dt>
+              01 选择地点
+            </dt>
+
             <dd>
               在交互地图中点击与你的照片或故事相关的历史点位。
             </dd>
           </div>
 
           <div>
-            <dt>02 提交记忆</dt>
+            <dt>
+              02 提交记忆
+            </dt>
+
             <dd>
               点击点位详情中的“留下我的城市记忆”，可填写文字并上传最多 3 张照片。
             </dd>
           </div>
 
           <div>
-            <dt>03 审核整理</dt>
+            <dt>
+              03 AI 初审
+            </dt>
+
             <dd>
-              投稿进入云端后进行整理与审核，经确认的材料将作为该点位城市记忆档案的补充。
+              投稿进入云端后由 AI 辅助判断点位相关度、内容摘要、关键词与风险提示，再交由馆员进行人工终审。
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              04 共建身份
+            </dt>
+
+            <dd>
+              审核通过的记忆将进入公众展示并点亮对应地标；投稿者获得“成都城市记忆共建者”身份，并按贡献类型解锁共建徽章。
             </dd>
           </div>
         </dl>
@@ -392,6 +502,8 @@
       script.js 必须放在 CloudBase SDK 之后。
       版本号用于避免浏览器继续读取旧缓存。
     -->
-   <script src="./script.js?v=20260807-04"></script>
+    <script
+      src="./script.js?v=20260807-06"
+    ></script>
   </body>
 </html>
