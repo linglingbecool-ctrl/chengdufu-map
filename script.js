@@ -1,9 +1,9 @@
 // ===============================================
 // 成都府图：50点原型 + CloudBase 图文城市记忆投稿
-// 版本：2026-08-07-01
+// 版本：2026-08-07-02
 // ===============================================
 
-const APP_VERSION = "20260807-01";
+const APP_VERSION = "20260807-02";
 const CLOUDBASE_ENV_ID = "chengdufu-map-d4g459au02132689e";
 const CLOUDBASE_REGION = "ap-shanghai";
 
