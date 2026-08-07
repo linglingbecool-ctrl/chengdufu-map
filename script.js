@@ -4,7 +4,7 @@
 // 版本：2026-08-07-04
 // ===============================================
 
-const APP_VERSION = "20260807-04";
+const APP_VERSION = "20260807-06";
 
 const CLOUDBASE_ENV_ID =
   "chengdufu-map-d4g459au02132689e";
@@ -38,6 +38,18 @@ let previewObjectUrls = [];
 let allPoints = [];
 
 let approvedMemoriesByPoint =
+  new Map();
+
+/*
+ * 当前浏览器用户自己的投稿数据。
+ *
+ * 注意：
+ * - “个人足迹”在投稿进入后台后即可显示；
+ * - “公共点亮”仍然只由 approved 投稿触发。
+ */
+let myContributionData = null;
+
+let myContributionPointState =
   new Map();
 
 const statusClass = {
@@ -580,6 +592,841 @@ async function loadApprovedMemories() {
   }
 }
 
+
+/* ===============================================
+   我的城市记忆 / 共建者身份 / 徽章
+   =============================================== */
+
+function rebuildMyContributionPointState(
+  items
+) {
+  myContributionPointState =
+    new Map();
+
+  /*
+   * 同一个点位可能投过多次。
+   * 显示优先级：
+   * 已公开 > 审核中 > 未通过
+   */
+  const priority = {
+    rejected: 1,
+    pending: 2,
+    processing: 2,
+    approved: 3
+  };
+
+  (items || [])
+    .forEach(
+      (item) => {
+        if (!item?.pointId) {
+          return;
+        }
+
+        const nextStatus =
+          item.status || "pending";
+
+        const currentStatus =
+          myContributionPointState
+            .get(item.pointId);
+
+        if (
+          (
+            priority[nextStatus] ||
+            0
+          ) >=
+          (
+            priority[currentStatus] ||
+            0
+          )
+        ) {
+          myContributionPointState
+            .set(
+              item.pointId,
+              nextStatus
+            );
+        }
+      }
+    );
+}
+
+function getMyPointState(
+  pointId
+) {
+  return (
+    myContributionPointState
+      .get(pointId) ||
+    ""
+  );
+}
+
+function updateMyMemoryNav() {
+  const countElement =
+    document.querySelector(
+      "#myMemoryCount"
+    );
+
+  if (!countElement) {
+    return;
+  }
+
+  const total =
+    Number(
+      myContributionData
+        ?.summary
+        ?.total
+    ) || 0;
+
+  countElement.textContent =
+    String(total);
+
+  countElement.hidden =
+    total <= 0;
+}
+
+/**
+ * 读取当前用户自己的投稿。
+ *
+ * 后端 getMyContributions 已使用 userId
+ * 与当前 Web 用户 uid 关联。
+ */
+async function loadMyContributions() {
+  if (
+    !cloudReady ||
+    !cloudApp ||
+    typeof cloudApp.callFunction
+      !== "function"
+  ) {
+    return null;
+  }
+
+  try {
+    const response =
+      await cloudApp
+        .callFunction({
+          name:
+            "getMyContributions",
+
+          data: {},
+
+          parse: true
+        });
+
+    const result =
+      normalizeFunctionResult(
+        response
+      );
+
+    if (!result?.ok) {
+      throw new Error(
+        result?.message ||
+        "个人城市记忆返回格式不正确"
+      );
+    }
+
+    myContributionData =
+      result;
+
+    rebuildMyContributionPointState(
+      Array.isArray(
+        result.items
+      )
+        ? result.items
+        : []
+    );
+
+    updateMyMemoryNav();
+
+    return result;
+  }
+
+  catch (error) {
+    console.warn(
+      "我的城市记忆暂未加载：",
+      error
+    );
+
+    return null;
+  }
+}
+
+function getMyContributionStatusLabel(
+  status
+) {
+  const map = {
+    pending: "审核中",
+    processing: "审核中",
+    approved: "已公开",
+    rejected: "未通过"
+  };
+
+  return (
+    map[status] ||
+    "处理中"
+  );
+}
+
+function getMyContributionStatusClass(
+  status
+) {
+  if (
+    status === "approved"
+  ) {
+    return "is-approved";
+  }
+
+  if (
+    status === "rejected"
+  ) {
+    return "is-rejected";
+  }
+
+  return "is-processing";
+}
+
+function getMemoryTypeLabel(
+  memoryType
+) {
+  const map = {
+    general:
+      "城市记忆",
+    place_name:
+      "地名线索",
+    oral_history:
+      "口述记忆"
+  };
+
+  return (
+    map[memoryType] ||
+    "城市记忆"
+  );
+}
+
+function ensureMyMemoryPanel() {
+  if (
+    document.querySelector(
+      "#myMemoryPanel"
+    )
+  ) {
+    return;
+  }
+
+  const panel =
+    document.createElement(
+      "div"
+    );
+
+  panel.id =
+    "myMemoryPanel";
+
+  panel.className =
+    "my-memory-panel";
+
+  panel.hidden =
+    true;
+
+  panel.innerHTML = `
+    <div
+      class="my-memory-panel__backdrop"
+      data-close-my-memory
+    ></div>
+
+    <aside
+      class="my-memory-panel__dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="myMemoryPanelTitle"
+    >
+      <button
+        type="button"
+        class="my-memory-panel__close"
+        aria-label="关闭我的城市记忆"
+        data-close-my-memory
+      >
+        ×
+      </button>
+
+      <div
+        class="my-memory-panel__content"
+        id="myMemoryPanelContent"
+      >
+        <p
+          class="my-memory-loading"
+        >
+          正在读取你的城市记忆……
+        </p>
+      </div>
+    </aside>
+  `;
+
+  document.body
+    .appendChild(
+      panel
+    );
+
+  panel
+    .querySelectorAll(
+      "[data-close-my-memory]"
+    )
+    .forEach(
+      (element) => {
+        element
+          .addEventListener(
+            "click",
+            closeMyMemoryPanel
+          );
+      }
+    );
+}
+
+function renderMyMemoryPanel() {
+  const contentElement =
+    document.querySelector(
+      "#myMemoryPanelContent"
+    );
+
+  if (!contentElement) {
+    return;
+  }
+
+  const summary =
+    myContributionData
+      ?.summary ||
+    {
+      total: 0,
+      processing: 0,
+      approved: 0,
+      rejected: 0,
+      litPoints: 0,
+      isContributor: false
+    };
+
+  const badges =
+    myContributionData
+      ?.badges ||
+    {};
+
+  const items =
+    Array.isArray(
+      myContributionData?.items
+    )
+      ? myContributionData.items
+      : [];
+
+  const isContributor =
+    summary.isContributor === true;
+
+  const identityTitle =
+    isContributor
+      ? "成都城市记忆共建者"
+      : summary.total > 0
+        ? "城市记忆参与者"
+        : "等待你的第一份城市记忆";
+
+  const identityText =
+    isContributor
+      ? "你的投稿已经通过馆员审核，并正式进入城市记忆共建成果。"
+      : summary.total > 0
+        ? "你的记忆已经被记录。审核通过后将获得“成都城市记忆共建者”身份，并解锁相应徽章。"
+        : "选择一个古图点位，留下照片、地名线索或口述故事，从第一份城市记忆开始。";
+
+  const badgeDefinitions = [
+    {
+      key:
+        "imageRecorder",
+
+      icon:
+        "📷",
+
+      title:
+        "影像记录者",
+
+      note:
+        "至少 1 条带照片的投稿审核通过"
+    },
+
+    {
+      key:
+        "placeNameExplorer",
+
+      icon:
+        "📖",
+
+      title:
+        "地名寻访者",
+
+      note:
+        "至少 1 条地名线索类投稿审核通过"
+    },
+
+    {
+      key:
+        "oralHistorian",
+
+      icon:
+        "🗣",
+
+      title:
+        "口述记忆者",
+
+      note:
+        "至少 1 条口述记忆类投稿审核通过"
+    },
+
+    {
+      key:
+        "cityWalker",
+
+      icon:
+        "🧭",
+
+      title:
+        "城市行走者",
+
+      note:
+        `在 3 个不同点位留下公开记忆 · ${
+          Math.min(
+            Number(
+              summary.litPoints
+            ) || 0,
+            3
+          )
+        }/3`
+    }
+  ];
+
+  const badgesHtml =
+    badgeDefinitions
+      .map(
+        (badge) => {
+          const unlocked =
+            badges[
+              badge.key
+            ] === true;
+
+          return `
+            <article
+              class="my-badge ${
+                unlocked
+                  ? "is-unlocked"
+                  : "is-locked"
+              }"
+            >
+              <span
+                class="my-badge__icon"
+                aria-hidden="true"
+              >
+                ${badge.icon}
+              </span>
+
+              <div>
+                <strong>
+                  ${escapeHtml(
+                    badge.title
+                  )}
+                </strong>
+
+                <p>
+                  ${escapeHtml(
+                    unlocked
+                      ? "已获得"
+                      : badge.note
+                  )}
+                </p>
+              </div>
+
+              <span
+                class="my-badge__state"
+              >
+                ${
+                  unlocked
+                    ? "已解锁"
+                    : "待解锁"
+                }
+              </span>
+            </article>
+          `;
+        }
+      )
+      .join("");
+
+  const footprintsHtml =
+    items.length
+      ? items
+          .map(
+            (item) => {
+              const excerpt =
+                String(
+                  item.originalContent ||
+                  "本次投稿以影像材料为主。"
+                )
+                  .trim()
+                  .slice(
+                    0,
+                    88
+                  );
+
+              return `
+                <article
+                  class="my-footprint-card"
+                >
+                  <div
+                    class="my-footprint-card__head"
+                  >
+                    <div>
+                      <strong>
+                        ${escapeHtml(
+                          item.pointName ||
+                          "未命名点位"
+                        )}
+                      </strong>
+
+                      <span
+                        class="my-footprint-card__type"
+                      >
+                        ${escapeHtml(
+                          getMemoryTypeLabel(
+                            item.memoryType
+                          )
+                        )}
+                      </span>
+                    </div>
+
+                    <span
+                      class="my-footprint-status ${getMyContributionStatusClass(
+                        item.status
+                      )}"
+                    >
+                      ${escapeHtml(
+                        getMyContributionStatusLabel(
+                          item.status
+                        )
+                      )}
+                    </span>
+                  </div>
+
+                  <p>
+                    ${escapeHtml(
+                      excerpt
+                    )}
+                  </p>
+
+                  <div
+                    class="my-footprint-card__meta"
+                  >
+                    <span>
+                      ${escapeHtml(
+                        item.approximateTime ||
+                        "时间未注明"
+                      )}
+                    </span>
+
+                    ${
+                      Number(
+                        item.imageCount
+                      ) > 0
+                        ? `
+                          <span>
+                            ${Number(
+                              item.imageCount
+                            )} 张影像
+                          </span>
+                        `
+                        : ""
+                    }
+                  </div>
+                </article>
+              `;
+            }
+          )
+          .join("")
+      : `
+        <div
+          class="my-memory-empty"
+        >
+          <strong>
+            还没有个人城市记忆
+          </strong>
+
+          <p>
+            从交互地图选择一个点位，点击“留下我的城市记忆”即可开始。
+          </p>
+        </div>
+      `;
+
+  contentElement.innerHTML = `
+    <p
+      class="detail-kicker"
+    >
+      My City Memory
+    </p>
+
+    <h2
+      id="myMemoryPanelTitle"
+    >
+      我的城市记忆
+    </h2>
+
+    <section
+      class="my-identity-card ${
+        isContributor
+          ? "is-contributor"
+          : ""
+      }"
+    >
+      <span
+        class="my-identity-card__seal"
+        aria-hidden="true"
+      >
+        ${
+          isContributor
+            ? "共"
+            : "记"
+        }
+      </span>
+
+      <div>
+        <p
+          class="my-identity-card__eyebrow"
+        >
+          ${
+            isContributor
+              ? "CONTRIBUTOR"
+              : "PARTICIPANT"
+          }
+        </p>
+
+        <h3>
+          ${escapeHtml(
+            identityTitle
+          )}
+        </h3>
+
+        <p>
+          ${escapeHtml(
+            identityText
+          )}
+        </p>
+      </div>
+    </section>
+
+    <div
+      class="my-memory-stats"
+    >
+      <div>
+        <strong>
+          ${Number(
+            summary.total
+          ) || 0}
+        </strong>
+
+        <span>
+          留下记忆
+        </span>
+      </div>
+
+      <div>
+        <strong>
+          ${Number(
+            summary.processing
+          ) || 0}
+        </strong>
+
+        <span>
+          审核中
+        </span>
+      </div>
+
+      <div>
+        <strong>
+          ${Number(
+            summary.approved
+          ) || 0}
+        </strong>
+
+        <span>
+          已公开
+        </span>
+      </div>
+
+      <div>
+        <strong>
+          ${Number(
+            summary.litPoints
+          ) || 0}
+        </strong>
+
+        <span>
+          点亮地点
+        </span>
+      </div>
+    </div>
+
+    <section
+      class="my-memory-section"
+    >
+      <div
+        class="my-memory-section__head"
+      >
+        <div>
+          <p
+            class="section-label"
+          >
+            My Badges
+          </p>
+
+          <h3>
+            我的徽章
+          </h3>
+        </div>
+
+        <span>
+          审核通过后自动解锁
+        </span>
+      </div>
+
+      <div
+        class="my-badges-grid"
+      >
+        ${badgesHtml}
+      </div>
+    </section>
+
+    <section
+      class="my-memory-section"
+    >
+      <div
+        class="my-memory-section__head"
+      >
+        <div>
+          <p
+            class="section-label"
+          >
+            My Footprints
+          </p>
+
+          <h3>
+            我的足迹
+          </h3>
+        </div>
+
+        <span>
+          共 ${
+            Number(
+              summary.total
+            ) || 0
+          } 份
+        </span>
+      </div>
+
+      <div
+        class="my-footprints"
+      >
+        ${footprintsHtml}
+      </div>
+    </section>
+  `;
+}
+
+async function openMyMemoryPanel() {
+  ensureMyMemoryPanel();
+
+  const panel =
+    document.querySelector(
+      "#myMemoryPanel"
+    );
+
+  const contentElement =
+    document.querySelector(
+      "#myMemoryPanelContent"
+    );
+
+  if (
+    !panel ||
+    !contentElement
+  ) {
+    return;
+  }
+
+  panel.hidden =
+    false;
+
+  document.body
+    .classList
+    .add(
+      "modal-open"
+    );
+
+  contentElement.innerHTML = `
+    <p
+      class="my-memory-loading"
+    >
+      正在读取你的城市记忆……
+    </p>
+  `;
+
+  if (!cloudReady) {
+    contentElement.innerHTML = `
+      <div
+        class="my-memory-empty"
+      >
+        <strong>
+          云端服务尚未连接
+        </strong>
+
+        <p>
+          请稍后刷新页面再试。
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  await loadMyContributions();
+
+  renderMyMemoryPanel();
+}
+
+function closeMyMemoryPanel() {
+  const panel =
+    document.querySelector(
+      "#myMemoryPanel"
+    );
+
+  if (!panel) {
+    return;
+  }
+
+  panel.hidden =
+    true;
+
+  document.body
+    .classList
+    .remove(
+      "modal-open"
+    );
+}
+
+function bindMyMemoryButtons() {
+  [
+    "#myMemoryButton",
+    "#myMemoryHeroButton"
+  ]
+    .forEach(
+      (selector) => {
+        document
+          .querySelector(
+            selector
+          )
+          ?.addEventListener(
+            "click",
+            openMyMemoryPanel
+          );
+      }
+    );
+}
+
+
 /* ===============================================
    城市记忆展示
    =============================================== */
@@ -1091,6 +1938,28 @@ function renderMarkers(points) {
           point.id
         ).length;
 
+      const myPointState =
+        getMyPointState(
+          point.id
+        );
+
+      if (
+        myPointState === "approved"
+      ) {
+        button.classList.add(
+          "my-memory-approved"
+        );
+      }
+
+      else if (
+        myPointState === "processing" ||
+        myPointState === "pending"
+      ) {
+        button.classList.add(
+          "my-memory-processing"
+        );
+      }
+
       if (
         memoryCount > 0
       ) {
@@ -1115,6 +1984,15 @@ function renderMarkers(points) {
           memoryCount
             ? `｜已收录${memoryCount}份城市记忆`
             : ""
+        }${
+          myPointState === "approved"
+            ? "｜我的记忆已公开"
+            : (
+                myPointState === "processing" ||
+                myPointState === "pending"
+              )
+              ? "｜我的记忆审核中"
+              : ""
         }`;
 
       button.addEventListener(
@@ -1342,6 +2220,34 @@ function ensureContributionModal() {
           class="contribution-field"
         >
           <span>
+            记忆类型
+          </span>
+
+          <select
+            id="contributionMemoryType"
+          >
+            <option value="general">
+              城市记忆 / 现场观察
+            </option>
+
+            <option value="place_name">
+              地名线索
+            </option>
+
+            <option value="oral_history">
+              口述记忆
+            </option>
+          </select>
+
+          <small>
+            审核通过后，不同类型的贡献可解锁相应共建徽章。
+          </small>
+        </label>
+
+        <label
+          class="contribution-field"
+        >
+          <span>
             上传照片（最多3张）
           </span>
 
@@ -1465,6 +2371,19 @@ function ensureContributionModal() {
           !modal.hidden
         ) {
           closeContributionModal();
+        }
+
+        const myMemoryPanel =
+          document.querySelector(
+            "#myMemoryPanel"
+          );
+
+        if (
+          event.key === "Escape" &&
+          myMemoryPanel &&
+          !myMemoryPanel.hidden
+        ) {
+          closeMyMemoryPanel();
         }
       }
     );
@@ -1957,6 +2876,14 @@ async function handleContributionSubmit(
       .value
       .trim();
 
+  const memoryType =
+    document
+      .querySelector(
+        "#contributionMemoryType"
+      )
+      ?.value ||
+    "general";
+
   const files =
     getSelectedImages();
 
@@ -2095,6 +3022,8 @@ async function handleContributionSubmit(
 
           materialType,
 
+          memoryType,
+
           imageFileIds,
 
           imageCount:
@@ -2161,6 +3090,32 @@ async function handleContributionSubmit(
       statusElement.textContent =
         result.message ||
         "投稿已进入自动处理流程。";
+
+      /*
+       * 投稿进入后台后立即刷新“我的城市记忆”。
+       * 公共地图仍然只有审核通过后才正式点亮。
+       */
+      await loadMyContributions();
+
+      renderMarkers(
+        allPoints
+      );
+
+      renderRoute(
+        allPoints
+      );
+
+      const myMemoryPanel =
+        document.querySelector(
+          "#myMemoryPanel"
+        );
+
+      if (
+        myMemoryPanel &&
+        !myMemoryPanel.hidden
+      ) {
+        renderMyMemoryPanel();
+      }
     }
 
     catch (
@@ -2187,7 +3142,7 @@ async function handleContributionSubmit(
 
         alert(
           processingStarted
-            ? `提交成功：共上传 ${imageFileIds.length} 张照片，投稿已进入自动处理流程。`
+            ? "记忆已保存到“我的城市记忆”。\n\n当前状态：审核中。\n审核通过后将正式进入公众展示，并解锁相应共建者身份与徽章。"
             : `投稿已保存：共上传 ${imageFileIds.length} 张照片，但自动处理暂未启动。`
         );
       },
@@ -2306,6 +3261,10 @@ async function init() {
 
   ensureContributionModal();
 
+  ensureMyMemoryPanel();
+
+  bindMyMemoryButtons();
+
   try {
     allPoints =
       await loadPoints();
@@ -2336,9 +3295,16 @@ async function init() {
       await loadApprovedMemories();
 
       /*
-       * 再渲染一次，
-       * 已有 approved 投稿的点位
-       * 就会出现点亮效果。
+       * 同时读取当前用户自己的投稿。
+       * 审核中的投稿只显示为“个人足迹”，
+       * 不影响公共点亮状态。
+       */
+      await loadMyContributions();
+
+      /*
+       * 再渲染一次：
+       * - approved 公共投稿显示公共点亮；
+       * - 当前用户投稿显示个人足迹状态。
        */
       renderMarkers(
         allPoints
