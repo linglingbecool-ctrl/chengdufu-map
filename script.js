@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-07-04
+// 版本：2026-08-10-01
 // ===============================================
 
-const APP_VERSION = "20260807-06";
+const APP_VERSION = "20260810-01";
 
 const CLOUDBASE_ENV_ID =
   "chengdufu-map-d4g459au02132689e";
@@ -80,6 +80,26 @@ const citywalkOrder = [
   "mancheng",
   "hongpailou"
 ];
+
+/*
+ * 六个重点释读点位。
+ *
+ * 直接复用 Citywalk 的六个核心点位，不需要改 points.json。
+ * 视觉上与其余 44 个基础标注点区分开。
+ */
+const featuredPointIds =
+  new Set(
+    citywalkOrder
+  );
+
+function isFeaturedPoint(
+  point
+) {
+  return featuredPointIds
+    .has(
+      point?.id
+    );
+}
 
 /* ===============================================
    CloudBase 初始化
@@ -1933,6 +1953,23 @@ function renderMarkers(points) {
         );
       }
 
+      /*
+       * 六个重点释读点位使用更高视觉层级。
+       * 这里只增加前端样式类，不改变点位状态与数据库逻辑。
+       */
+      if (
+        isFeaturedPoint(
+          point
+        )
+      ) {
+        button.classList.add(
+          "map-marker-featured"
+        );
+
+        button.dataset.featured =
+          "true";
+      }
+
       const memoryCount =
         getPointMemories(
           point.id
@@ -1983,6 +2020,12 @@ function renderMarkers(points) {
         }${
           memoryCount
             ? `｜已收录${memoryCount}份城市记忆`
+            : ""
+        }${
+          isFeaturedPoint(
+            point
+          )
+            ? "｜重点释读点位"
             : ""
         }${
           myPointState === "approved"
