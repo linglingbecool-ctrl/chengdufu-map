@@ -637,15 +637,27 @@ section {
 
 .map-marker-featured {
   z-index: 4;
+
   width: 30px;
   height: 30px;
+
   border-width: 4px;
+
   opacity: 1;
+
   box-shadow:
-    0 0 0 2px rgba(126, 53, 40, 0.34),
-    0 0 0 7px rgba(255, 248, 231, 0.58),
-    0 12px 28px rgba(36, 33, 28, 0.28);
-  animation: featuredPointPulse 3.2s ease-in-out infinite;
+    0 0 0 2px
+      rgba(126, 53, 40, 0.34),
+    0 0 0 7px
+      rgba(255, 248, 231, 0.58),
+    0 12px 28px
+      rgba(36, 33, 28, 0.28);
+
+  animation:
+    featuredPointPulse
+    3.2s
+    ease-in-out
+    infinite;
 }
 
 .map-marker-featured:hover,
@@ -653,41 +665,65 @@ section {
   transform:
     translate(-50%, -50%)
     scale(1.12);
+
   box-shadow:
-    0 0 0 2px rgba(126, 53, 40, 0.46),
-    0 0 0 8px rgba(255, 248, 231, 0.78),
-    0 0 22px rgba(196, 154, 69, 0.46),
-    0 14px 30px rgba(36, 33, 28, 0.3);
+    0 0 0 2px
+      rgba(126, 53, 40, 0.46),
+    0 0 0 8px
+      rgba(255, 248, 231, 0.78),
+    0 0 22px
+      rgba(196, 154, 69, 0.46),
+    0 14px 30px
+      rgba(36, 33, 28, 0.3);
 }
 
 @keyframes featuredPointPulse {
   0%,
   100% {
     box-shadow:
-      0 0 0 2px rgba(126, 53, 40, 0.3),
-      0 0 0 7px rgba(255, 248, 231, 0.5),
-      0 10px 24px rgba(36, 33, 28, 0.24);
+      0 0 0 2px
+        rgba(126, 53, 40, 0.3),
+      0 0 0 7px
+        rgba(255, 248, 231, 0.5),
+      0 10px 24px
+        rgba(36, 33, 28, 0.24);
   }
 
   50% {
     box-shadow:
-      0 0 0 2px rgba(126, 53, 40, 0.4),
-      0 0 0 10px rgba(196, 154, 69, 0.16),
-      0 0 24px rgba(196, 154, 69, 0.3),
-      0 12px 28px rgba(36, 33, 28, 0.28);
+      0 0 0 2px
+        rgba(126, 53, 40, 0.4),
+      0 0 0 10px
+        rgba(196, 154, 69, 0.16),
+      0 0 24px
+        rgba(196, 154, 69, 0.3),
+      0 12px 28px
+        rgba(36, 33, 28, 0.28);
   }
 }
 
 .map-marker-featured.memory-lit {
-  animation: memoryGlow 2.2s ease-in-out infinite;
+  animation:
+    memoryGlow
+    2.2s
+    ease-in-out
+    infinite;
 }
 
 .dot.featured-dot {
   width: 13px;
   height: 13px;
-  border: 3px solid var(--cinnabar-dark);
-  background: rgba(255, 248, 231, 0.88);
-  box-shadow: 0 0 0 2px rgba(196, 154, 69, 0.24);
+
+  border:
+    3px solid
+    var(--cinnabar-dark);
+
+  background:
+    rgba(255, 248, 231, 0.88);
+
+  box-shadow:
+    0 0 0 2px
+    rgba(196, 154, 69, 0.24);
 }
 
 /* =========================
@@ -1032,6 +1068,564 @@ section {
 .official-intro p {
   margin-bottom: 12px;
 }
+
+
+/* =================================================
+   P0-2 路 鍦扮偣妗ｆ / Place Archive
+   ================================================= */
+
+.point-archive-card {
+  gap: 0;
+}
+
+.point-archive-topline {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding-bottom: 18px;
+
+  border-bottom:
+    1px solid
+    var(--line);
+}
+
+.point-archive-topline
+.detail-kicker {
+  margin-bottom: 5px;
+}
+
+.point-archive-title {
+  margin: 0;
+
+  font-size: 1.18rem;
+
+  letter-spacing: 0.08em;
+}
+
+.point-archive-index {
+  flex: 0 0 auto;
+
+  min-width: 94px;
+
+  display: grid;
+
+  justify-items: end;
+
+  gap: 2px;
+
+  padding-top: 1px;
+
+  text-align: right;
+}
+
+.point-archive-index__number {
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.86rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+}
+
+.point-archive-index__label {
+  color:
+    var(--ink-soft);
+
+  font-size: 0.72rem;
+
+  letter-spacing: 0.08em;
+}
+
+.point-archive-name-pair {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    28px
+    minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-top: 18px;
+
+  padding:
+    18px
+    16px;
+
+  border:
+    1px solid
+    rgba(123, 88, 57, 0.2);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(229, 210, 173, 0.22),
+      rgba(255, 250, 240, 0.58)
+    );
+}
+
+.point-archive-name {
+  min-width: 0;
+}
+
+.point-archive-name__label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.7rem;
+
+  font-weight: 700;
+
+  letter-spacing: 0.12em;
+}
+
+.point-archive-name strong {
+  display: block;
+
+  overflow-wrap: anywhere;
+
+  color:
+    var(--ink);
+
+  font-size:
+    clamp(1.25rem, 2.4vw, 1.72rem);
+
+  line-height: 1.18;
+}
+
+.point-archive-name--modern strong {
+  color:
+    var(--cinnabar-dark);
+}
+
+.point-archive-name__arrow {
+  display: grid;
+
+  place-items: center;
+
+  width: 28px;
+  height: 28px;
+
+  border:
+    1px solid
+    rgba(196, 154, 69, 0.38);
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 250, 240, 0.76);
+
+  color:
+    var(--gold);
+
+  font-family:
+    Arial,
+    sans-serif;
+
+  font-size: 0.92rem;
+
+  line-height: 1;
+}
+
+.point-archive-name-pair.is-continuity
+.point-archive-name__arrow {
+  color:
+    var(--qing-deep);
+
+  border-color:
+    rgba(53, 95, 87, 0.28);
+
+  background:
+    rgba(111, 155, 139, 0.1);
+}
+
+.point-archive-continuity {
+  display: inline-flex;
+
+  margin-top: 7px;
+
+  padding:
+    2px
+    7px;
+
+  border:
+    1px solid
+    rgba(53, 95, 87, 0.18);
+
+  border-radius: 999px;
+
+  background:
+    rgba(111, 155, 139, 0.1);
+
+  color:
+    var(--qing-deep);
+
+  font-size: 0.66rem;
+
+  font-weight: 700;
+}
+
+.point-archive-meta {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  margin-top: 12px;
+}
+
+.point-archive-chip {
+  display: inline-flex;
+
+  align-items: center;
+
+  min-height: 28px;
+
+  padding:
+    4px
+    10px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255, 250, 240, 0.62);
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.74rem;
+
+  font-weight: 700;
+}
+
+.point-archive-chip.status-existing {
+  border-color:
+    rgba(53, 95, 87, 0.24);
+
+  background:
+    rgba(111, 155, 139, 0.12);
+
+  color:
+    var(--qing-deep);
+}
+
+.point-archive-chip.status-changed {
+  border-color:
+    rgba(126, 53, 40, 0.24);
+
+  background:
+    rgba(168, 79, 54, 0.1);
+
+  color:
+    var(--cinnabar-dark);
+}
+
+.point-archive-chip.status-uncertain {
+  border-color:
+    rgba(196, 154, 69, 0.34);
+
+  background:
+    rgba(196, 154, 69, 0.12);
+
+  color: #806226;
+}
+
+.point-archive-route-note {
+  margin:
+    12px
+    0
+    0;
+
+  padding:
+    10px
+    12px;
+
+  border-left:
+    2px solid
+    rgba(196, 154, 69, 0.62);
+
+  background:
+    rgba(196, 154, 69, 0.07);
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.84rem;
+}
+
+.point-archive-route-note span {
+  margin-right: 8px;
+
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.72rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+}
+
+.point-archive-media-block {
+  margin-top: 22px;
+
+  padding-top: 18px;
+
+  border-top:
+    1px solid
+    var(--line);
+}
+
+.point-archive-media-block__heading {
+  display: flex;
+
+  align-items: end;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 12px;
+}
+
+.point-archive-media-block__heading span {
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.66rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.16em;
+}
+
+.point-archive-media-block__heading h4 {
+  margin: 0;
+
+  color:
+    var(--ink);
+
+  font-size: 0.98rem;
+}
+
+.point-archive-card
+.point-media {
+  gap: 9px;
+}
+
+.point-archive-card
+.point-media figure {
+  overflow: hidden;
+
+  border-color:
+    rgba(75, 57, 34, 0.16);
+
+  background:
+    rgba(229, 210, 173, 0.16);
+}
+
+.point-archive-card
+.point-media img {
+  transition:
+    transform 420ms ease,
+    filter 420ms ease;
+}
+
+.point-archive-card
+.point-media figure:hover img {
+  transform:
+    scale(1.025);
+
+  filter:
+    contrast(1.02);
+}
+
+.point-archive-card
+.point-media figcaption {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding:
+    7px
+    9px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.74rem;
+}
+
+.point-archive-block {
+  margin-top: 22px;
+
+  padding-top: 20px;
+
+  border-top:
+    1px solid
+    var(--line);
+}
+
+.point-archive-block__heading {
+  display: grid;
+
+  grid-template-columns:
+    36px
+    minmax(0, 1fr);
+
+  gap: 10px;
+
+  align-items: start;
+
+  margin-bottom: 12px;
+}
+
+.point-archive-block__number {
+  display: grid;
+
+  place-items: center;
+
+  width: 34px;
+  height: 34px;
+
+  border:
+    1px solid
+    rgba(126, 53, 40, 0.2);
+
+  background:
+    rgba(168, 79, 54, 0.07);
+
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.72rem;
+
+  font-weight: 900;
+
+  letter-spacing: 0.04em;
+}
+
+.point-archive-block__eyebrow {
+  margin:
+    0
+    0
+    2px !important;
+
+  color:
+    var(--cinnabar-dark) !important;
+
+  font-size: 0.62rem !important;
+
+  font-weight: 800;
+
+  letter-spacing: 0.15em;
+}
+
+.point-archive-block__heading h4 {
+  margin: 0;
+
+  color:
+    var(--ink);
+
+  font-size: 1rem;
+}
+
+.point-archive-block__body {
+  padding-left: 46px;
+}
+
+.point-archive-block__body p {
+  margin-bottom: 11px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.9rem;
+
+  line-height: 1.78;
+}
+
+.point-archive-block__body p:last-child {
+  margin-bottom: 0;
+}
+
+.point-archive-memory-shell
+.memory-status-strip {
+  margin-top: 0;
+}
+
+.point-archive-memory-shell
+.memory-section {
+  margin-top: 12px;
+
+  padding-top: 0;
+
+  border-top: 0;
+}
+
+.point-archive-memory-shell
+.memory-section__head {
+  justify-content: flex-end;
+
+  margin-bottom: 9px;
+}
+
+.point-archive-memory-shell
+.memory-section__head h4 {
+  display: none;
+}
+
+.point-archive-contribution {
+  margin-top: 20px;
+
+  padding-top: 18px;
+
+  border-top:
+    1px solid
+    var(--line);
+}
+
+.point-archive-contribution
+.memory-help {
+  margin:
+    8px
+    2px
+    0;
+
+  text-align: center;
+}
+
+.is-featured-archive
+.point-archive-topline {
+  border-top:
+    2px solid
+    var(--cinnabar);
+
+  padding-top: 12px;
+}
+
+.is-basic-archive
+.point-archive-name-pair {
+  opacity: 0.92;
+}
+
 
 /* =========================
    Public memories
@@ -2641,6 +3235,29 @@ p {
       );
   }
 
+  .point-archive-name-pair {
+    grid-template-columns: 1fr;
+
+    gap: 10px;
+  }
+
+  .point-archive-name__arrow {
+    transform:
+      rotate(0deg);
+
+    justify-self: start;
+  }
+
+  .point-archive-block__body {
+    padding-left: 0;
+  }
+
+  .point-archive-media-block__heading {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
   .site-footer {
     flex-direction: column;
   }
@@ -2732,5 +3349,10 @@ p {
   .map-marker.memory-lit,
   .map-marker-featured {
     animation: none;
+  }
+
+  .point-archive-card
+  .point-media img {
+    transition: none;
   }
 }
