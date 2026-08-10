@@ -19,7 +19,7 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260810-03"
+      href="./style.css?v=20260810-04"
     />
 
     <!-- CloudBase Web SDK 2.27.1 -->
@@ -87,24 +87,76 @@
         </div>
       </nav>
 
+      <!--
+        首屏三个地点只作为视觉提示，
+        不是真正的地图按钮。
+      -->
+      <div
+        class="hero-map-hints"
+        aria-hidden="true"
+      >
+        <span
+          class="hero-map-hint hero-map-hint--jiuyanqiao"
+        >
+          <i></i>
+          九眼桥
+        </span>
+
+        <span
+          class="hero-map-hint hero-map-hint--wenshuyuan"
+        >
+          <i></i>
+          文殊院
+        </span>
+
+        <span
+          class="hero-map-hint hero-map-hint--qingyanggong"
+        >
+          <i></i>
+          青羊宫
+        </span>
+      </div>
+
       <div class="hero-inner">
-        <p class="eyebrow">
+        <p class="hero-overline">
+          <span>
+            Mapping Chengdu
+          </span>
+        </p>
+
+        <p
+          class="eyebrow hero-reveal hero-reveal--1"
+        >
           四川大学图书馆古籍特藏资源活化展示
         </p>
 
-        <h1>
+        <h1
+          class="hero-title hero-reveal hero-reveal--2"
+        >
           图绘成都
         </h1>
 
-        <p class="subtitle">
+        <p
+          class="subtitle hero-reveal hero-reveal--3"
+        >
           川大馆藏《全图·成都府图》数字导览
         </p>
 
-        <p class="intro">
+        <p
+          class="hero-thesis hero-reveal hero-reveal--4"
+        >
+          一幅古图 · 一座成都 · 一群人的城市记忆
+        </p>
+
+        <p
+          class="intro hero-reveal hero-reveal--5"
+        >
           从四川大学图书馆馆藏《清初四川通省山川形胜全图》中的“四川成都府”图出发，将古地图中的桥梁、寺观、祠庙、城址与交通节点转化为可浏览、可点击、可行走的数字导览资源，并结合地方文献、古今影像与公众城市记忆，呈现成都城市空间的历史变迁。
         </p>
 
-        <div class="hero-actions">
+        <div
+          class="hero-actions hero-reveal hero-reveal--6"
+        >
           <a
             class="btn primary"
             href="#map"
@@ -506,10 +558,6 @@
       </span>
     </footer>
 
-    <!--
-      script.js 必须放在 CloudBase SDK 之后。
-      版本号用于避免浏览器继续读取旧缓存。
-    -->
     <script
       src="./script.js?v=20260810-03"
     ></script>
