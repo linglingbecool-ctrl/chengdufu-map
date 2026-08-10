@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-10-06
+// 版本：2026-08-10-07
 // ===============================================
 
-const APP_VERSION = "20260810-06";
+const APP_VERSION = "20260810-07";
 
 const CLOUDBASE_ENV_ID =
   "chengdufu-map-d4g459au02132689e";
@@ -51,6 +51,20 @@ let myContributionData = null;
 
 let myContributionPointState =
   new Map();
+
+/* ===============================================
+   P1-4 · 全站微交互状态
+   =============================================== */
+
+let scrollRevealObserver = null;
+let mapMarkerObserver = null;
+let hasPlayedMarkerIntro = false;
+let navScrollTicking = false;
+
+const prefersReducedMotion =
+  window.matchMedia?.(
+    "(prefers-reduced-motion: reduce)"
+  )?.matches === true;
 
 const statusClass = {
   "存续点": "status-existing",
@@ -120,6 +134,395 @@ function getFeaturedPointNumber(
     2,
     "0"
   );
+}
+
+/* ===============================================
+   P1-4 · 全站微交互 / 滚动叙事
+   =============================================== */
+
+function registerRevealElements() {
+  if (!scrollRevealObserver) {
+    return;
+  }
+
+  const groups = [
+    {
+      selector: ".archive-section__head, .archive-narrative, .collection-record",
+      step: 90
+    },
+    {
+      selector: ".map-section .section-heading, .map-workbench",
+      step: 100
+    },
+    {
+      selector: ".citywalk-section .section-heading, .citywalk-section > .file-list, .route-stop",
+      step: 70
+    },
+    {
+      selector: ".cocreate-head, .workflow-step, .review-card, .review-handoff, .outcome-card, .cocreate-actions",
+      step: 65
+    },
+    {
+      selector: ".about-section > *",
+      step: 80
+    }
+  ];
+
+  groups.forEach(
+    (group) => {
+      document
+        .querySelectorAll(
+          group.selector
+        )
+        .forEach(
+          (element, index) => {
+            if (
+              element.dataset
+                .motionBound === "true"
+            ) {
+              return;
+            }
+
+            element.dataset.motionBound =
+              "true";
+
+            element.classList.add(
+              "motion-reveal"
+            );
+
+            element.style
+              .setProperty(
+                "--motion-delay",
+                `${Math.min(index, 8) * group.step}ms`
+              );
+
+            scrollRevealObserver
+              .observe(
+                element
+              );
+          }
+        );
+    }
+  );
+}
+
+function setupScrollReveal() {
+  if (
+    prefersReducedMotion ||
+    !("IntersectionObserver" in window)
+  ) {
+    document.documentElement
+      .classList.add(
+        "motion-static"
+      );
+
+    return;
+  }
+
+  document.documentElement
+    .classList.add(
+      "motion-enabled"
+    );
+
+  scrollRevealObserver =
+    new IntersectionObserver(
+      (entries) => {
+        entries.forEach(
+          (entry) => {
+            if (!entry.isIntersecting) {
+              return;
+            }
+
+            entry.target
+              .classList.add(
+                "is-visible"
+              );
+
+            scrollRevealObserver
+              ?.unobserve(
+                entry.target
+              );
+          }
+        );
+      },
+      {
+        threshold: 0.12,
+        rootMargin:
+          "0px 0px -8% 0px"
+      }
+    );
+
+  registerRevealElements();
+}
+
+function playMapMarkerIntro() {
+  if (
+    hasPlayedMarkerIntro ||
+    prefersReducedMotion
+  ) {
+    return;
+  }
+
+  const markers =
+    Array.from(
+      document.querySelectorAll(
+        ".map-marker"
+      )
+    );
+
+  if (!markers.length) {
+    return;
+  }
+
+  hasPlayedMarkerIntro = true;
+
+  const normalMarkers =
+    markers.filter(
+      (marker) =>
+        !marker.classList
+          .contains(
+            "map-marker-featured"
+          )
+    );
+
+  const featuredMarkers =
+    markers.filter(
+      (marker) =>
+        marker.classList
+          .contains(
+            "map-marker-featured"
+          )
+    );
+
+  const orderedMarkers = [
+    ...normalMarkers,
+    ...featuredMarkers
+  ];
+
+  orderedMarkers.forEach(
+    (marker, index) => {
+      marker.classList.add(
+        "map-marker-enter"
+      );
+
+      marker.style
+        .setProperty(
+          "--marker-enter-delay",
+          `${Math.min(index * 28, 1250)}ms`
+        );
+
+      marker.addEventListener(
+        "animationend",
+        () => {
+          marker.classList.remove(
+            "map-marker-enter"
+          );
+
+          marker.style
+            .removeProperty(
+              "--marker-enter-delay"
+            );
+        },
+        {
+          once: true
+        }
+      );
+    }
+  );
+}
+
+function setupMapMarkerIntro() {
+  if (
+    prefersReducedMotion ||
+    !("IntersectionObserver" in window)
+  ) {
+    return;
+  }
+
+  const mapPanel =
+    document.querySelector(
+      ".map-panel"
+    );
+
+  if (!mapPanel) {
+    return;
+  }
+
+  mapMarkerObserver =
+    new IntersectionObserver(
+      (entries) => {
+        const visible =
+          entries.some(
+            (entry) =>
+              entry.isIntersecting
+          );
+
+        if (!visible) {
+          return;
+        }
+
+        playMapMarkerIntro();
+
+        mapMarkerObserver
+          ?.disconnect();
+      },
+      {
+        threshold: 0.28,
+        rootMargin:
+          "0px 0px -5% 0px"
+      }
+    );
+
+  mapMarkerObserver
+    .observe(
+      mapPanel
+    );
+}
+
+function updateActiveNavigation() {
+  const navLinks =
+    Array.from(
+      document.querySelectorAll(
+        '.navlinks a[href^="#"]'
+      )
+    );
+
+  if (!navLinks.length) {
+    return;
+  }
+
+  const candidates =
+    navLinks
+      .map(
+        (link) => {
+          const id =
+            link.getAttribute(
+              "href"
+            )?.slice(1);
+
+          const section =
+            id
+              ? document.getElementById(
+                  id
+                )
+              : null;
+
+          return {
+            link,
+            section
+          };
+        }
+      )
+      .filter(
+        (item) => item.section
+      );
+
+  const focusLine =
+    window.innerHeight * 0.32;
+
+  let activeItem = null;
+  let smallestDistance =
+    Number.POSITIVE_INFINITY;
+
+  candidates.forEach(
+    (item) => {
+      const rect =
+        item.section
+          .getBoundingClientRect();
+
+      const isRelevant =
+        rect.top <= focusLine &&
+        rect.bottom >= 96;
+
+      if (!isRelevant) {
+        return;
+      }
+
+      const distance =
+        Math.abs(
+          rect.top - focusLine
+        );
+
+      if (
+        distance <
+        smallestDistance
+      ) {
+        smallestDistance =
+          distance;
+
+        activeItem =
+          item;
+      }
+    }
+  );
+
+  if (
+    window.scrollY <
+    window.innerHeight * 0.42
+  ) {
+    activeItem = null;
+  }
+
+  navLinks.forEach(
+    (link) => {
+      const isCurrent =
+        activeItem?.link === link;
+
+      link.classList.toggle(
+        "is-current",
+        isCurrent
+      );
+
+      if (isCurrent) {
+        link.setAttribute(
+          "aria-current",
+          "location"
+        );
+      }
+
+      else {
+        link.removeAttribute(
+          "aria-current"
+        );
+      }
+    }
+  );
+}
+
+function setupActiveNavigation() {
+  updateActiveNavigation();
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (navScrollTicking) {
+        return;
+      }
+
+      navScrollTicking = true;
+
+      requestAnimationFrame(
+        () => {
+          updateActiveNavigation();
+          navScrollTicking = false;
+        }
+      );
+    },
+    {
+      passive: true
+    }
+  );
+
+  window.addEventListener(
+    "resize",
+    updateActiveNavigation
+  );
+}
+
+function setupMicroInteractions() {
+  setupScrollReveal();
+  setupMapMarkerIntro();
+  setupActiveNavigation();
 }
 
 /* ===============================================
@@ -2627,6 +3030,8 @@ function renderRoute(points) {
       )
       .join("");
 
+  registerRevealElements();
+
   routeListEl
     .querySelectorAll(
       ".route-card"
@@ -3808,6 +4213,12 @@ async function init() {
     renderRoute(
       allPoints
     );
+
+    /*
+     * 页面主体已经可用后，再启用微交互。
+     * 即使 CloudBase 连接较慢，也不会阻塞视觉体验。
+     */
+    setupMicroInteractions();
 
     /*
      * 再连接 CloudBase。
