@@ -19,9 +19,10 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260810-05"
+      href="./style.css?v=20260810-06"
     />
 
+    <!-- CloudBase Web SDK 2.27.1 -->
     <script
       src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"
       onload="console.log('CloudBase SDK 2.27.1 加载成功')"
@@ -198,7 +199,7 @@
           </div>
 
           <p class="archive-section__lead">
-            从馆藏文献出发，把一幅古地图转化为可释读、可行走、可共建的城市数字档案。
+            从一部川大图书馆珍藏的孤本古地图出发，把“镇馆之宝”转化为可释读、可行走、可共建的城市数字档案。
           </p>
         </div>
 
@@ -209,11 +210,15 @@
             </p>
 
             <h3>
-              从馆藏古图，进入成都的历史空间
+              从孤本古图，进入成都的历史空间
             </h3>
 
+            <p class="archive-narrative__heritage">
+              《清初四川通省山川形胜全图》亦称《四川全图》，是现存四川各州县第一幅彩绘地图，也是现存最早的四川各地城市地图。孤本藏于四川大学图书馆，被誉为“镇馆之宝”。
+            </p>
+
             <p>
-              《清初四川通省山川形胜全图》以一县一图的方式描绘清初四川山川形胜、府州县治、道路桥梁与人文名胜。本站以其中“四川成都府”图为视觉入口，将古图信息转化为公众可浏览、可点击、可延展的城市导览单元。
+              全图以一县一图的方式描绘清初四川山川形胜、府州县治、道路桥梁与人文名胜。本站以其中“四川成都府”图为视觉入口，将馆藏古地图转化为公众可浏览、可点击、可延展的城市数字导览资源。
             </p>
 
             <p>
@@ -224,52 +229,75 @@
               class="archive-path"
               aria-label="项目活化路径"
             >
-              <span>馆藏古图</span>
-              <i aria-hidden="true">→</i>
+              <span>
+                馆藏孤本
+              </span>
 
-              <span>地方文献释读</span>
-              <i aria-hidden="true">→</i>
+              <i aria-hidden="true">
+                →
+              </i>
 
-              <span>数字点位</span>
-              <i aria-hidden="true">→</i>
+              <span>
+                地方文献释读
+              </span>
 
-              <span>公众记忆</span>
+              <i aria-hidden="true">
+                →
+              </i>
+
+              <span>
+                数字点位
+              </span>
+
+              <i aria-hidden="true">
+                →
+              </i>
+
+              <span>
+                公众记忆
+              </span>
             </div>
 
             <div class="archive-source-notes">
               <div>
-                <span>01</span>
+                <span>
+                  01
+                </span>
 
                 <p>
                   <strong>
-                    古图本体
+                    原图保真
                   </strong>
 
-                  保留馆藏原图作为历史图像文献基础。
+                  保留馆藏原图作为历史图像文献基础，不以生成式图像替代原件。
                 </p>
               </div>
 
               <div>
-                <span>02</span>
+                <span>
+                  02
+                </span>
 
                 <p>
                   <strong>
                     文献释读
                   </strong>
 
-                  六个重点点位优先结合地方文献整理。
+                  六个重点点位优先结合地方文献进行校核与知识整理。
                 </p>
               </div>
 
               <div>
-                <span>03</span>
+                <span>
+                  03
+                </span>
 
                 <p>
                   <strong>
                     城市共建
                   </strong>
 
-                  经审核的照片、故事与口述线索进入公众展示。
+                  经审核的照片、故事与口述线索进入公众展示，形成新的城市记忆层。
                 </p>
               </div>
             </div>
@@ -289,6 +317,19 @@
               </span>
             </div>
 
+            <div
+              class="collection-record__badges"
+              aria-label="馆藏特色"
+            >
+              <span>
+                孤本
+              </span>
+
+              <span>
+                镇馆之宝
+              </span>
+            </div>
+
             <div class="collection-record__title">
               <p>
                 馆藏题名
@@ -298,9 +339,45 @@
                 《清初四川通省山川形胜全图》
               </h3>
 
+              <p class="collection-record__alias">
+                亦称《四川全图》
+              </p>
+
               <strong>
                 “四川成都府”图
               </strong>
+            </div>
+
+            <div class="collection-record__heritage">
+              <div>
+                <span>
+                  01
+                </span>
+
+                <p>
+                  现存四川各州县
+                  <br />
+
+                  <strong>
+                    第一幅彩绘地图
+                  </strong>
+                </p>
+              </div>
+
+              <div>
+                <span>
+                  02
+                </span>
+
+                <p>
+                  现存最早的
+                  <br />
+
+                  <strong>
+                    四川各地城市地图
+                  </strong>
+                </p>
+              </div>
             </div>
 
             <dl class="collection-record__meta">
@@ -351,7 +428,8 @@
               </span>
 
               <span class="collection-record__count-label">
-                MAP SHEETS<br />
+                MAP SHEETS
+                <br />
                 馆藏全图规模
               </span>
             </div>
@@ -366,14 +444,29 @@
               </p>
             </div>
 
+            <p class="collection-record__bridge">
+              从“镇馆之宝”到“公众可读”，让孤本古地图进入当代城市文化传播。
+            </p>
+
             <div
               class="collection-record__seal"
               aria-hidden="true"
             >
-              <span>川</span>
-              <span>大</span>
-              <span>馆</span>
-              <span>藏</span>
+              <span>
+                川
+              </span>
+
+              <span>
+                大
+              </span>
+
+              <span>
+                馆
+              </span>
+
+              <span>
+                藏
+              </span>
             </div>
           </article>
         </div>
@@ -552,70 +645,349 @@
         id="cocreate"
         aria-labelledby="cocreate-title"
       >
-        <div>
-          <div class="section-label">
-            Public Contribution
+        <div class="cocreate-head">
+          <div>
+            <div class="section-label">
+              Public Contribution
+            </div>
+
+            <h2 id="cocreate-title">
+              公众共创 · 城市记忆
+            </h2>
+
+            <p class="cocreate-lead">
+              历史不仅写在地方文献里，也保存在每个人的照片、行走与讲述中。选择一个古图点位，留下你与这个地方有关的真实城市记忆。
+            </p>
           </div>
 
-          <h2 id="cocreate-title">
-            公众共创 · 城市记忆
-          </h2>
+          <aside class="cocreate-principle">
+            <span class="cocreate-principle__label">
+              HUMAN-IN-THE-LOOP
+            </span>
 
-          <p>
-            城市历史不仅存在于地方文献中，也保存在家庭照片、个人经历、口述故事与日常观察里。选择一个地图点位，留下你与这个地方有关的城市记忆。
-          </p>
+            <strong>
+              AI 辅助判断，馆员最终决策
+            </strong>
+
+            <p>
+              每一份投稿都经过 AI 辅助初审与馆员人工终审；AI 不直接决定内容是否公开。
+            </p>
+          </aside>
         </div>
 
-        <dl class="file-list">
-          <div>
-            <dt>
-              01 选择地点
-            </dt>
+        <div
+          class="cocreate-flow"
+          aria-label="城市记忆公众共创流程"
+        >
+          <article class="workflow-step">
+            <span class="workflow-node">
+              01
+            </span>
 
-            <dd>
-              在交互地图中点击与你的照片或故事相关的历史点位。
-            </dd>
+            <p class="workflow-step__kicker">
+              SELECT POINT
+            </p>
+
+            <h3>
+              选择地点
+            </h3>
+
+            <p>
+              在交互古图中找到与你的照片、故事或口述线索有关的历史点位。
+            </p>
+          </article>
+
+          <article class="workflow-step">
+            <span class="workflow-node">
+              02
+            </span>
+
+            <p class="workflow-step__kicker">
+              SUBMIT MEMORY
+            </p>
+
+            <h3>
+              提交记忆
+            </h3>
+
+            <p>
+              填写真实经历，可提交文字与最多 3 张本人提供或已获授权的照片。
+            </p>
+          </article>
+
+          <article
+            class="workflow-step workflow-step--ai"
+          >
+            <span class="workflow-node">
+              03
+            </span>
+
+            <p class="workflow-step__kicker">
+              AI ASSISTED REVIEW
+            </p>
+
+            <h3>
+              AI 辅助初审
+            </h3>
+
+            <p>
+              判断点位相关度，生成摘要、关键词与风险提示，形成馆员复核依据。
+            </p>
+          </article>
+
+          <article
+            class="workflow-step workflow-step--librarian"
+          >
+            <span class="workflow-node">
+              04
+            </span>
+
+            <p class="workflow-step__kicker">
+              LIBRARIAN REVIEW
+            </p>
+
+            <h3>
+              馆员人工终审
+            </h3>
+
+            <p>
+              根据原始投稿与 AI 结果作出通过、复核或拒绝的最终公开决策。
+            </p>
+          </article>
+
+          <article
+            class="workflow-step workflow-step--light"
+          >
+            <span class="workflow-node">
+              05
+            </span>
+
+            <p class="workflow-step__kicker">
+              MAP LIGHTING
+            </p>
+
+            <h3>
+              点亮城市
+            </h3>
+
+            <p>
+              审核通过的记忆进入公众展示，对应古图地标同步点亮。
+            </p>
+          </article>
+
+          <article
+            class="workflow-step workflow-step--identity"
+          >
+            <span class="workflow-node">
+              06
+            </span>
+
+            <p class="workflow-step__kicker">
+              CONTRIBUTOR
+            </p>
+
+            <h3>
+              成为共建者
+            </h3>
+
+            <p>
+              获得“成都城市记忆共建者”身份，并按贡献类型解锁个人徽章。
+            </p>
+          </article>
+        </div>
+
+        <div class="review-governance">
+          <article
+            class="review-card review-card--ai"
+          >
+            <div class="review-card__head">
+              <span class="review-card__index">
+                03
+              </span>
+
+              <div>
+                <p>
+                  AI ASSISTED REVIEW
+                </p>
+
+                <h3>
+                  AI 辅助初审
+                </h3>
+              </div>
+            </div>
+
+            <div
+              class="review-card__tags"
+              aria-label="AI 初审内容"
+            >
+              <span>
+                点位相关度
+              </span>
+
+              <span>
+                内容摘要
+              </span>
+
+              <span>
+                关键词
+              </span>
+
+              <span>
+                风险提示
+              </span>
+            </div>
+
+            <p class="review-card__note">
+              AI 负责快速整理与风险提示，不直接决定发布。
+            </p>
+          </article>
+
+          <div
+            class="review-handoff"
+            aria-hidden="true"
+          >
+            <span>
+              AI
+            </span>
+
+            <i>
+              →
+            </i>
+
+            <span>
+              馆员
+            </span>
           </div>
 
-          <div>
-            <dt>
-              02 提交记忆
-            </dt>
+          <article
+            class="review-card review-card--librarian"
+          >
+            <div class="review-card__head">
+              <span class="review-card__index">
+                04
+              </span>
 
-            <dd>
-              点击点位详情中的“留下我的城市记忆”，可填写文字并上传最多 3 张照片。
-            </dd>
-          </div>
+              <div>
+                <p>
+                  LIBRARIAN REVIEW
+                </p>
 
-          <div>
-            <dt>
-              03 AI 初审
-            </dt>
+                <h3>
+                  馆员人工终审
+                </h3>
+              </div>
+            </div>
 
-            <dd>
-              投稿进入云端后由 AI 辅助判断点位相关度、内容摘要、关键词与风险提示，再交由馆员进行人工终审。
-            </dd>
-          </div>
+            <div
+              class="review-card__tags"
+              aria-label="馆员审核决策"
+            >
+              <span>
+                通过
+              </span>
 
-          <div>
-            <dt>
-              04 共建身份
-            </dt>
+              <span>
+                人工复核
+              </span>
 
-            <dd>
-              审核通过的记忆将进入公众展示并点亮对应地标；投稿者获得“成都城市记忆共建者”身份，并按贡献类型解锁共建徽章。
-            </dd>
-          </div>
-        </dl>
+              <span>
+                拒绝
+              </span>
+            </div>
 
-        <div class="contribute-actions">
+            <p class="review-card__note">
+              馆员结合原始材料与 AI 建议，承担最终公开决策责任。
+            </p>
+          </article>
+        </div>
+
+        <div class="cocreate-outcomes">
+          <article
+            class="outcome-card outcome-card--lighting"
+          >
+            <span
+              class="outcome-card__symbol"
+              aria-hidden="true"
+            >
+              ✦
+            </span>
+
+            <div>
+              <p class="outcome-card__kicker">
+                MAP LIGHTING
+              </p>
+
+              <h3>
+                一份记忆，点亮一个地点
+              </h3>
+
+              <p>
+                只有审核通过且获得公开授权的投稿，才会进入点位详情并触发地图金色点亮效果。
+              </p>
+            </div>
+          </article>
+
+          <article
+            class="outcome-card outcome-card--contributor"
+          >
+            <span
+              class="outcome-card__seal"
+              aria-hidden="true"
+            >
+              共
+            </span>
+
+            <div>
+              <p class="outcome-card__kicker">
+                CITY MEMORY CONTRIBUTOR
+              </p>
+
+              <h3>
+                成都城市记忆共建者
+              </h3>
+
+              <div
+                class="outcome-badges"
+                aria-label="共建者徽章"
+              >
+                <span>
+                  📷 影像记录者
+                </span>
+
+                <span>
+                  📖 地名寻访者
+                </span>
+
+                <span>
+                  🗣 口述记忆者
+                </span>
+
+                <span>
+                  🧭 城市行走者
+                </span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="contribute-actions cocreate-actions">
           <a
-            class="btn contribute"
+            class="btn contribute cocreate-primary-action"
             href="#map"
             aria-label="去地图选择点位并提交城市记忆"
           >
             去地图留下城市记忆
           </a>
+
+          <button
+            type="button"
+            class="btn ghost"
+            id="myMemoryCocreateButton"
+            aria-haspopup="dialog"
+            aria-controls="myMemoryPanel"
+          >
+            查看我的城市记忆
+          </button>
         </div>
       </section>
 
@@ -638,7 +1010,7 @@
         </p>
 
         <p>
-          六个重点点位的基础介绍依据相关地方文献整理；其余点位资料将逐步补充。公众投稿须经审核后方可进入后续展示，上传者需确认相关文字与影像的使用授权。
+          六个重点点位的基础介绍依据相关地方文献整理；其余点位资料将逐步补充。公众投稿须经 AI 辅助初审与馆员人工终审后方可进入公开展示，上传者需确认相关文字与影像的使用授权；AI 仅提供辅助判断，不直接决定发布。
         </p>
       </section>
     </main>
@@ -654,7 +1026,7 @@
     </footer>
 
     <script
-      src="./script.js?v=20260810-03"
+      src="./script.js?v=20260810-06"
     ></script>
   </body>
 </html>
