@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-10-01
+// 版本：2026-08-10-02
 // ===============================================
 
-const APP_VERSION = "20260810-01";
+const APP_VERSION = "20260810-02";
 
 const CLOUDBASE_ENV_ID =
   "chengdufu-map-d4g459au02132689e";
@@ -84,8 +84,8 @@ const citywalkOrder = [
 /*
  * 六个重点释读点位。
  *
- * 直接复用 Citywalk 的六个核心点位，不需要改 points.json。
- * 视觉上与其余 44 个基础标注点区分开。
+ * 直接复用 Citywalk 的六个核心点位，不改 points.json。
+ * 既用于地图视觉分层，也用于“地点档案”的 01 / 06 编号。
  */
 const featuredPointIds =
   new Set(
@@ -99,6 +99,27 @@ function isFeaturedPoint(
     .has(
       point?.id
     );
+}
+
+function getFeaturedPointNumber(
+  point
+) {
+  const index =
+    citywalkOrder
+      .indexOf(
+        point?.id
+      );
+
+  if (index < 0) {
+    return "";
+  }
+
+  return String(
+    index + 1
+  ).padStart(
+    2,
+    "0"
+  );
 }
 
 /* ===============================================
@@ -1676,172 +1697,449 @@ function renderDetail(
     point.detailLevel
       === "basic";
 
-  const metaHtml =
-    isBasic
+  const isFeatured =
+    isFeaturedPoint(
+      point
+    ) &&
+    !isBasic;
+
+  const featuredNumber =
+    getFeaturedPointNumber(
+      point
+    );
+
+  const featuredTotal =
+    String(
+      citywalkOrder.length
+    ).padStart(
+      2,
+      "0"
+    );
+
+  const ancientName =
+    point.nameAncient ||
+    point.nameModern ||
+    "古图未标注";
+
+  const modernName =
+    point.nameModern ||
+    point.nameAncient ||
+    "今日名称待考";
+
+  const sameName =
+    String(
+      ancientName
+    ).trim() ===
+    String(
+      modernName
+    ).trim();
+
+  const archiveIndexHtml =
+    isFeatured
       ? `
-        <div
-          class="meta-grid"
+        <span
+          class="point-archive-index__number"
         >
-          ${renderOptionalRow(
-            "点位类型",
-            point.type
+          ${escapeHtml(
+            featuredNumber
+          )} / ${escapeHtml(
+            featuredTotal
           )}
+        </span>
 
-          ${renderOptionalRow(
-            "古图标注",
-            point.nameAncient
-          )}
-
-          ${renderOptionalRow(
-            "今日名称",
-            point.nameModern
-          )}
-        </div>
+        <span
+          class="point-archive-index__label"
+        >
+          重点释读
+        </span>
       `
       : `
-        <div
-          class="meta-grid"
+        <span
+          class="point-archive-index__number"
         >
-          ${renderOptionalRow(
-            "点位类型",
-            point.type
-          )}
+          基础标注
+        </span>
 
-          ${renderOptionalRow(
-            "点位状态",
+        <span
+          class="point-archive-index__label"
+        >
+          资料整理中
+        </span>
+      `;
+
+  const statusChipClass =
+    getStatusClass(
+      point
+    );
+
+  const routeNoteHtml =
+    point.routeNote
+      ? `
+        <p
+          class="point-archive-route-note"
+        >
+          <span>
+            城市线索
+          </span>
+
+          ${escapeHtml(
+            point.routeNote
+          )}
+        </p>
+      `
+      : "";
+
+  let sectionCounter = 1;
+
+  const contentSections = [];
+
+  if (isBasic) {
+    const number =
+      String(
+        sectionCounter
+      ).padStart(
+        2,
+        "0"
+      );
+
+    sectionCounter += 1;
+
+    contentSections.push(`
+      <section
+        class="point-archive-block"
+      >
+        <div
+          class="point-archive-block__heading"
+        >
+          <span
+            class="point-archive-block__number"
+          >
+            ${number}
+          </span>
+
+          <div>
+            <p
+              class="point-archive-block__eyebrow"
+            >
+              RESEARCH IN PROGRESS
+            </p>
+
+            <h4>
+              资料整理中
+            </h4>
+          </div>
+        </div>
+
+        <div
+          class="point-archive-block__body"
+        >
+          <p>
+            该点位已完成地图标注，基础历史资料正在整理中。公众仍可提交与此地有关的照片、故事或口述线索。
+          </p>
+        </div>
+      </section>
+    `);
+  }
+
+  else {
+    if (point.quick) {
+      const number =
+        String(
+          sectionCounter
+        ).padStart(
+          2,
+          "0"
+        );
+
+      sectionCounter += 1;
+
+      contentSections.push(`
+        <section
+          class="point-archive-block"
+        >
+          <div
+            class="point-archive-block__heading"
+          >
+            <span
+              class="point-archive-block__number"
+            >
+              ${number}
+            </span>
+
+            <div>
+              <p
+                class="point-archive-block__eyebrow"
+              >
+                POINT READING
+              </p>
+
+              <h4>
+                点位导读
+              </h4>
+            </div>
+          </div>
+
+          <div
+            class="point-archive-block__body"
+          >
+            ${renderParagraphs(
+              point.quick
+            )}
+          </div>
+        </section>
+      `);
+    }
+
+    if (point.extended) {
+      const number =
+        String(
+          sectionCounter
+        ).padStart(
+          2,
+          "0"
+        );
+
+      sectionCounter += 1;
+
+      contentSections.push(`
+        <section
+          class="point-archive-block"
+        >
+          <div
+            class="point-archive-block__heading"
+          >
+            <span
+              class="point-archive-block__number"
+            >
+              ${number}
+            </span>
+
+            <div>
+              <p
+                class="point-archive-block__eyebrow"
+              >
+                HISTORICAL READING
+              </p>
+
+              <h4>
+                历史释读
+              </h4>
+            </div>
+          </div>
+
+          <div
+            class="point-archive-block__body"
+          >
+            ${renderParagraphs(
+              point.extended
+            )}
+          </div>
+        </section>
+      `);
+    }
+  }
+
+  const memorySectionNumber =
+    String(
+      sectionCounter
+    ).padStart(
+      2,
+      "0"
+    );
+
+  detailEl.innerHTML = `
+    <div
+      class="point-card point-archive-card ${
+        isFeatured
+          ? "is-featured-archive"
+          : "is-basic-archive"
+      }"
+    >
+      <div
+        class="point-archive-topline"
+      >
+        <div>
+          <p
+            class="detail-kicker"
+          >
+            Place Archive
+          </p>
+
+          <h3
+            class="point-archive-title"
+          >
+            地点档案
+          </h3>
+        </div>
+
+        <div
+          class="point-archive-index"
+          aria-label="点位档案级别"
+        >
+          ${archiveIndexHtml}
+        </div>
+      </div>
+
+      <div
+        class="point-archive-name-pair ${
+          sameName
+            ? "is-continuity"
+            : "is-changed-name"
+        }"
+      >
+        <div
+          class="point-archive-name"
+        >
+          <span
+            class="point-archive-name__label"
+          >
+            古图标注
+          </span>
+
+          <strong>
+            ${escapeHtml(
+              ancientName
+            )}
+          </strong>
+        </div>
+
+        <div
+          class="point-archive-name__arrow"
+          aria-hidden="true"
+        >
+          ↓
+        </div>
+
+        <div
+          class="point-archive-name point-archive-name--modern"
+        >
+          <span
+            class="point-archive-name__label"
+          >
+            今日名称
+          </span>
+
+          <strong>
+            ${escapeHtml(
+              modernName
+            )}
+          </strong>
+
+          ${
+            sameName
+              ? `
+                <span
+                  class="point-archive-continuity"
+                >
+                  名称延续
+                </span>
+              `
+              : ""
+          }
+        </div>
+      </div>
+
+      <div
+        class="point-archive-meta"
+      >
+        <span
+          class="point-archive-chip ${escapeHtml(
+            statusChipClass
+          )}"
+        >
+          ${escapeHtml(
             getStatusLabel(
               point
             )
           )}
+        </span>
 
-          ${renderOptionalRow(
-            "古图标注",
-            point.nameAncient
-          )}
-
-          ${renderOptionalRow(
-            "今日名称",
-            point.nameModern
-          )}
-
-          ${renderOptionalRow(
-            "城市线索",
-            point.routeNote
-          )}
-        </div>
-      `;
-
-  const mainContent =
-    isBasic
-      ? `
-        <section
-          class="official-intro"
-        >
-          <h4>
-            资料整理中
-          </h4>
-
-          <p>
-            该点位已完成地图标注，基础历史资料正在整理中。公众仍可提交与此地有关的照片、故事或口述线索。
-          </p>
-        </section>
-      `
-      : `
         ${
-          point.quick
+          point.type
             ? `
-              <section
-                class="official-summary"
+              <span
+                class="point-archive-chip"
               >
-                <h4>
-                  点位导读
-                </h4>
-
-                ${renderParagraphs(
-                  point.quick
+                ${escapeHtml(
+                  point.type
                 )}
-              </section>
+              </span>
             `
             : ""
         }
-
-        ${
-          point.extended
-            ? `
-              <section
-                class="official-intro"
-              >
-                <h4>
-                  历史简介
-                </h4>
-
-                ${renderParagraphs(
-                  point.extended
-                )}
-              </section>
-            `
-            : ""
-        }
-      `;
-
-  detailEl.innerHTML = `
-    <div
-      class="point-card"
-    >
-      <span
-        class="type-pill"
-      >
-        ${
-          isBasic
-            ? "资料整理中"
-            : "官方点位介绍"
-        }
-      </span>
-
-      <div>
-        <p
-          class="detail-kicker"
-        >
-          ${
-            isBasic
-              ? "Candidate Point"
-              : "Point Detail"
-          }
-        </p>
-
-        <h3>
-          ${escapeHtml(
-            point.nameModern ||
-            point.nameAncient
-          )}
-        </h3>
       </div>
 
-      ${renderPointMedia(
-        point
-      )}
+      ${routeNoteHtml}
 
-      ${metaHtml}
-
-      ${mainContent}
-
-      ${renderMemorySection(
-        point
-      )}
-
-      <button
-        type="button"
-        class="memory-btn"
-        data-memory-button
+      <section
+        class="point-archive-media-block"
       >
-        留下我的城市记忆
-      </button>
+        <div
+          class="point-archive-media-block__heading"
+        >
+          <span>
+            IMAGE RECORD
+          </span>
 
-      <p
-        class="memory-help"
+          <h4>
+            古今影像
+          </h4>
+        </div>
+
+        ${renderPointMedia(
+          point
+        )}
+      </section>
+
+      ${contentSections.join("")}
+
+      <section
+        class="point-archive-block point-archive-memory-shell"
       >
-        可提交文字、现场照片、家庭留影或旧照片线索；每次最多3张图片。
-      </p>
+        <div
+          class="point-archive-block__heading"
+        >
+          <span
+            class="point-archive-block__number"
+          >
+            ${memorySectionNumber}
+          </span>
+
+          <div>
+            <p
+              class="point-archive-block__eyebrow"
+            >
+              PUBLIC MEMORY
+            </p>
+
+            <h4>
+              城市记忆
+            </h4>
+          </div>
+        </div>
+
+        ${renderMemorySection(
+          point
+        )}
+      </section>
+
+      <div
+        class="point-archive-contribution"
+      >
+        <button
+          type="button"
+          class="memory-btn"
+          data-memory-button
+        >
+          留下我的城市记忆
+        </button>
+
+        <p
+          class="memory-help"
+        >
+          可提交文字、现场照片、家庭留影或旧照片线索；每次最多3张图片。
+        </p>
+      </div>
     </div>
   `;
 
@@ -1955,7 +2253,7 @@ function renderMarkers(points) {
 
       /*
        * 六个重点释读点位使用更高视觉层级。
-       * 这里只增加前端样式类，不改变点位状态与数据库逻辑。
+       * 仅增加前端样式类，不改变点位状态与数据库逻辑。
        */
       if (
         isFeaturedPoint(
