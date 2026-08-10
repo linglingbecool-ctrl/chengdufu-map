@@ -5598,3 +5598,313 @@ p {
     transition: none;
   }
 }
+
+/* =================================================
+   P1-4 路 鍏ㄧ珯寰氦浜掍笌鍝嶅簲寮忔敹灏�
+   ================================================= */
+
+html.motion-enabled .motion-reveal {
+  opacity: 0;
+
+  transform:
+    translateY(18px);
+
+  transition:
+    opacity 620ms ease,
+    transform 620ms
+      cubic-bezier(0.2, 0.72, 0.22, 1);
+
+  transition-delay:
+    var(--motion-delay, 0ms);
+
+  will-change:
+    opacity,
+    transform;
+}
+
+html.motion-enabled .motion-reveal.is-visible {
+  opacity: 1;
+
+  transform:
+    translateY(0);
+}
+
+html.motion-enabled .collection-record.motion-reveal,
+html.motion-enabled .map-workbench.motion-reveal {
+  transform:
+    translateY(12px);
+}
+
+html.motion-enabled .collection-record.motion-reveal.is-visible,
+html.motion-enabled .map-workbench.motion-reveal.is-visible {
+  transform:
+    translateY(0);
+}
+
+.map-marker.map-marker-enter {
+  animation:
+    mapMarkerEnter
+    520ms
+    cubic-bezier(0.22, 0.72, 0.2, 1)
+    var(--marker-enter-delay, 0ms)
+    both;
+}
+
+@keyframes mapMarkerEnter {
+  0% {
+    opacity: 0;
+    filter: blur(2px);
+  }
+
+  58% {
+    filter: blur(0);
+  }
+}
+
+.navlinks a {
+  position: relative;
+
+  padding-bottom: 5px;
+}
+
+.navlinks a::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  height: 1px;
+
+  background:
+    var(--cinnabar);
+
+  transform:
+    scaleX(0);
+
+  transform-origin:
+    left center;
+
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+
+  opacity: 0.38;
+}
+
+.navlinks a:hover::after,
+.navlinks a.is-current::after {
+  transform:
+    scaleX(1);
+}
+
+.navlinks a.is-current {
+  color:
+    var(--cinnabar-dark);
+
+  font-weight: 700;
+}
+
+.navlinks a.is-current::after {
+  opacity: 1;
+}
+
+.collection-record,
+.review-card,
+.outcome-card {
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .collection-record:hover {
+    transform:
+      translateY(-4px);
+
+    box-shadow:
+      0 18px 44px
+      rgba(64, 45, 25, 0.14);
+  }
+
+  .route-card:hover,
+  .workflow-step:hover,
+  .review-card:hover,
+  .outcome-card:hover {
+    transform:
+      translateY(-3px);
+  }
+
+  .review-card:hover,
+  .outcome-card:hover {
+    box-shadow:
+      var(--shadow-soft);
+  }
+
+  .archive-source-notes > div,
+  .collection-record__heritage > div {
+    transition:
+      transform 180ms ease,
+      background 180ms ease;
+  }
+
+  .archive-source-notes > div:hover,
+  .collection-record__heritage > div:hover {
+    transform:
+      translateY(-2px);
+
+    background:
+      rgba(255, 250, 240, 0.72);
+  }
+}
+
+@media (max-width: 680px) {
+  .route-list {
+    position: relative;
+
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 14px;
+
+    padding: 0;
+  }
+
+  .route-list::before {
+    display: block;
+
+    left: 37px;
+    right: auto;
+    top: 22px;
+    bottom: 22px;
+
+    width: 1px;
+    height: auto;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(168, 79, 54, 0.4),
+        rgba(196, 154, 69, 0.72),
+        rgba(53, 95, 87, 0.4)
+      );
+  }
+
+  .route-stop {
+    position: relative;
+
+    z-index: 1;
+  }
+
+  .route-card {
+    background:
+      rgba(255, 250, 240, 0.86);
+  }
+
+  .cocreate-flow {
+    position: relative;
+
+    padding-left: 28px;
+  }
+
+  .cocreate-flow::before {
+    content: "";
+
+    position: absolute;
+
+    left: 13px;
+    top: 17px;
+    bottom: 17px;
+
+    width: 1px;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(168, 79, 54, 0.3),
+        rgba(53, 95, 87, 0.38),
+        rgba(196, 154, 69, 0.48)
+      );
+  }
+
+  .workflow-step {
+    background:
+      rgba(255, 250, 240, 0.88);
+  }
+
+  .workflow-step::after {
+    display: none;
+  }
+
+  .cocreate-principle {
+    padding:
+      16px
+      17px;
+  }
+
+  .review-handoff {
+    min-height: 46px;
+  }
+
+  .review-handoff i {
+    transform:
+      rotate(90deg);
+  }
+
+  .outcome-badges {
+    display: grid;
+
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+}
+
+@media (max-width: 460px) {
+  .hero-actions {
+    display: grid;
+
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  .outcome-badges {
+    grid-template-columns: 1fr;
+  }
+
+  .collection-record__heritage,
+  .archive-source-notes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.motion-enabled .motion-reveal,
+  html.motion-enabled .motion-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .map-marker.map-marker-enter {
+    animation: none;
+  }
+
+  .collection-record,
+  .route-card,
+  .workflow-step,
+  .review-card,
+  .outcome-card,
+  .archive-source-notes > div,
+  .collection-record__heritage > div {
+    transition: none;
+  }
+}
