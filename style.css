@@ -632,7 +632,66 @@ section {
 }
 
 /* =========================
-   审核通过的公共城市记忆点亮
+   鍏釜閲嶇偣閲婅鐐逛綅
+   ========================= */
+
+.map-marker-featured {
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  border-width: 4px;
+  opacity: 1;
+  box-shadow:
+    0 0 0 2px rgba(126, 53, 40, 0.34),
+    0 0 0 7px rgba(255, 248, 231, 0.58),
+    0 12px 28px rgba(36, 33, 28, 0.28);
+  animation: featuredPointPulse 3.2s ease-in-out infinite;
+}
+
+.map-marker-featured:hover,
+.map-marker-featured.active {
+  transform:
+    translate(-50%, -50%)
+    scale(1.12);
+  box-shadow:
+    0 0 0 2px rgba(126, 53, 40, 0.46),
+    0 0 0 8px rgba(255, 248, 231, 0.78),
+    0 0 22px rgba(196, 154, 69, 0.46),
+    0 14px 30px rgba(36, 33, 28, 0.3);
+}
+
+@keyframes featuredPointPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(126, 53, 40, 0.3),
+      0 0 0 7px rgba(255, 248, 231, 0.5),
+      0 10px 24px rgba(36, 33, 28, 0.24);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(126, 53, 40, 0.4),
+      0 0 0 10px rgba(196, 154, 69, 0.16),
+      0 0 24px rgba(196, 154, 69, 0.3),
+      0 12px 28px rgba(36, 33, 28, 0.28);
+  }
+}
+
+.map-marker-featured.memory-lit {
+  animation: memoryGlow 2.2s ease-in-out infinite;
+}
+
+.dot.featured-dot {
+  width: 13px;
+  height: 13px;
+  border: 3px solid var(--cinnabar-dark);
+  background: rgba(255, 248, 231, 0.88);
+  box-shadow: 0 0 0 2px rgba(196, 154, 69, 0.24);
+}
+
+/* =========================
+   瀹℃牳閫氳繃鐨勫叕鍏卞煄甯傝蹇嗙偣浜�
    ========================= */
 
 .map-marker.memory-lit {
@@ -656,8 +715,8 @@ section {
 }
 
 /*
- * 这里使用 Unicode 转义，而不是直接写 ✦，
- * 防止宋体/CJK 字体回退时显示成奇怪汉字。
+ * 杩欓噷浣跨敤 Unicode 杞箟锛岃€屼笉鏄洿鎺ュ啓 鉁︼紝
+ * 闃叉瀹嬩綋/CJK 瀛椾綋鍥為€€鏃舵樉绀烘垚濂囨€眽瀛椼€�
  */
 
 .map-marker.memory-lit::before {
@@ -1683,7 +1742,7 @@ button:disabled {
 }
 
 /* =================================================
-   我的城市记忆 · 个人身份与徽章
+   鎴戠殑鍩庡競璁板繂 路 涓汉韬唤涓庡窘绔�
    ================================================= */
 
 .memory-nav-button {
@@ -1746,7 +1805,7 @@ button:disabled {
 }
 
 /* =========================
-   个人地图足迹
+   涓汉鍦板浘瓒宠抗
    ========================= */
 
 .map-marker.my-memory-processing {
@@ -1766,7 +1825,7 @@ button:disabled {
 }
 
 /* =========================
-   我的城市记忆侧边面板
+   鎴戠殑鍩庡競璁板繂渚ц竟闈㈡澘
    ========================= */
 
 .my-memory-panel[hidden] {
@@ -1879,7 +1938,7 @@ h2 {
 }
 
 /* =========================
-   共建者身份卡
+   鍏卞缓鑰呰韩浠藉崱
    ========================= */
 
 .my-identity-card {
@@ -1979,7 +2038,7 @@ p:last-child {
 }
 
 /* =========================
-   个人统计
+   涓汉缁熻
    ========================= */
 
 .my-memory-stats {
@@ -2036,7 +2095,7 @@ div {
 }
 
 /* =========================
-   徽章 / 足迹分区
+   寰界珷 / 瓒宠抗鍒嗗尯
    ========================= */
 
 .my-memory-section {
@@ -2086,7 +2145,7 @@ span {
 }
 
 /* =========================
-   徽章
+   寰界珷
    ========================= */
 
 .my-badges-grid {
@@ -2233,7 +2292,7 @@ span {
 }
 
 /* =========================
-   我的足迹
+   鎴戠殑瓒宠抗
    ========================= */
 
 .my-footprints {
@@ -2531,6 +2590,11 @@ p {
     height: 24px;
   }
 
+  .map-marker-featured {
+    width: 30px;
+    height: 30px;
+  }
+
   .map-marker::after {
     display: none;
   }
@@ -2665,7 +2729,8 @@ p {
     scroll-behavior: auto;
   }
 
-  .map-marker.memory-lit {
+  .map-marker.memory-lit,
+  .map-marker-featured {
     animation: none;
   }
 }
