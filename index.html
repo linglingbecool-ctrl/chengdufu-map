@@ -19,10 +19,9 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260810-04"
+      href="./style.css?v=20260810-05"
     />
 
-    <!-- CloudBase Web SDK 2.27.1 -->
     <script
       src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"
       onload="console.log('CloudBase SDK 2.27.1 加载成功')"
@@ -87,10 +86,6 @@
         </div>
       </nav>
 
-      <!--
-        首屏三个地点只作为视觉提示，
-        不是真正的地图按钮。
-      -->
       <div
         class="hero-map-hints"
         aria-hidden="true"
@@ -191,96 +186,196 @@
         id="archive"
         aria-labelledby="archive-title"
       >
-        <div class="section-label">
-          Project File
-        </div>
-
-        <div class="archive-grid">
+        <div class="archive-section__head">
           <div>
+            <div class="section-label">
+              Project File
+            </div>
+
             <h2 id="archive-title">
               项目档案
             </h2>
-
-            <p>
-              《清初四川通省山川形胜全图》以一县一图的方式描绘清初四川山川形胜、府州县治、道路桥梁与人文名胜。本站依据四川大学图书馆馆藏图像资料，将古图信息转化为公众可浏览、可点击、可延展的城市导览单元。
-            </p>
-
-            <p>
-              项目以馆藏古地图为视觉入口，以《成都通览》《成都街巷志》等地方文献为重点点位的知识依据，并通过公众提交的照片、故事与口述线索补充文献之外的城市生活记忆。
-            </p>
           </div>
 
-          <dl class="file-list">
-            <div>
-              <dt>
-                题名
-              </dt>
+          <p class="archive-section__lead">
+            从馆藏文献出发，把一幅古地图转化为可释读、可行走、可共建的城市数字档案。
+          </p>
+        </div>
 
-              <dd>
-                《清初四川通省山川形胜全图》“四川成都府”图
-              </dd>
+        <div class="archive-showcase">
+          <div class="archive-narrative">
+            <p class="archive-narrative__kicker">
+              FROM COLLECTION TO CITY
+            </p>
+
+            <h3>
+              从馆藏古图，进入成都的历史空间
+            </h3>
+
+            <p>
+              《清初四川通省山川形胜全图》以一县一图的方式描绘清初四川山川形胜、府州县治、道路桥梁与人文名胜。本站以其中“四川成都府”图为视觉入口，将古图信息转化为公众可浏览、可点击、可延展的城市导览单元。
+            </p>
+
+            <p>
+              项目以馆藏图像为底本，以《成都通览》《成都街巷志》等地方文献支撑重点点位释读，再通过古今影像、实地观察与公众城市记忆，为文献之外的城市生活留下新的记录层。
+            </p>
+
+            <div
+              class="archive-path"
+              aria-label="项目活化路径"
+            >
+              <span>馆藏古图</span>
+              <i aria-hidden="true">→</i>
+
+              <span>地方文献释读</span>
+              <i aria-hidden="true">→</i>
+
+              <span>数字点位</span>
+              <i aria-hidden="true">→</i>
+
+              <span>公众记忆</span>
             </div>
 
-            <div>
-              <dt>
-                时代
-              </dt>
+            <div class="archive-source-notes">
+              <div>
+                <span>01</span>
 
-              <dd>
-                清乾隆初年
-              </dd>
+                <p>
+                  <strong>
+                    古图本体
+                  </strong>
+
+                  保留馆藏原图作为历史图像文献基础。
+                </p>
+              </div>
+
+              <div>
+                <span>02</span>
+
+                <p>
+                  <strong>
+                    文献释读
+                  </strong>
+
+                  六个重点点位优先结合地方文献整理。
+                </p>
+              </div>
+
+              <div>
+                <span>03</span>
+
+                <p>
+                  <strong>
+                    城市共建
+                  </strong>
+
+                  经审核的照片、故事与口述线索进入公众展示。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <article
+            class="collection-record"
+            aria-label="馆藏档案卡"
+          >
+            <div class="collection-record__topline">
+              <span>
+                COLLECTION RECORD
+              </span>
+
+              <span>
+                SCU LIBRARY
+              </span>
             </div>
 
-            <div>
-              <dt>
-                形态
-              </dt>
+            <div class="collection-record__title">
+              <p>
+                馆藏题名
+              </p>
 
-              <dd>
-                绢本设色绘本，一县一图，青绿山水，共 150 幅
-              </dd>
+              <h3>
+                《清初四川通省山川形胜全图》
+              </h3>
+
+              <strong>
+                “四川成都府”图
+              </strong>
             </div>
 
-            <div>
-              <dt>
-                馆藏单位
-              </dt>
+            <dl class="collection-record__meta">
+              <div>
+                <dt>
+                  时代
+                </dt>
 
-              <dd>
-                四川大学图书馆
-              </dd>
+                <dd>
+                  清乾隆初年
+                </dd>
+              </div>
+
+              <div>
+                <dt>
+                  形态
+                </dt>
+
+                <dd>
+                  绢本设色绘本 · 青绿山水
+                </dd>
+              </div>
+
+              <div>
+                <dt>
+                  全图规模
+                </dt>
+
+                <dd>
+                  一县一图 · 共 150 幅
+                </dd>
+              </div>
+
+              <div>
+                <dt>
+                  馆藏单位
+                </dt>
+
+                <dd>
+                  四川大学图书馆
+                </dd>
+              </div>
+            </dl>
+
+            <div class="collection-record__count">
+              <span class="collection-record__number">
+                150
+              </span>
+
+              <span class="collection-record__count-label">
+                MAP SHEETS<br />
+                馆藏全图规模
+              </span>
             </div>
 
-            <div>
-              <dt>
-                图像价值
-              </dt>
+            <div class="collection-record__value">
+              <span>
+                DOCUMENT VALUE
+              </span>
 
-              <dd>
-                记录清初成都府城、桥梁、寺观、祠庙、城址与交通节点，是理解成都城市空间、地名沿革和地方文化记忆的重要图像文献。
-              </dd>
+              <p>
+                记录府州县治、山川道路、桥梁寺观与人文名胜，为理解清代四川地方空间、地名沿革与城市文化记忆提供重要图像材料。
+              </p>
             </div>
 
-            <div>
-              <dt>
-                资料依据
-              </dt>
-
-              <dd>
-                四川大学图书馆馆藏图像资料、《成都通览》《成都街巷志》等地方文献、古今影像与实地观察记录。
-              </dd>
+            <div
+              class="collection-record__seal"
+              aria-hidden="true"
+            >
+              <span>川</span>
+              <span>大</span>
+              <span>馆</span>
+              <span>藏</span>
             </div>
-
-            <div>
-              <dt>
-                内容结构
-              </dt>
-
-              <dd>
-                六个重点点位提供经地方文献核实的历史介绍；其余点位先保留基础地图标注，并逐步补充资料。公众可为任一点位提交照片、故事与口述线索。
-              </dd>
-            </div>
-          </dl>
+          </article>
         </div>
       </section>
 
