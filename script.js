@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-10-03
+// 版本：2026-08-10-06
 // ===============================================
 
-const APP_VERSION = "20260810-03";
+const APP_VERSION = "20260810-06";
 
 const CLOUDBASE_ENV_ID =
   "chengdufu-map-d4g459au02132689e";
@@ -1451,7 +1451,8 @@ function closeMyMemoryPanel() {
 function bindMyMemoryButtons() {
   [
     "#myMemoryButton",
-    "#myMemoryHeroButton"
+    "#myMemoryHeroButton",
+    "#myMemoryCocreateButton"
   ]
     .forEach(
       (selector) => {
