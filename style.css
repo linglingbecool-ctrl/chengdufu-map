@@ -1899,11 +1899,11 @@ section {
 }
 
 /* =========================
-   Citywalk
+   Citywalk 路 璺嚎鍖栧彊浜�
    ========================= */
 
 .route-list {
-  counter-reset: route;
+  position: relative;
 
   display: grid;
 
@@ -1913,101 +1913,309 @@ section {
       minmax(0, 1fr)
     );
 
-  gap: 12px;
+  gap: 0;
 
-  margin: 0;
+  margin:
+    34px
+    0
+    0;
 
-  padding: 0;
+  padding:
+    54px
+    0
+    0;
 
   list-style: none;
 }
 
-.route-card {
-  min-height: 172px;
+/* 鍏釜绔欑偣涔嬮棿鐨勮繛缁矾绾� */
+.route-list::before {
+  content: "";
 
-  padding: 16px;
+  position: absolute;
+
+  left: calc(100% / 12);
+  right: calc(100% / 12);
+  top: 20px;
+
+  height: 1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(168, 79, 54, 0.42),
+      rgba(196, 154, 69, 0.74),
+      rgba(53, 95, 87, 0.44)
+    );
+}
+
+.route-stop {
+  position: relative;
+
+  min-width: 0;
+
+  padding:
+    0
+    6px;
+}
+
+.route-card {
+  position: relative;
+
+  width: 100%;
+  min-height: 244px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: flex-start;
+
+  padding:
+    22px
+    16px
+    16px;
 
   border:
-    1px solid var(--line);
+    1px solid
+    rgba(75, 57, 34, 0.18);
+
+  border-radius: 0;
 
   background:
-    rgba(255, 250, 240, 0.58);
+    rgba(255, 250, 240, 0.5);
+
+  color: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
 
   transition:
-    transform 160ms ease,
-    background 160ms ease,
-    box-shadow 160ms ease;
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
 
-.route-card:hover {
+.route-card:hover,
+.route-card:focus-visible,
+.route-card.is-current {
   transform:
-    translateY(-3px);
+    translateY(-6px);
+
+  border-color:
+    rgba(168, 79, 54, 0.34);
 
   background:
-    rgba(255, 250, 240, 0.78);
+    rgba(255, 250, 240, 0.86);
 
   box-shadow:
-    var(--shadow-soft);
+    0 14px 30px
+    rgba(64, 45, 25, 0.11);
 }
 
-.route-card::before {
-  counter-increment: route;
+.route-card:focus-visible {
+  outline:
+    3px solid
+    rgba(168, 79, 54, 0.24);
 
-  content:
-    counter(
-      route,
-      decimal-leading-zero
-    );
+  outline-offset: 3px;
+}
 
-  display: block;
+.route-node {
+  position: absolute;
 
-  margin-bottom: 22px;
+  left: 50%;
+  top: -55px;
 
-  color: var(--cinnabar);
+  width: 42px;
+  height: 42px;
 
-  font-weight: 900;
+  display: grid;
+  place-items: center;
 
-  font-size: 1.8rem;
+  border:
+    2px solid
+    var(--cinnabar-dark);
 
-  line-height: 1;
+  border-radius: 50%;
+
+  background:
+    #fff8e7;
+
+  box-shadow:
+    0 0 0 6px
+    rgba(244, 234, 215, 0.96);
+
+  transform:
+    translateX(-50%);
+
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.route-card:hover
+.route-node,
+.route-card:focus-visible
+.route-node,
+.route-card.is-current
+.route-node {
+  color: #fff8e7;
+
+  background:
+    var(--cinnabar-dark);
+
+  transform:
+    translateX(-50%)
+    scale(1.08);
+
+  box-shadow:
+    0 0 0 6px
+      rgba(244, 234, 215, 0.98),
+    0 0 0 9px
+      rgba(196, 154, 69, 0.18);
+}
+
+.route-node__number {
+  font-family:
+    Georgia,
+    serif;
+
+  font-size: 0.72rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.04em;
+}
+
+.route-card__eyebrow {
+  margin-bottom: 12px;
+
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.64rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.16em;
 }
 
 .route-card h3 {
-  margin-bottom: 6px;
+  margin:
+    0
+    0
+    5px;
 
-  font-size: 1.08rem;
+  font-size:
+    clamp(
+      1.08rem,
+      1.5vw,
+      1.35rem
+    );
+
+  line-height: 1.2;
 }
 
-.route-card p {
-  margin: 0;
+.route-card__ancient {
+  margin:
+    0
+    0
+    12px;
 
-  color: var(--ink-soft);
+  color:
+    var(--cinnabar-dark);
 
-  font-size: 0.92rem;
+  font-size: 0.78rem;
+}
+
+.route-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 5px;
+
+  margin-bottom: 13px;
+}
+
+.route-card__meta span {
+  padding:
+    2px
+    6px;
+
+  border:
+    1px solid
+    rgba(75, 57, 34, 0.16);
+
+  background:
+    rgba(229, 210, 173, 0.18);
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.66rem;
+}
+
+.route-card__note {
+  margin:
+    0
+    0
+    12px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: 0.78rem;
+
+  line-height: 1.62;
 }
 
 .route-card.has-memory {
   border-color:
-    rgba(196, 154, 69, 0.42);
+    rgba(196, 154, 69, 0.46);
 
   background:
     linear-gradient(
       145deg,
-      rgba(255, 250, 240, 0.8),
-      rgba(196, 154, 69, 0.08)
+      rgba(255, 250, 240, 0.84),
+      rgba(196, 154, 69, 0.1)
     );
 }
 
-.route-memory-note {
+.route-memory-note,
+.route-open-note {
+  margin-top: auto;
+
   display: inline-block;
 
-  margin-top: 10px;
+  padding-top: 10px;
 
-  color: var(--cinnabar-dark);
+  border-top:
+    1px solid
+    rgba(75, 57, 34, 0.12);
 
-  font-size: 0.78rem;
+  color:
+    var(--cinnabar-dark);
+
+  font-size: 0.72rem;
 
   font-weight: 700;
+}
+
+.route-memory-note {
+  font-family:
+    "Songti SC",
+    "Noto Serif CJK SC",
+    Georgia,
+    serif;
+}
+
+.route-open-note {
+  color:
+    var(--qing-deep);
 }
 
 /* =========================
@@ -3068,6 +3276,12 @@ p {
         3,
         minmax(0, 1fr)
       );
+
+    row-gap: 58px;
+  }
+
+  .route-list::before {
+    display: none;
   }
 }
 
@@ -3206,21 +3420,47 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .route-list {
+    gap: 16px;
+
+    padding-top: 0;
+  }
+
+  .route-list::before {
+    display: none;
+  }
+
+  .route-stop {
+    padding: 0;
+  }
+
   .route-card {
     min-height: auto;
 
-    position: relative;
-
-    padding-left: 72px;
+    padding:
+      18px
+      18px
+      18px
+      72px;
   }
 
-  .route-card::before {
-    position: absolute;
-
-    left: 16px;
+  .route-node {
+    left: 17px;
     top: 18px;
 
-    margin-bottom: 0;
+    width: 40px;
+    height: 40px;
+
+    transform: none;
+  }
+
+  .route-card:hover
+  .route-node,
+  .route-card:focus-visible
+  .route-node,
+  .route-card.is-current
+  .route-node {
+    transform: scale(1.06);
   }
 
   .memory-section__head {
