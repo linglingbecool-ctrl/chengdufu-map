@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-10-02
+// 版本：2026-08-10-03
 // ===============================================
 
-const APP_VERSION = "20260810-02";
+const APP_VERSION = "20260810-03";
 
 const CLOUDBASE_ENV_ID =
   "chengdufu-map-d4g459au02132689e";
@@ -2235,6 +2235,9 @@ function renderMarkers(points) {
       button.style.top =
         `${y}%`;
 
+      button.dataset.pointId =
+        point.id;
+
       button.setAttribute(
         "aria-label",
         point.nameModern ||
@@ -2358,6 +2361,10 @@ function renderMarkers(points) {
               "active"
             );
 
+          setActiveRoutePoint(
+            point.id
+          );
+
           renderDetail(
             point,
             true
@@ -2391,6 +2398,76 @@ function renderMarkers(points) {
    Citywalk
    =============================================== */
 
+function setActiveRoutePoint(
+  pointId
+) {
+  document
+    .querySelectorAll(
+      ".route-card"
+    )
+    .forEach(
+      (card) => {
+        card.classList.toggle(
+          "is-current",
+          card.dataset.routePointId === pointId
+        );
+      }
+    );
+}
+
+function focusPointFromRoute(
+  pointId
+) {
+  const point =
+    allPoints.find(
+      (item) =>
+        item.id === pointId
+    );
+
+  if (!point) {
+    return;
+  }
+
+  document
+    .querySelectorAll(
+      ".map-marker"
+    )
+    .forEach(
+      (marker) =>
+        marker.classList.remove(
+          "active"
+        )
+    );
+
+  const marker =
+    document.querySelector(
+      `.map-marker[data-point-id="${pointId}"]`
+    );
+
+  marker
+    ?.classList
+    .add(
+      "active"
+    );
+
+  setActiveRoutePoint(
+    pointId
+  );
+
+  renderDetail(
+    point
+  );
+
+  document
+    .querySelector(
+      "#map"
+    )
+    ?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+}
+
 function renderRoute(points) {
   if (!routeListEl) {
     return;
@@ -2414,50 +2491,158 @@ function renderRoute(points) {
       )
       .filter(Boolean)
       .map(
-        (point) => {
+        (
+          point,
+          index
+        ) => {
           const memoryCount =
             getPointMemories(
               point.id
             ).length;
 
+          const ancientName =
+            point.nameAncient ||
+            point.nameModern ||
+            "";
+
+          const modernName =
+            point.nameModern ||
+            point.nameAncient ||
+            "";
+
           return `
             <li
-              class="route-card ${
-                memoryCount > 0
-                  ? "has-memory"
-                  : ""
-              }"
+              class="route-stop"
             >
-              <h3>
-                ${escapeHtml(
-                  point.nameModern
-                )}
-              </h3>
+              <button
+                type="button"
+                class="route-card ${
+                  memoryCount > 0
+                    ? "has-memory"
+                    : ""
+                }"
+                data-route-point-id="${escapeHtml(
+                  point.id
+                )}"
+                aria-label="查看 Citywalk 第 ${index + 1} 站：${escapeHtml(
+                  modernName
+                )}"
+              >
+                <span
+                  class="route-node"
+                  aria-hidden="true"
+                >
+                  <span
+                    class="route-node__number"
+                  >
+                    ${String(
+                      index + 1
+                    ).padStart(
+                      2,
+                      "0"
+                    )}
+                  </span>
+                </span>
 
-              <p>
-                ${escapeHtml(
-                  point.routeNote ||
-                  ""
-                )}
-              </p>
+                <span
+                  class="route-card__eyebrow"
+                >
+                  STOP ${String(
+                    index + 1
+                  ).padStart(
+                    2,
+                    "0"
+                  )}
+                </span>
 
-              ${
-                memoryCount > 0
-                  ? `
-                    <span
-                      class="route-memory-note"
-                    >
-                      ✦ 已收录 ${memoryCount} 份城市记忆
-                    </span>
-                  `
-                  : ""
-              }
+                <h3>
+                  ${escapeHtml(
+                    modernName
+                  )}
+                </h3>
+
+                <p
+                  class="route-card__ancient"
+                >
+                  古图：${escapeHtml(
+                    ancientName
+                  )}
+                </p>
+
+                <div
+                  class="route-card__meta"
+                >
+                  <span>
+                    ${escapeHtml(
+                      getStatusLabel(
+                        point
+                      )
+                    )}
+                  </span>
+
+                  ${
+                    point.type
+                      ? `
+                        <span>
+                          ${escapeHtml(
+                            point.type
+                          )}
+                        </span>
+                      `
+                      : ""
+                  }
+                </div>
+
+                <p
+                  class="route-card__note"
+                >
+                  ${escapeHtml(
+                    point.routeNote ||
+                    "沿古图线索进入今日城市空间。"
+                  )}
+                </p>
+
+                ${
+                  memoryCount > 0
+                    ? `
+                      <span
+                        class="route-memory-note"
+                      >
+                        &#10022; 已收录 ${memoryCount} 份城市记忆
+                      </span>
+                    `
+                    : `
+                      <span
+                        class="route-open-note"
+                      >
+                        查看地点档案 →
+                      </span>
+                    `
+                }
+              </button>
             </li>
           `;
         }
       )
       .join("");
+
+  routeListEl
+    .querySelectorAll(
+      ".route-card"
+    )
+    .forEach(
+      (card) => {
+        card.addEventListener(
+          "click",
+          () =>
+            focusPointFromRoute(
+              card.dataset.routePointId
+            )
+        );
+      }
+    );
 }
+
 
 /* ===============================================
    投稿弹窗
