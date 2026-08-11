@@ -1,15 +1,17 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-10-07
+// 版本：2026-08-07-04
 // ===============================================
 
-const APP_VERSION = "20260810-07";
+const APP_VERSION = "20260811-ai01";
 
 const CLOUDBASE_ENV_ID =
+  window.TUHUI_CONFIG?.envId ||
   "chengdufu-map-d4g459au02132689e";
 
 const CLOUDBASE_REGION =
+  window.TUHUI_CONFIG?.region ||
   "ap-shanghai";
 
 const MAX_IMAGE_COUNT = 3;
@@ -52,20 +54,6 @@ let myContributionData = null;
 let myContributionPointState =
   new Map();
 
-/* ===============================================
-   P1-4 · 全站微交互状态
-   =============================================== */
-
-let scrollRevealObserver = null;
-let mapMarkerObserver = null;
-let hasPlayedMarkerIntro = false;
-let navScrollTicking = false;
-
-const prefersReducedMotion =
-  window.matchMedia?.(
-    "(prefers-reduced-motion: reduce)"
-  )?.matches === true;
-
 const statusClass = {
   "存续点": "status-existing",
   "变迁点": "status-changed",
@@ -95,436 +83,6 @@ const citywalkOrder = [
   "hongpailou"
 ];
 
-/*
- * 六个重点释读点位。
- *
- * 直接复用 Citywalk 的六个核心点位，不改 points.json。
- * 既用于地图视觉分层，也用于“地点档案”的 01 / 06 编号。
- */
-const featuredPointIds =
-  new Set(
-    citywalkOrder
-  );
-
-function isFeaturedPoint(
-  point
-) {
-  return featuredPointIds
-    .has(
-      point?.id
-    );
-}
-
-function getFeaturedPointNumber(
-  point
-) {
-  const index =
-    citywalkOrder
-      .indexOf(
-        point?.id
-      );
-
-  if (index < 0) {
-    return "";
-  }
-
-  return String(
-    index + 1
-  ).padStart(
-    2,
-    "0"
-  );
-}
-
-/* ===============================================
-   P1-4 · 全站微交互 / 滚动叙事
-   =============================================== */
-
-function registerRevealElements() {
-  if (!scrollRevealObserver) {
-    return;
-  }
-
-  const groups = [
-    {
-      selector: ".archive-section__head, .archive-narrative, .collection-record",
-      step: 90
-    },
-    {
-      selector: ".map-section .section-heading, .map-workbench",
-      step: 100
-    },
-    {
-      selector: ".citywalk-section .section-heading, .citywalk-section > .file-list, .route-stop",
-      step: 70
-    },
-    {
-      selector: ".cocreate-head, .workflow-step, .review-card, .review-handoff, .outcome-card, .cocreate-actions",
-      step: 65
-    },
-    {
-      selector: ".about-section > *",
-      step: 80
-    }
-  ];
-
-  groups.forEach(
-    (group) => {
-      document
-        .querySelectorAll(
-          group.selector
-        )
-        .forEach(
-          (element, index) => {
-            if (
-              element.dataset
-                .motionBound === "true"
-            ) {
-              return;
-            }
-
-            element.dataset.motionBound =
-              "true";
-
-            element.classList.add(
-              "motion-reveal"
-            );
-
-            element.style
-              .setProperty(
-                "--motion-delay",
-                `${Math.min(index, 8) * group.step}ms`
-              );
-
-            scrollRevealObserver
-              .observe(
-                element
-              );
-          }
-        );
-    }
-  );
-}
-
-function setupScrollReveal() {
-  if (
-    prefersReducedMotion ||
-    !("IntersectionObserver" in window)
-  ) {
-    document.documentElement
-      .classList.add(
-        "motion-static"
-      );
-
-    return;
-  }
-
-  document.documentElement
-    .classList.add(
-      "motion-enabled"
-    );
-
-  scrollRevealObserver =
-    new IntersectionObserver(
-      (entries) => {
-        entries.forEach(
-          (entry) => {
-            if (!entry.isIntersecting) {
-              return;
-            }
-
-            entry.target
-              .classList.add(
-                "is-visible"
-              );
-
-            scrollRevealObserver
-              ?.unobserve(
-                entry.target
-              );
-          }
-        );
-      },
-      {
-        threshold: 0.12,
-        rootMargin:
-          "0px 0px -8% 0px"
-      }
-    );
-
-  registerRevealElements();
-}
-
-function playMapMarkerIntro() {
-  if (
-    hasPlayedMarkerIntro ||
-    prefersReducedMotion
-  ) {
-    return;
-  }
-
-  const markers =
-    Array.from(
-      document.querySelectorAll(
-        ".map-marker"
-      )
-    );
-
-  if (!markers.length) {
-    return;
-  }
-
-  hasPlayedMarkerIntro = true;
-
-  const normalMarkers =
-    markers.filter(
-      (marker) =>
-        !marker.classList
-          .contains(
-            "map-marker-featured"
-          )
-    );
-
-  const featuredMarkers =
-    markers.filter(
-      (marker) =>
-        marker.classList
-          .contains(
-            "map-marker-featured"
-          )
-    );
-
-  const orderedMarkers = [
-    ...normalMarkers,
-    ...featuredMarkers
-  ];
-
-  orderedMarkers.forEach(
-    (marker, index) => {
-      marker.classList.add(
-        "map-marker-enter"
-      );
-
-      marker.style
-        .setProperty(
-          "--marker-enter-delay",
-          `${Math.min(index * 28, 1250)}ms`
-        );
-
-      marker.addEventListener(
-        "animationend",
-        () => {
-          marker.classList.remove(
-            "map-marker-enter"
-          );
-
-          marker.style
-            .removeProperty(
-              "--marker-enter-delay"
-            );
-        },
-        {
-          once: true
-        }
-      );
-    }
-  );
-}
-
-function setupMapMarkerIntro() {
-  if (
-    prefersReducedMotion ||
-    !("IntersectionObserver" in window)
-  ) {
-    return;
-  }
-
-  const mapPanel =
-    document.querySelector(
-      ".map-panel"
-    );
-
-  if (!mapPanel) {
-    return;
-  }
-
-  mapMarkerObserver =
-    new IntersectionObserver(
-      (entries) => {
-        const visible =
-          entries.some(
-            (entry) =>
-              entry.isIntersecting
-          );
-
-        if (!visible) {
-          return;
-        }
-
-        playMapMarkerIntro();
-
-        mapMarkerObserver
-          ?.disconnect();
-      },
-      {
-        threshold: 0.28,
-        rootMargin:
-          "0px 0px -5% 0px"
-      }
-    );
-
-  mapMarkerObserver
-    .observe(
-      mapPanel
-    );
-}
-
-function updateActiveNavigation() {
-  const navLinks =
-    Array.from(
-      document.querySelectorAll(
-        '.navlinks a[href^="#"]'
-      )
-    );
-
-  if (!navLinks.length) {
-    return;
-  }
-
-  const candidates =
-    navLinks
-      .map(
-        (link) => {
-          const id =
-            link.getAttribute(
-              "href"
-            )?.slice(1);
-
-          const section =
-            id
-              ? document.getElementById(
-                  id
-                )
-              : null;
-
-          return {
-            link,
-            section
-          };
-        }
-      )
-      .filter(
-        (item) => item.section
-      );
-
-  const focusLine =
-    window.innerHeight * 0.32;
-
-  let activeItem = null;
-  let smallestDistance =
-    Number.POSITIVE_INFINITY;
-
-  candidates.forEach(
-    (item) => {
-      const rect =
-        item.section
-          .getBoundingClientRect();
-
-      const isRelevant =
-        rect.top <= focusLine &&
-        rect.bottom >= 96;
-
-      if (!isRelevant) {
-        return;
-      }
-
-      const distance =
-        Math.abs(
-          rect.top - focusLine
-        );
-
-      if (
-        distance <
-        smallestDistance
-      ) {
-        smallestDistance =
-          distance;
-
-        activeItem =
-          item;
-      }
-    }
-  );
-
-  if (
-    window.scrollY <
-    window.innerHeight * 0.42
-  ) {
-    activeItem = null;
-  }
-
-  navLinks.forEach(
-    (link) => {
-      const isCurrent =
-        activeItem?.link === link;
-
-      link.classList.toggle(
-        "is-current",
-        isCurrent
-      );
-
-      if (isCurrent) {
-        link.setAttribute(
-          "aria-current",
-          "location"
-        );
-      }
-
-      else {
-        link.removeAttribute(
-          "aria-current"
-        );
-      }
-    }
-  );
-}
-
-function setupActiveNavigation() {
-  updateActiveNavigation();
-
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (navScrollTicking) {
-        return;
-      }
-
-      navScrollTicking = true;
-
-      requestAnimationFrame(
-        () => {
-          updateActiveNavigation();
-          navScrollTicking = false;
-        }
-      );
-    },
-    {
-      passive: true
-    }
-  );
-
-  window.addEventListener(
-    "resize",
-    updateActiveNavigation
-  );
-}
-
-function setupMicroInteractions() {
-  setupScrollReveal();
-  setupMapMarkerIntro();
-  setupActiveNavigation();
-}
-
 /* ===============================================
    CloudBase 初始化
    =============================================== */
@@ -544,11 +102,27 @@ async function initCloudBase() {
   }
 
   try {
+    const cloudbaseOptions = {
+      env: CLOUDBASE_ENV_ID,
+      region: CLOUDBASE_REGION
+    };
+
+    if (
+      window.TUHUI_CONFIG
+        ?.publishableKey
+    ) {
+      cloudbaseOptions.accessKey =
+        window.TUHUI_CONFIG
+          .publishableKey;
+    }
+
     cloudApp =
-      window.cloudbase.init({
-        env: CLOUDBASE_ENV_ID,
-        region: CLOUDBASE_REGION
-      });
+      window.cloudbase.init(
+        cloudbaseOptions
+      );
+
+    window.tuhuiCloudApp =
+      cloudApp;
 
     let loginSucceeded = false;
 
@@ -635,6 +209,17 @@ async function initCloudBase() {
       CLOUDBASE_ENV_ID
     );
 
+    window.dispatchEvent(
+      new CustomEvent(
+        "tuhui:cloud-ready",
+        {
+          detail: {
+            ready: true
+          }
+        }
+      )
+    );
+
     return true;
   }
 
@@ -645,6 +230,17 @@ async function initCloudBase() {
     console.error(
       "CloudBase 连接失败：",
       error
+    );
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "tuhui:cloud-ready",
+        {
+          detail: {
+            ready: false
+          }
+        }
+      )
     );
 
     return false;
@@ -1854,8 +1450,7 @@ function closeMyMemoryPanel() {
 function bindMyMemoryButtons() {
   [
     "#myMemoryButton",
-    "#myMemoryHeroButton",
-    "#myMemoryCocreateButton"
+    "#myMemoryHeroButton"
   ]
     .forEach(
       (selector) => {
@@ -2101,435 +1696,174 @@ function renderDetail(
     point.detailLevel
       === "basic";
 
-  const isFeatured =
-    isFeaturedPoint(
-      point
-    ) &&
-    !isBasic;
-
-  const featuredNumber =
-    getFeaturedPointNumber(
-      point
-    );
-
-  const featuredTotal =
-    String(
-      citywalkOrder.length
-    ).padStart(
-      2,
-      "0"
-    );
-
-  const ancientName =
-    point.nameAncient ||
-    point.nameModern ||
-    "古图未标注";
-
-  const modernName =
-    point.nameModern ||
-    point.nameAncient ||
-    "今日名称待考";
-
-  const sameName =
-    String(
-      ancientName
-    ).trim() ===
-    String(
-      modernName
-    ).trim();
-
-  const archiveIndexHtml =
-    isFeatured
+  const metaHtml =
+    isBasic
       ? `
-        <span
-          class="point-archive-index__number"
+        <div
+          class="meta-grid"
         >
-          ${escapeHtml(
-            featuredNumber
-          )} / ${escapeHtml(
-            featuredTotal
+          ${renderOptionalRow(
+            "点位类型",
+            point.type
           )}
-        </span>
 
-        <span
-          class="point-archive-index__label"
-        >
-          重点释读
-        </span>
+          ${renderOptionalRow(
+            "古图标注",
+            point.nameAncient
+          )}
+
+          ${renderOptionalRow(
+            "今日名称",
+            point.nameModern
+          )}
+        </div>
       `
       : `
-        <span
-          class="point-archive-index__number"
+        <div
+          class="meta-grid"
         >
-          基础标注
-        </span>
-
-        <span
-          class="point-archive-index__label"
-        >
-          资料整理中
-        </span>
-      `;
-
-  const statusChipClass =
-    getStatusClass(
-      point
-    );
-
-  const routeNoteHtml =
-    point.routeNote
-      ? `
-        <p
-          class="point-archive-route-note"
-        >
-          <span>
-            城市线索
-          </span>
-
-          ${escapeHtml(
-            point.routeNote
+          ${renderOptionalRow(
+            "点位类型",
+            point.type
           )}
-        </p>
-      `
-      : "";
 
-  let sectionCounter = 1;
-
-  const contentSections = [];
-
-  if (isBasic) {
-    const number =
-      String(
-        sectionCounter
-      ).padStart(
-        2,
-        "0"
-      );
-
-    sectionCounter += 1;
-
-    contentSections.push(`
-      <section
-        class="point-archive-block"
-      >
-        <div
-          class="point-archive-block__heading"
-        >
-          <span
-            class="point-archive-block__number"
-          >
-            ${number}
-          </span>
-
-          <div>
-            <p
-              class="point-archive-block__eyebrow"
-            >
-              RESEARCH IN PROGRESS
-            </p>
-
-            <h4>
-              资料整理中
-            </h4>
-          </div>
-        </div>
-
-        <div
-          class="point-archive-block__body"
-        >
-          <p>
-            该点位已完成地图标注，基础历史资料正在整理中。公众仍可提交与此地有关的照片、故事或口述线索。
-          </p>
-        </div>
-      </section>
-    `);
-  }
-
-  else {
-    if (point.quick) {
-      const number =
-        String(
-          sectionCounter
-        ).padStart(
-          2,
-          "0"
-        );
-
-      sectionCounter += 1;
-
-      contentSections.push(`
-        <section
-          class="point-archive-block"
-        >
-          <div
-            class="point-archive-block__heading"
-          >
-            <span
-              class="point-archive-block__number"
-            >
-              ${number}
-            </span>
-
-            <div>
-              <p
-                class="point-archive-block__eyebrow"
-              >
-                POINT READING
-              </p>
-
-              <h4>
-                点位导读
-              </h4>
-            </div>
-          </div>
-
-          <div
-            class="point-archive-block__body"
-          >
-            ${renderParagraphs(
-              point.quick
-            )}
-          </div>
-        </section>
-      `);
-    }
-
-    if (point.extended) {
-      const number =
-        String(
-          sectionCounter
-        ).padStart(
-          2,
-          "0"
-        );
-
-      sectionCounter += 1;
-
-      contentSections.push(`
-        <section
-          class="point-archive-block"
-        >
-          <div
-            class="point-archive-block__heading"
-          >
-            <span
-              class="point-archive-block__number"
-            >
-              ${number}
-            </span>
-
-            <div>
-              <p
-                class="point-archive-block__eyebrow"
-              >
-                HISTORICAL READING
-              </p>
-
-              <h4>
-                历史释读
-              </h4>
-            </div>
-          </div>
-
-          <div
-            class="point-archive-block__body"
-          >
-            ${renderParagraphs(
-              point.extended
-            )}
-          </div>
-        </section>
-      `);
-    }
-  }
-
-  const memorySectionNumber =
-    String(
-      sectionCounter
-    ).padStart(
-      2,
-      "0"
-    );
-
-  detailEl.innerHTML = `
-    <div
-      class="point-card point-archive-card ${
-        isFeatured
-          ? "is-featured-archive"
-          : "is-basic-archive"
-      }"
-    >
-      <div
-        class="point-archive-topline"
-      >
-        <div>
-          <p
-            class="detail-kicker"
-          >
-            Place Archive
-          </p>
-
-          <h3
-            class="point-archive-title"
-          >
-            地点档案
-          </h3>
-        </div>
-
-        <div
-          class="point-archive-index"
-          aria-label="点位档案级别"
-        >
-          ${archiveIndexHtml}
-        </div>
-      </div>
-
-      <div
-        class="point-archive-name-pair ${
-          sameName
-            ? "is-continuity"
-            : "is-changed-name"
-        }"
-      >
-        <div
-          class="point-archive-name"
-        >
-          <span
-            class="point-archive-name__label"
-          >
-            古图标注
-          </span>
-
-          <strong>
-            ${escapeHtml(
-              ancientName
-            )}
-          </strong>
-        </div>
-
-        <div
-          class="point-archive-name__arrow"
-          aria-hidden="true"
-        >
-          ↓
-        </div>
-
-        <div
-          class="point-archive-name point-archive-name--modern"
-        >
-          <span
-            class="point-archive-name__label"
-          >
-            今日名称
-          </span>
-
-          <strong>
-            ${escapeHtml(
-              modernName
-            )}
-          </strong>
-
-          ${
-            sameName
-              ? `
-                <span
-                  class="point-archive-continuity"
-                >
-                  名称延续
-                </span>
-              `
-              : ""
-          }
-        </div>
-      </div>
-
-      <div
-        class="point-archive-meta"
-      >
-        <span
-          class="point-archive-chip ${escapeHtml(
-            statusChipClass
-          )}"
-        >
-          ${escapeHtml(
+          ${renderOptionalRow(
+            "点位状态",
             getStatusLabel(
               point
             )
           )}
-        </span>
 
+          ${renderOptionalRow(
+            "古图标注",
+            point.nameAncient
+          )}
+
+          ${renderOptionalRow(
+            "今日名称",
+            point.nameModern
+          )}
+
+          ${renderOptionalRow(
+            "城市线索",
+            point.routeNote
+          )}
+        </div>
+      `;
+
+  const mainContent =
+    isBasic
+      ? `
+        <section
+          class="official-intro"
+        >
+          <h4>
+            资料整理中
+          </h4>
+
+          <p>
+            该点位已完成地图标注，基础历史资料正在整理中。公众仍可提交与此地有关的照片、故事或口述线索。
+          </p>
+        </section>
+      `
+      : `
         ${
-          point.type
+          point.quick
             ? `
-              <span
-                class="point-archive-chip"
+              <section
+                class="official-summary"
               >
-                ${escapeHtml(
-                  point.type
+                <h4>
+                  点位导读
+                </h4>
+
+                ${renderParagraphs(
+                  point.quick
                 )}
-              </span>
+              </section>
             `
             : ""
         }
+
+        ${
+          point.extended
+            ? `
+              <section
+                class="official-intro"
+              >
+                <h4>
+                  历史简介
+                </h4>
+
+                ${renderParagraphs(
+                  point.extended
+                )}
+              </section>
+            `
+            : ""
+        }
+      `;
+
+  detailEl.innerHTML = `
+    <div
+      class="point-card"
+    >
+      <span
+        class="type-pill"
+      >
+        ${
+          isBasic
+            ? "资料整理中"
+            : "官方点位介绍"
+        }
+      </span>
+
+      <div>
+        <p
+          class="detail-kicker"
+        >
+          ${
+            isBasic
+              ? "Candidate Point"
+              : "Point Detail"
+          }
+        </p>
+
+        <h3>
+          ${escapeHtml(
+            point.nameModern ||
+            point.nameAncient
+          )}
+        </h3>
       </div>
 
-      ${routeNoteHtml}
+      ${renderPointMedia(
+        point
+      )}
 
-      <section
-        class="point-archive-media-block"
-      >
-        <div
-          class="point-archive-media-block__heading"
-        >
-          <span>
-            IMAGE RECORD
-          </span>
+      ${metaHtml}
 
-          <h4>
-            古今影像
-          </h4>
-        </div>
+      ${mainContent}
 
-        ${renderPointMedia(
-          point
-        )}
-      </section>
+      ${renderMemorySection(
+        point
+      )}
 
-      ${contentSections.join("")}
+      <div class="point-action-row">
+        ${
+          point.detailLevel === "core"
+            ? `
+              <button
+                type="button"
+                class="ai-point-button"
+                data-ai-point="${escapeHtml(point.id)}"
+              >
+                询问 AI 馆员
+              </button>
+            `
+            : ""
+        }
 
-      <section
-        class="point-archive-block point-archive-memory-shell"
-      >
-        <div
-          class="point-archive-block__heading"
-        >
-          <span
-            class="point-archive-block__number"
-          >
-            ${memorySectionNumber}
-          </span>
-
-          <div>
-            <p
-              class="point-archive-block__eyebrow"
-            >
-              PUBLIC MEMORY
-            </p>
-
-            <h4>
-              城市记忆
-            </h4>
-          </div>
-        </div>
-
-        ${renderMemorySection(
-          point
-        )}
-      </section>
-
-      <div
-        class="point-archive-contribution"
-      >
         <button
           type="button"
           class="memory-btn"
@@ -2537,13 +1871,13 @@ function renderDetail(
         >
           留下我的城市记忆
         </button>
-
-        <p
-          class="memory-help"
-        >
-          可提交文字、现场照片、家庭留影或旧照片线索；每次最多3张图片。
-        </p>
       </div>
+
+      <p
+        class="memory-help"
+      >
+        可提交文字、现场照片、家庭留影或旧照片线索；每次最多3张图片。
+      </p>
     </div>
   `;
 
@@ -2639,9 +1973,6 @@ function renderMarkers(points) {
       button.style.top =
         `${y}%`;
 
-      button.dataset.pointId =
-        point.id;
-
       button.setAttribute(
         "aria-label",
         point.nameModern ||
@@ -2656,23 +1987,6 @@ function renderMarkers(points) {
         button.classList.add(
           "map-marker-basic"
         );
-      }
-
-      /*
-       * 六个重点释读点位使用更高视觉层级。
-       * 仅增加前端样式类，不改变点位状态与数据库逻辑。
-       */
-      if (
-        isFeaturedPoint(
-          point
-        )
-      ) {
-        button.classList.add(
-          "map-marker-featured"
-        );
-
-        button.dataset.featured =
-          "true";
       }
 
       const memoryCount =
@@ -2727,12 +2041,6 @@ function renderMarkers(points) {
             ? `｜已收录${memoryCount}份城市记忆`
             : ""
         }${
-          isFeaturedPoint(
-            point
-          )
-            ? "｜重点释读点位"
-            : ""
-        }${
           myPointState === "approved"
             ? "｜我的记忆已公开"
             : (
@@ -2764,10 +2072,6 @@ function renderMarkers(points) {
             .add(
               "active"
             );
-
-          setActiveRoutePoint(
-            point.id
-          );
 
           renderDetail(
             point,
@@ -2802,76 +2106,6 @@ function renderMarkers(points) {
    Citywalk
    =============================================== */
 
-function setActiveRoutePoint(
-  pointId
-) {
-  document
-    .querySelectorAll(
-      ".route-card"
-    )
-    .forEach(
-      (card) => {
-        card.classList.toggle(
-          "is-current",
-          card.dataset.routePointId === pointId
-        );
-      }
-    );
-}
-
-function focusPointFromRoute(
-  pointId
-) {
-  const point =
-    allPoints.find(
-      (item) =>
-        item.id === pointId
-    );
-
-  if (!point) {
-    return;
-  }
-
-  document
-    .querySelectorAll(
-      ".map-marker"
-    )
-    .forEach(
-      (marker) =>
-        marker.classList.remove(
-          "active"
-        )
-    );
-
-  const marker =
-    document.querySelector(
-      `.map-marker[data-point-id="${pointId}"]`
-    );
-
-  marker
-    ?.classList
-    .add(
-      "active"
-    );
-
-  setActiveRoutePoint(
-    pointId
-  );
-
-  renderDetail(
-    point
-  );
-
-  document
-    .querySelector(
-      "#map"
-    )
-    ?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-}
-
 function renderRoute(points) {
   if (!routeListEl) {
     return;
@@ -2895,160 +2129,50 @@ function renderRoute(points) {
       )
       .filter(Boolean)
       .map(
-        (
-          point,
-          index
-        ) => {
+        (point) => {
           const memoryCount =
             getPointMemories(
               point.id
             ).length;
 
-          const ancientName =
-            point.nameAncient ||
-            point.nameModern ||
-            "";
-
-          const modernName =
-            point.nameModern ||
-            point.nameAncient ||
-            "";
-
           return `
             <li
-              class="route-stop"
+              class="route-card ${
+                memoryCount > 0
+                  ? "has-memory"
+                  : ""
+              }"
             >
-              <button
-                type="button"
-                class="route-card ${
-                  memoryCount > 0
-                    ? "has-memory"
-                    : ""
-                }"
-                data-route-point-id="${escapeHtml(
-                  point.id
-                )}"
-                aria-label="查看 Citywalk 第 ${index + 1} 站：${escapeHtml(
-                  modernName
-                )}"
-              >
-                <span
-                  class="route-node"
-                  aria-hidden="true"
-                >
-                  <span
-                    class="route-node__number"
-                  >
-                    ${String(
-                      index + 1
-                    ).padStart(
-                      2,
-                      "0"
-                    )}
-                  </span>
-                </span>
+              <h3>
+                ${escapeHtml(
+                  point.nameModern
+                )}
+              </h3>
 
-                <span
-                  class="route-card__eyebrow"
-                >
-                  STOP ${String(
-                    index + 1
-                  ).padStart(
-                    2,
-                    "0"
-                  )}
-                </span>
+              <p>
+                ${escapeHtml(
+                  point.routeNote ||
+                  ""
+                )}
+              </p>
 
-                <h3>
-                  ${escapeHtml(
-                    modernName
-                  )}
-                </h3>
-
-                <p
-                  class="route-card__ancient"
-                >
-                  古图：${escapeHtml(
-                    ancientName
-                  )}
-                </p>
-
-                <div
-                  class="route-card__meta"
-                >
-                  <span>
-                    ${escapeHtml(
-                      getStatusLabel(
-                        point
-                      )
-                    )}
-                  </span>
-
-                  ${
-                    point.type
-                      ? `
-                        <span>
-                          ${escapeHtml(
-                            point.type
-                          )}
-                        </span>
-                      `
-                      : ""
-                  }
-                </div>
-
-                <p
-                  class="route-card__note"
-                >
-                  ${escapeHtml(
-                    point.routeNote ||
-                    "沿古图线索进入今日城市空间。"
-                  )}
-                </p>
-
-                ${
-                  memoryCount > 0
-                    ? `
-                      <span
-                        class="route-memory-note"
-                      >
-                        &#10022; 已收录 ${memoryCount} 份城市记忆
-                      </span>
-                    `
-                    : `
-                      <span
-                        class="route-open-note"
-                      >
-                        查看地点档案 →
-                      </span>
-                    `
-                }
-              </button>
+              ${
+                memoryCount > 0
+                  ? `
+                    <span
+                      class="route-memory-note"
+                    >
+                      ✦ 已收录 ${memoryCount} 份城市记忆
+                    </span>
+                  `
+                  : ""
+              }
             </li>
           `;
         }
       )
       .join("");
-
-  registerRevealElements();
-
-  routeListEl
-    .querySelectorAll(
-      ".route-card"
-    )
-    .forEach(
-      (card) => {
-        card.addEventListener(
-          "click",
-          () =>
-            focusPointFromRoute(
-              card.dataset.routePointId
-            )
-        );
-      }
-    );
 }
-
 
 /* ===============================================
    投稿弹窗
@@ -4213,12 +3337,6 @@ async function init() {
     renderRoute(
       allPoints
     );
-
-    /*
-     * 页面主体已经可用后，再启用微交互。
-     * 即使 CloudBase 连接较慢，也不会阻塞视觉体验。
-     */
-    setupMicroInteractions();
 
     /*
      * 再连接 CloudBase。
