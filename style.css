@@ -3672,3 +3672,815 @@ p {
     transition: opacity 120ms linear;
   }
 }
+/* =========================================================
+   V3-3A · AI城市记忆共创工坊
+   2026-08-12
+
+   本轮仅完成：
+   - STEP 01 真实记忆
+   - STEP 02 8张“作家灵感”卡
+   - 补充表达方向（可选）
+   - STEP 03 AI协作表达占位区
+
+   注意：当前仍以 originalContent 原始记忆提交，
+   尚未调用 AI 改写接口。
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. 共创工坊弹窗整体
+   --------------------------------------------------------- */
+
+.contribution-modal--workshop .contribution-workshop-dialog {
+  width: min(980px, 100%);
+  max-height: min(92vh, 980px);
+
+  padding:
+    32px
+    clamp(22px, 3vw, 38px)
+    30px;
+
+  border:
+    1px solid
+    rgba(126, 53, 40, 0.24);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 252, 245, 0.985),
+      rgba(247, 237, 218, 0.985)
+    );
+
+  box-shadow:
+    0 30px 90px
+    rgba(47, 34, 23, 0.34);
+}
+
+.contribution-modal--workshop .contribution-workshop-dialog::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  z-index: -1;
+
+  border-radius: inherit;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(79, 56, 33, 0.028) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      rgba(79, 56, 33, 0.022) 1px,
+      transparent 1px
+    );
+
+  background-size: 26px 26px;
+}
+
+.contribution-modal--workshop #contributionModalTitle {
+  margin-bottom: 4px;
+
+  color:
+    var(--ink, #24211c);
+
+  font-size:
+    clamp(1.75rem, 3vw, 2.25rem);
+
+  letter-spacing: 0.04em;
+}
+
+.contribution-modal--workshop .contribution-modal__point {
+  margin-bottom: 18px;
+
+  color:
+    var(--cinnabar-dark, #7e3528);
+
+  font-weight: 700;
+}
+
+
+/* ---------------------------------------------------------
+   2. 顶部说明
+   --------------------------------------------------------- */
+
+.contribution-workshop-intro {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 14px;
+
+  margin-bottom: 24px;
+
+  padding:
+    14px 16px;
+
+  border:
+    1px solid
+    rgba(53, 95, 87, 0.17);
+
+  border-radius: 12px;
+
+  background:
+    rgba(111, 155, 139, 0.065);
+}
+
+.contribution-workshop-intro__seal {
+  display: grid;
+
+  place-items: center;
+
+  width: 36px;
+  height: 36px;
+
+  flex: 0 0 36px;
+
+  border:
+    1px solid
+    rgba(126, 53, 40, 0.55);
+
+  color:
+    var(--cinnabar-dark, #7e3528);
+
+  font-weight: 700;
+
+  transform: rotate(-3deg);
+}
+
+.contribution-workshop-intro p {
+  margin: 0;
+
+  color:
+    var(--ink-soft, #615744);
+
+  font-size: 0.92rem;
+  line-height: 1.75;
+}
+
+.contribution-workshop-intro strong {
+  color:
+    var(--qing-deep, #355f57);
+}
+
+
+/* ---------------------------------------------------------
+   3. STEP 分区
+   --------------------------------------------------------- */
+
+.contribution-workshop-step {
+  position: relative;
+
+  margin-bottom: 22px;
+
+  padding:
+    20px
+    clamp(16px, 2vw, 22px)
+    22px;
+
+  border:
+    1px solid
+    rgba(75, 57, 34, 0.16);
+
+  border-radius: 14px;
+
+  background:
+    rgba(255, 253, 248, 0.74);
+}
+
+.contribution-workshop-step--writing {
+  border-color:
+    rgba(168, 79, 54, 0.22);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 251, 243, 0.88),
+      rgba(249, 239, 222, 0.74)
+    );
+}
+
+.contribution-workshop-step--ai {
+  border-color:
+    rgba(53, 95, 87, 0.2);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(245, 250, 247, 0.82),
+      rgba(236, 243, 237, 0.68)
+    );
+}
+
+.contribution-workshop-step__head {
+  display: grid;
+
+  grid-template-columns:
+    auto
+    minmax(0, 1fr)
+    auto;
+
+  align-items: start;
+
+  gap:
+    12px
+    16px;
+
+  margin-bottom: 18px;
+
+  padding-bottom: 14px;
+
+  border-bottom:
+    1px solid
+    rgba(75, 57, 34, 0.12);
+}
+
+.contribution-workshop-step__head > span {
+  margin-top: 2px;
+
+  color:
+    var(--cinnabar-dark, #7e3528);
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+}
+
+.contribution-workshop-step__head h3 {
+  margin: 0 0 3px;
+
+  color:
+    var(--ink, #24211c);
+
+  font-size: 1.04rem;
+}
+
+.contribution-workshop-step__head p {
+  margin: 0;
+
+  color:
+    var(--ink-soft, #615744);
+
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.contribution-workshop-step__head > small {
+  padding:
+    3px 7px;
+
+  border:
+    1px solid
+    rgba(53, 95, 87, 0.17);
+
+  background:
+    rgba(111, 155, 139, 0.06);
+
+  color:
+    var(--qing-deep, #355f57);
+
+  font-size: 0.68rem;
+
+  white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   4. 原始记忆表单
+   --------------------------------------------------------- */
+
+.contribution-field--primary textarea {
+  min-height: 150px;
+}
+
+.contribution-field-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 14px;
+}
+
+.contribution-field-grid .contribution-field {
+  margin-bottom: 16px;
+}
+
+
+/* ---------------------------------------------------------
+   5. 8张“作家灵感”卡
+   --------------------------------------------------------- */
+
+.writing-style-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 11px;
+}
+
+.writing-style-card {
+  position: relative;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 10px;
+
+  min-height: 142px;
+
+  padding:
+    13px 12px;
+
+  border:
+    1px solid
+    rgba(75, 57, 34, 0.17);
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 253, 248, 0.84);
+
+  color:
+    var(--ink, #24211c);
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.writing-style-card:hover {
+  transform: translateY(-2px);
+
+  border-color:
+    rgba(168, 79, 54, 0.44);
+
+  box-shadow:
+    0 8px 20px
+    rgba(76, 53, 31, 0.09);
+}
+
+.writing-style-card:focus-visible {
+  outline:
+    2px solid
+    rgba(53, 95, 87, 0.72);
+
+  outline-offset: 3px;
+}
+
+.writing-style-card.is-selected {
+  border-color:
+    rgba(126, 53, 40, 0.7);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 250, 240, 0.96),
+      rgba(246, 226, 204, 0.76)
+    );
+
+  box-shadow:
+    inset 0 0 0 1px
+    rgba(168, 79, 54, 0.1),
+    0 9px 24px
+    rgba(94, 58, 34, 0.1);
+}
+
+.writing-style-card.is-selected::after {
+  content: "已选择";
+
+  position: absolute;
+
+  top: 8px;
+  right: 8px;
+
+  padding:
+    1px 5px;
+
+  border:
+    1px solid
+    rgba(126, 53, 40, 0.25);
+
+  background:
+    rgba(255, 248, 235, 0.94);
+
+  color:
+    var(--cinnabar-dark, #7e3528);
+
+  font-size: 0.6rem;
+
+  letter-spacing: 0.04em;
+}
+
+.writing-style-card__mark {
+  display: grid;
+
+  place-items: center;
+
+  width: 31px;
+  height: 31px;
+
+  flex: 0 0 31px;
+
+  margin-top: 2px;
+
+  border:
+    1px solid
+    rgba(126, 53, 40, 0.35);
+
+  color:
+    var(--cinnabar-dark, #7e3528);
+
+  background:
+    rgba(168, 79, 54, 0.035);
+
+  font-family:
+    "Songti SC",
+    "STSong",
+    serif;
+
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.writing-style-card.is-selected .writing-style-card__mark {
+  background:
+    var(--cinnabar-dark, #7e3528);
+
+  color: #fffaf1;
+}
+
+.writing-style-card__copy {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction: column;
+}
+
+.writing-style-card__copy strong {
+  padding-right: 40px;
+
+  color:
+    var(--ink, #24211c);
+
+  font-size: 0.96rem;
+}
+
+.writing-style-card__copy em {
+  margin-top: 2px;
+
+  color:
+    var(--qing-deep, #355f57);
+
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 700;
+
+  letter-spacing: 0.03em;
+}
+
+.writing-style-card__copy small {
+  margin-top: 7px;
+
+  color:
+    var(--ink-soft, #615744);
+
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.writing-style-selected {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  margin:
+    13px 0 0;
+
+  padding:
+    8px 10px;
+
+  border-left:
+    2px solid
+    var(--gold, #c49a45);
+
+  background:
+    rgba(196, 154, 69, 0.055);
+
+  color:
+    var(--ink-soft, #615744);
+
+  font-size: 0.8rem;
+}
+
+.writing-style-selected > span {
+  color:
+    var(--gold, #c49a45);
+
+  font-weight: 700;
+}
+
+.writing-style-selected strong {
+  color:
+    var(--cinnabar-dark, #7e3528);
+}
+
+
+/* ---------------------------------------------------------
+   6. “补充表达方向”折叠区
+   --------------------------------------------------------- */
+
+.writing-intent-details {
+  margin-top: 12px;
+
+  border-top:
+    1px dashed
+    rgba(75, 57, 34, 0.16);
+}
+
+.writing-intent-details summary {
+  padding-top: 12px;
+
+  color:
+    var(--qing-deep, #355f57);
+
+  font-size: 0.82rem;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.writing-intent-field {
+  margin:
+    12px 0 0;
+}
+
+.writing-intent-field textarea {
+  background:
+    rgba(255, 253, 248, 0.88);
+}
+
+
+/* ---------------------------------------------------------
+   7. STEP 03 AI 协作占位区
+   --------------------------------------------------------- */
+
+.ai-writing-preview {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding:
+    14px 15px;
+
+  border:
+    1px dashed
+    rgba(53, 95, 87, 0.25);
+
+  border-radius: 10px;
+
+  background:
+    rgba(111, 155, 139, 0.045);
+}
+
+.ai-writing-preview > div {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 11px;
+}
+
+.ai-writing-preview > div > span {
+  color:
+    var(--gold, #c49a45);
+
+  font-size: 1.1rem;
+}
+
+.ai-writing-preview strong {
+  color:
+    var(--qing-deep, #355f57);
+}
+
+.ai-writing-preview p {
+  margin:
+    3px 0 0;
+
+  color:
+    var(--ink-soft, #615744);
+
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.ai-writing-trigger {
+  flex: 0 0 auto;
+
+  padding:
+    8px 12px;
+
+  border:
+    1px solid
+    rgba(53, 95, 87, 0.2);
+
+  border-radius: 8px;
+
+  background:
+    rgba(255, 255, 255, 0.56);
+
+  color:
+    rgba(53, 95, 87, 0.58);
+
+  font-size: 0.76rem;
+
+  cursor: not-allowed;
+}
+
+
+/* ---------------------------------------------------------
+   8. 最终确认区
+   --------------------------------------------------------- */
+
+.contribution-workshop-final {
+  margin-top: 4px;
+
+  padding:
+    18px 18px 12px;
+
+  border:
+    1px solid
+    rgba(196, 154, 69, 0.26);
+
+  border-radius: 12px;
+
+  background:
+    rgba(196, 154, 69, 0.045);
+}
+
+.contribution-workshop-final h3 {
+  margin-bottom: 4px;
+
+  color:
+    var(--ink, #24211c);
+
+  font-size: 1rem;
+}
+
+.contribution-workshop-final > p {
+  margin-bottom: 12px;
+
+  color:
+    var(--ink-soft, #615744);
+
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.contribution-modal--workshop .contribution-actions-row {
+  position: sticky;
+
+  bottom: -1px;
+
+  z-index: 5;
+
+  margin:
+    12px -10px -8px;
+
+  padding:
+    12px 10px 8px;
+
+  border-top:
+    1px solid
+    rgba(75, 57, 34, 0.12);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(247, 237, 218, 0),
+      rgba(247, 237, 218, 0.96) 26%,
+      rgba(247, 237, 218, 0.99)
+    );
+}
+
+
+/* ---------------------------------------------------------
+   9. 平板与手机
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .writing-style-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .contribution-modal--workshop .contribution-workshop-dialog {
+    width: min(780px, 100%);
+  }
+}
+
+@media (max-width: 640px) {
+  .contribution-modal--workshop {
+    padding: 8px;
+  }
+
+  .contribution-modal--workshop .contribution-workshop-dialog {
+    max-height: 94vh;
+
+    padding:
+      24px 14px
+      18px;
+
+    border-radius: 14px;
+  }
+
+  .contribution-workshop-intro {
+    padding:
+      12px;
+  }
+
+  .contribution-workshop-step {
+    padding:
+      16px 12px;
+  }
+
+  .contribution-workshop-step__head {
+    grid-template-columns:
+      auto
+      1fr;
+  }
+
+  .contribution-workshop-step__head > small {
+    grid-column: 2;
+
+    justify-self: start;
+  }
+
+  .contribution-field-grid {
+    grid-template-columns: 1fr;
+
+    gap: 0;
+  }
+
+  .writing-style-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .writing-style-card {
+    min-height: 0;
+  }
+
+  .ai-writing-preview {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .ai-writing-trigger {
+    align-self: flex-start;
+  }
+
+  .contribution-modal--workshop .contribution-actions-row {
+    flex-direction: column-reverse;
+  }
+
+  .contribution-modal--workshop .contribution-actions-row .btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .writing-style-card {
+    transition: none;
+  }
+
+  .writing-style-card:hover {
+    transform: none;
+  }
+}
