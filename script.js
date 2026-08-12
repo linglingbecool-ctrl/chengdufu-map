@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260812-rewrite01";
+const APP_VERSION = "20260812-rewrite02";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -2640,6 +2640,7 @@ function syncWritingStyleSelection(modal) {
       已选择：
       <strong>${escapeHtml(activeStyle.name)}</strong>
       · ${escapeHtml(activeStyle.tagline)}
+      · 无模型表层调整
     `;
   }
 }
@@ -2842,6 +2843,11 @@ function renderRewriteState(
         "#memoryRewriteDraft"
       );
 
+    const draftLabel =
+      modal.querySelector(
+        "#memoryRewriteDraftLabel"
+      );
+
     if (originalText) {
       originalText.textContent =
         modal
@@ -2856,6 +2862,18 @@ function renderRewriteState(
     if (draftText) {
       draftText.textContent =
         currentRewriteDraft;
+    }
+
+    if (draftLabel) {
+      const activeStyle =
+        getWritingStyle(
+          selectedWritingStyle
+        );
+
+      draftLabel.textContent =
+        activeStyle.id === "original"
+          ? "基础整理稿 · 无模型 · 保持原声"
+          : `基础整理稿 · 无模型 · ${activeStyle.name}偏好`;
     }
 
     setRewriteChoice(
@@ -2967,17 +2985,161 @@ function getMemorySentenceKey(
     .toLowerCase();
 }
 
+/*
+ * 把投稿点位这个已经明确的上下文补进极短口语句。
+ * 只处理“某年和某人来的”这类结构，不推断景物、感受或事件。
+ */
+function expandImplicitMemoryContext(
+  text,
+  pointName
+) {
+  const normalized =
+    normalizeMemoryPunctuation(
+      text
+    );
+
+  const place =
+    String(pointName || "")
+      .trim() ||
+    "这里";
+
+  const companionPattern =
+    /^((?:19|20)\d{2}年(?:前后)?)[，,]?(?:我)?(?:和|跟)([^，。！？!?\n]{1,16}?)(?:一起)?(?:来|去)(?:过)?(?:这里|这儿|该地)?(?:的)?[。！？!?]?$/;
+
+  const companionMatch =
+    normalized.match(
+      companionPattern
+    );
+
+  if (companionMatch) {
+    const [, year, companion] =
+      companionMatch;
+
+    return `${year}，我和${companion.trim()}一起来过${place}。`;
+  }
+
+  const soloPattern =
+    /^((?:19|20)\d{2}年(?:前后)?)[，,]?(?:我)?(?:来|去)(?:过)?(?:这里|这儿|该地)?(?:的)?[。！？!?]?$/;
+
+  const soloMatch =
+    normalized.match(
+      soloPattern
+    );
+
+  if (soloMatch) {
+    return `${soloMatch[1]}，我来过${place}。`;
+  }
+
+  return normalized;
+}
+
+/*
+ * 零模型表达偏好：仅使用可解释、可复核的表层规则。
+ * 不生成比喻，不补写心情、天气、景物或历史事实。
+ */
+function applyWritingStylePreference(
+  text,
+  styleId
+) {
+  let draft =
+    String(text || "");
+
+  switch (styleId) {
+    case "sushi":
+      draft = draft
+        .replace(
+          /，我和([^，。！？]{1,20}?)一起来过([^。！？]+)。/g,
+          "，我曾和$1一同来过$2。"
+        )
+        .replace(
+          /，我来过([^。！？]+)。/g,
+          "，我曾来过$1。"
+        )
+        .replace(
+          /非常非常|特别特别/g,
+          "很"
+        )
+        .replace(/！/g, "。");
+      break;
+
+    case "dufu":
+      draft = draft
+        .replace(
+          /，我和([^，。！？]{1,20}?)一起来过([^。！？]+)。/g,
+          "，我和$1曾一起来过$2。"
+        )
+        .replace(/！/g, "。");
+      break;
+
+    case "libai":
+      draft = draft
+        .replace(
+          /，我和([^，。！？]{1,20}?)一起来过([^。！？]+)。/g,
+          "，我与$1一同来到$2。"
+        );
+      break;
+
+    case "lijieren":
+      draft = draft
+        .replace(
+          /，我和([^，。！？]{1,20}?)一起来过([^。！？]+)。/g,
+          "，那时我是和$1一起来$2的。"
+        );
+      break;
+
+    case "luxun":
+      draft = draft
+        .replace(
+          /，我和([^，。！？]{1,20}?)一起来过([^。！？]+)。/g,
+          "，我和$1来过$2。"
+        )
+        .replace(
+          /(?:其实|说实话|真的)(?=[，。])/g,
+          ""
+        )
+        .replace(/！/g, "。");
+      break;
+
+    case "alai":
+      draft = draft
+        .replace(
+          /，我和([^，。！？]{1,20}?)一起来过([^。！？]+)。/g,
+          "，我和$1一同来到$2。"
+        )
+        .replace(/！/g, "。");
+      break;
+
+    case "guomoruo":
+      draft = draft
+        .replace(
+          /，我和([^，。！？]{1,20}?)一起来过([^。！？]+)。/g,
+          "，我与$1一同来过$2。"
+        );
+      break;
+
+    default:
+      break;
+  }
+
+  return normalizeMemoryPunctuation(
+    draft
+  );
+}
+
 function buildLocalMemoryDraft({
   originalContent,
-  writingIntent
+  writingIntent,
+  styleId = "original",
+  pointName = ""
 }) {
   const seen =
     new Set();
 
   let sentences =
     splitMemorySentences(
-      normalizeMemoryPunctuation(
-        originalContent
+      expandImplicitMemoryContext(
+        originalContent,
+        pointName
       )
     )
       .filter(
@@ -3062,6 +3224,12 @@ function buildLocalMemoryDraft({
         .join("");
   }
 
+  draft =
+    applyWritingStylePreference(
+      draft,
+      styleId
+    );
+
   return normalizeMemoryPunctuation(
     draft
   )
@@ -3133,7 +3301,7 @@ async function handleMemoryRewrite() {
   renderRewriteState(
     modal,
     "loading",
-    "正在本机浏览器中检查标点、重复句和基础格式。"
+    "正在本机浏览器中检查标点、重复，并按所选偏好调整表层措辞。"
   );
 
   try {
@@ -3158,7 +3326,15 @@ async function handleMemoryRewrite() {
     const draft =
       buildLocalMemoryDraft({
         originalContent,
-        writingIntent
+        writingIntent,
+        styleId:
+          selectedWritingStyle,
+        pointName:
+          activeContributionPoint
+            ?.nameModern ||
+          activeContributionPoint
+            ?.nameAncient ||
+          ""
       });
 
     if (!draft) {
@@ -3172,22 +3348,35 @@ async function handleMemoryRewrite() {
 
     currentRewriteMeta = {
       engine:
-        "rule-based-browser-v1",
+        "rule-based-browser-v2",
 
       model:
         null,
+
+      writingStyle:
+        selectedWritingStyle,
 
       modelServiceRequired:
         false,
 
       notice:
-        "当前为浏览器本地基础整理：修正格式、标点和重复，不调用云函数或生成式模型，也不新增事实。"
+        "当前为浏览器本地基础整理：按所选表达偏好调整语序、措辞和节奏，不调用云函数或生成式模型，也不新增事实。"
     };
+
+    const activeStyle =
+      getWritingStyle(
+        selectedWritingStyle
+      );
+
+    const limitedDifference =
+      originalContent.length < 28;
 
     renderRewriteState(
       modal,
       "success",
-      "整理完成。请对照原文，并明确选择采用整理稿或保留原文。"
+      limitedDifference
+        ? `已按“${activeStyle.name}”偏好完成表层调整。原文信息较少，为避免补写，差异会有限；可以补充当时看到什么、做了什么或最记得什么。`
+        : `已按“${activeStyle.name}”偏好完成表层调整。请对照原文，并明确选择采用整理稿或保留原文。`
     );
 
     setRewriteChoice(
@@ -3460,7 +3649,7 @@ function ensureContributionModal() {
               </h3>
 
               <p>
-                当前无模型版本只记录偏好标签，不生成或模仿作家风格。
+                无模型版本会按所选偏好调整语序、措辞和节奏；不生成仿作，也不增加事实。
               </p>
             </div>
 
@@ -3534,7 +3723,7 @@ function ensureContributionModal() {
               </h3>
 
               <p>
-                直接在本机浏览器检查标点、重复句和基础格式，不调用云函数或生成式模型；真实原文永久保留。
+                直接在本机浏览器检查标点、重复，并按所选偏好调整语序、措辞和节奏；不调用云函数或生成式模型，真实原文永久保留。
               </p>
             </div>
 
@@ -3595,8 +3784,8 @@ function ensureContributionModal() {
             </article>
 
             <article class="is-draft">
-              <span>
-                基础整理稿 · 无模型
+              <span id="memoryRewriteDraftLabel">
+                基础整理稿 · 无模型 · 保持原声
               </span>
 
               <p id="memoryRewriteDraft"></p>
