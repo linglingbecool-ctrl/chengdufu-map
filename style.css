@@ -2678,6 +2678,7 @@ p {
 .map-hub {
   --map-focus-x: 50%;
   --map-focus-y: 50%;
+  --map-stage-height: 560px;
 
   position: relative;
   padding: 28px;
@@ -2887,7 +2888,31 @@ p {
 }
 
 .map-hub .map-workbench {
-  align-items: stretch;
+  grid-template-columns:
+    minmax(620px, 1fr)
+    minmax(420px, 0.48fr);
+  align-items: start;
+}
+
+.map-section {
+  width: min(1520px, calc(100vw - 32px));
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.map-hub .map-panel {
+  align-self: start;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 13199 / 7393;
+  overflow: hidden;
+}
+
+.map-hub .legend {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  margin: 0;
 }
 
 .map-canvas {
@@ -2982,8 +3007,11 @@ p {
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
-  max-height: 720px;
-  overflow: hidden;
+  height: var(--map-stage-height);
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(53, 95, 87, 0.3);
   background:
     linear-gradient(
@@ -3019,6 +3047,13 @@ p {
 .map-hub .detail-panel {
   grid-column: 2;
   grid-row: 1;
+  position: sticky;
+  top: 18px;
+  height: var(--map-stage-height);
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   transition:
     opacity 220ms ease,
     visibility 220ms ease,
@@ -3026,6 +3061,9 @@ p {
 }
 
 .map-ai-drawer__head {
+  position: sticky;
+  top: 0;
+  z-index: 8;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -3129,12 +3167,23 @@ p {
 }
 
 .map-ai-drawer .ai-ask-form {
-  grid-template-columns: 1fr;
+  position: sticky;
+  bottom: 0;
+  z-index: 7;
+  grid-template-columns: minmax(0, 1fr) auto;
   margin-inline: 14px;
+  padding-bottom: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(244, 238, 222, 0.72),
+      rgba(244, 238, 222, 0.98) 24%
+    );
 }
 
 .map-ai-drawer .ai-ask-form button {
   min-height: 42px;
+  min-width: 112px;
 }
 
 .map-ai-drawer .ai-disclaimer {
@@ -3234,7 +3283,7 @@ p {
 }
 
 #ai-guide:not(.has-reading-desk) {
-  min-height: 0;
+  display: none;
 }
 
 @media (max-width: 1080px) {
@@ -3243,7 +3292,7 @@ p {
   }
 
   .map-hub .map-workbench {
-    grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
   }
 }
 
@@ -3266,6 +3315,10 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .map-section {
+    width: min(100%, calc(100vw - 24px));
+  }
+
   .map-hub .detail-panel,
   .map-ai-drawer {
     grid-column: 1;
@@ -3273,8 +3326,17 @@ p {
   }
 
   .map-ai-drawer {
-    max-height: none;
+    height: min(78vh, 720px);
+    max-height: min(78vh, 720px);
     transform: translateY(24px);
+  }
+
+  .map-hub .detail-panel {
+    position: static;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .map-hub[data-map-mode="ask"] .map-ai-drawer {
@@ -3329,6 +3391,10 @@ p {
 
   .map-ai-drawer .ai-point-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .map-ai-drawer .ai-ask-form {
+    grid-template-columns: 1fr;
   }
 
   .ai-map-integration-note {

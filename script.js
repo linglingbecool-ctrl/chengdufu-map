@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260812-maphub01";
+const APP_VERSION = "20260812-maphub02";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -1242,6 +1242,56 @@ function initMapHubShell() {
     document.querySelector(
       "#mapAiPointContext"
     );
+
+  mapHubElements.mapPanel =
+    document.querySelector(
+      "#mapHub .map-panel"
+    );
+
+  const syncMapStageHeight = () => {
+    const height =
+      mapHubElements.mapPanel
+        ?.getBoundingClientRect()
+        .height;
+
+    if (
+      mapHubElements.hub &&
+      Number.isFinite(height) &&
+      height > 0
+    ) {
+      mapHubElements.hub.style
+        .setProperty(
+          "--map-stage-height",
+          `${Math.round(height)}px`
+        );
+    }
+  };
+
+  requestAnimationFrame(
+    syncMapStageHeight
+  );
+
+  window.addEventListener(
+    "resize",
+    syncMapStageHeight,
+    {
+      passive: true
+    }
+  );
+
+  if (
+    "ResizeObserver" in window &&
+    mapHubElements.mapPanel
+  ) {
+    const mapStageObserver =
+      new ResizeObserver(
+        syncMapStageHeight
+      );
+
+    mapStageObserver.observe(
+      mapHubElements.mapPanel
+    );
+  }
 
   const aiHost =
     document.querySelector(
