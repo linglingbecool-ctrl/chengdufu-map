@@ -19,7 +19,7 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260812-archive01"
+      href="./style.css?v=20260812-ai03"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
@@ -49,10 +49,6 @@
         </a>
 
         <div class="navlinks">
-          <a href="#archive">
-            项目档案
-          </a>
-
           <a href="#map">
             交互地图
           </a>
@@ -61,12 +57,16 @@
             馆藏 AI
           </a>
 
+          <a href="#cocreate">
+            公众共创
+          </a>
+
           <a href="#citywalk">
             Citywalk
           </a>
 
-          <a href="#cocreate">
-            公众共创
+          <a href="#archive">
+            项目档案
           </a>
 
           <button
@@ -146,7 +146,596 @@
     </header>
 
     <main>
-      <!-- 项目档案 -->
+
+      <!-- ==================================================
+           01 交互地图
+           首屏之后直接进入核心古图体验
+           ================================================== -->
+
+      <section
+        class="map-section"
+        id="map"
+        aria-labelledby="map-title"
+      >
+        <div class="section-heading">
+          <div>
+            <div class="section-label">
+              Interactive Map
+            </div>
+
+            <h2 id="map-title">
+              古图点位导览
+            </h2>
+          </div>
+
+          <p>
+            点击地图上的点位，查看古图名称、今日对应地点、点位类型与历史介绍。标记颜色表示点位的存续、变迁或待考状态；也可以在详情卡中留下与该地点有关的照片、故事或口述记忆。
+          </p>
+        </div>
+
+        <div class="map-workbench">
+          <div
+            class="map-panel"
+            aria-label="成都府古图"
+          >
+            <img
+              class="map-image"
+              src="./chengdu-map.png"
+              alt="四川成都府古图底图"
+            />
+
+            <div
+              class="map-markers"
+              id="mapMarkers"
+              aria-label="地图点位"
+            ></div>
+
+            <div
+              class="legend"
+              aria-label="点位图例"
+            >
+              <span>
+                <i
+                  class="dot status-existing"
+                ></i>
+
+                存续点
+              </span>
+
+              <span>
+                <i
+                  class="dot status-changed"
+                ></i>
+
+                变迁点
+              </span>
+
+              <span>
+                <i
+                  class="dot status-uncertain"
+                ></i>
+
+                待考点
+              </span>
+            </div>
+          </div>
+
+          <aside
+            class="detail-panel"
+            aria-live="polite"
+          >
+            <div class="detail-kicker">
+              Point Detail
+            </div>
+
+            <article
+              class="point-card"
+              id="pointDetail"
+            >
+              <p class="empty-state">
+                请选择地图点位，查看古今对照信息。
+              </p>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+
+      <!-- ==================================================
+           02 馆藏证据问答
+           ================================================== -->
+
+      <section
+        class="ai-guide-section"
+        id="ai-guide"
+        aria-labelledby="ai-guide-title"
+      >
+        <div class="ai-guide-heading">
+          <div>
+            <div class="section-label ai-section-label">
+              Evidence-grounded Agent
+            </div>
+
+            <h2 id="ai-guide-title">
+              馆藏证据问答
+            </h2>
+
+            <p>
+              不靠模型记忆猜成都。每次回答先查点位档案与文献片段，再标出书名、PDF 页码和待核实边界。
+            </p>
+          </div>
+
+          <dl
+            class="evidence-metrics"
+            aria-label="知识库规模"
+          >
+            <div>
+              <dt>
+                6
+              </dt>
+
+              <dd>
+                核心点位
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                25
+              </dt>
+
+              <dd>
+                文献片段
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                A–C
+              </dt>
+
+              <dd>
+                证据分级
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="ai-reading-desk">
+          <aside
+            class="ai-point-index"
+            aria-label="六个点位索引"
+          >
+            <div class="ai-index-head">
+              <span>
+                六点位索引
+              </span>
+
+              <small>
+                选择后提问
+              </small>
+            </div>
+
+            <div
+              class="ai-point-tabs"
+              id="aiPointTabs"
+            >
+              <button
+                type="button"
+                class="ai-point-tab is-active"
+                data-ai-point="jiuyanqiao"
+              >
+                <span>
+                  01
+                </span>
+
+                <b>
+                  九眼桥
+                </b>
+
+                <small>
+                  古图：九贤桥
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="wuhouci"
+              >
+                <span>
+                  02
+                </span>
+
+                <b>
+                  武侯祠
+                </b>
+
+                <small>
+                  蜀汉纪念空间
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="wenshuyuan"
+              >
+                <span>
+                  03
+                </span>
+
+                <b>
+                  文殊院
+                </b>
+
+                <small>
+                  寺院与街巷
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="qingyanggong"
+              >
+                <span>
+                  04
+                </span>
+
+                <b>
+                  青羊宫
+                </b>
+
+                <small>
+                  道观与地名
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="mancheng"
+              >
+                <span>
+                  05
+                </span>
+
+                <b>
+                  满城
+                </b>
+
+                <small>
+                  宽窄巷子线索
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="hongpailou"
+              >
+                <span>
+                  06
+                </span>
+
+                <b>
+                  红牌楼
+                </b>
+
+                <small>
+                  证据不足示例
+                </small>
+              </button>
+            </div>
+
+            <div class="ai-evidence-promise">
+              <span
+                class="ai-seal"
+                aria-hidden="true"
+              >
+                据
+              </span>
+
+              <p>
+                <b>
+                  回答原则
+                </b>
+
+                <br />
+
+                有据可查，逐页标注；资料不足，明确保留。
+              </p>
+            </div>
+
+            <details
+              class="ai-setup"
+              id="aiSetup"
+              hidden
+            >
+              <summary>
+                连接设置
+              </summary>
+
+              <label for="aiAccessKeyInput">
+                CloudBase Publishable Key
+              </label>
+
+              <input
+                id="aiAccessKeyInput"
+                type="password"
+                autocomplete="off"
+                placeholder="只填写 Publishable Key"
+              />
+
+              <button
+                type="button"
+                id="aiSaveAccessKey"
+              >
+                保存到本机
+              </button>
+
+              <p>
+                请勿填写管理员 API Key。Publishable Key 专供网页调用，可在 CloudBase 环境配置中创建。
+              </p>
+            </details>
+          </aside>
+
+          <div class="ai-transcript">
+            <div class="ai-transcript-bar">
+              <div>
+                <i
+                  class="ai-live-dot"
+                  aria-hidden="true"
+                ></i>
+
+                <span id="aiConnectionStatus">
+                  正在连接馆藏知识库
+                </span>
+              </div>
+
+              <button
+                type="button"
+                class="ai-clear-button"
+                id="aiClearConversation"
+              >
+                新对话
+              </button>
+            </div>
+
+            <div
+              class="ai-messages"
+              id="aiMessages"
+              aria-live="polite"
+              aria-label="AI 问答记录"
+            >
+              <article
+                class="ai-message ai-message--assistant"
+              >
+                <div class="ai-message-meta">
+                  <span>
+                    图绘成都 · 馆藏 AI
+                  </span>
+
+                  <time>
+                    馆藏证据模式
+                  </time>
+                </div>
+
+                <div class="ai-message-body">
+                  <p>
+                    请选择左侧点位，或直接提问。我会先检索《成都通览》《成都街巷志》与古图点位资料，再组织回答。
+                  </p>
+                </div>
+              </article>
+            </div>
+
+            <div
+              class="ai-suggestions"
+              id="aiSuggestions"
+              aria-label="推荐问题"
+            ></div>
+
+            <form
+              class="ai-ask-form"
+              id="aiAskForm"
+            >
+              <label
+                class="sr-only"
+                for="aiQuestionInput"
+              >
+                向馆藏 AI 提问
+              </label>
+
+              <textarea
+                id="aiQuestionInput"
+                rows="2"
+                maxlength="500"
+                placeholder="例如：九眼桥何时修建？请给出书名和 PDF 页码。"
+                required
+              ></textarea>
+
+              <button
+                type="submit"
+                id="aiSendButton"
+              >
+                <span>
+                  查阅并回答
+                </span>
+
+                <i aria-hidden="true">
+                  ↗
+                </i>
+              </button>
+            </form>
+
+            <p
+              class="ai-disclaimer"
+              id="aiDisclaimer"
+            >
+              AI 只在当前六点位知识库范围内作答；研究使用请回到原书页面复核。
+            </p>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ==================================================
+           03 公众共创
+           ================================================== -->
+
+      <section
+        class="cocreate-section"
+        id="cocreate"
+        aria-labelledby="cocreate-title"
+      >
+        <div>
+          <div class="section-label">
+            Public Contribution
+          </div>
+
+          <h2 id="cocreate-title">
+            公众共创 · 城市记忆
+          </h2>
+
+          <p>
+            城市历史不仅存在于地方文献中，也保存在家庭照片、个人经历、口述故事与日常观察里。选择一个地图点位，留下你与这个地方有关的城市记忆。
+          </p>
+        </div>
+
+        <dl class="file-list">
+          <div>
+            <dt>
+              01 选择地点
+            </dt>
+
+            <dd>
+              在交互地图中点击与你的照片或故事相关的历史点位。
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              02 提交记忆
+            </dt>
+
+            <dd>
+              点击点位详情中的“留下我的城市记忆”，可填写文字并上传最多 3 张照片。
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              03 AI 初审
+            </dt>
+
+            <dd>
+              投稿进入云端后由 AI 辅助判断点位相关度、内容摘要、关键词与风险提示，再交由馆员进行人工终审。
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              04 共建身份
+            </dt>
+
+            <dd>
+              审核通过的记忆将进入公众展示；投稿者获得“成都城市记忆共建者”身份，并按贡献类型解锁共建徽章。
+            </dd>
+          </div>
+        </dl>
+
+        <div class="contribute-actions">
+          <a
+            class="btn contribute"
+            href="#map"
+            aria-label="去地图选择点位并提交城市记忆"
+          >
+            去地图留下城市记忆
+          </a>
+        </div>
+      </section>
+
+
+      <!-- ==================================================
+           04 Citywalk
+           ================================================== -->
+
+      <section
+        class="citywalk-section section-band"
+        id="citywalk"
+        aria-labelledby="citywalk-title"
+      >
+        <div class="section-heading">
+          <div>
+            <div class="section-label">
+              Citywalk Route
+            </div>
+
+            <h2 id="citywalk-title">
+              一日步行路线
+            </h2>
+          </div>
+
+          <p>
+            以“桥、祠、寺、宫、城、城南交通节点”为线索，将古图中的文化地标转译为可行走的城市阅读路线。
+          </p>
+        </div>
+
+        <dl class="file-list">
+          <div>
+            <dt>
+              路线主题
+            </dt>
+
+            <dd>
+              从桥梁交通、祠庙记忆、佛寺空间、道教宫观、城址变迁到城南交通节点，观察古图中的空间节点如何在现代城市中延续、转化或消失。
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              推荐时长
+            </dt>
+
+            <dd>
+              半日到一日，可根据实地交通情况分段完成。
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              适合对象
+            </dt>
+
+            <dd>
+              高校师生、图书馆读者活动、城市文化爱好者、来馆参观与研学团队。
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              使用方式
+            </dt>
+
+            <dd>
+              可先在线阅读古图与重点点位介绍，再按照路线实地观察；回到对应点位详情卡，还可以提交现场照片、家庭旧照或个人故事。
+            </dd>
+          </div>
+        </dl>
+
+        <ol
+          class="route-list"
+          id="routeList"
+        ></ol>
+      </section>
+
+
+      <!-- ==================================================
+           05 项目档案
+           从原来的第二屏后移
+           ================================================== -->
+
       <section
         class="archive-section section-band"
         id="archive"
@@ -277,496 +866,11 @@
         </div>
       </section>
 
-      <!-- 交互地图 -->
-      <section
-        class="map-section"
-        id="map"
-        aria-labelledby="map-title"
-      >
-        <div class="section-heading">
-          <div>
-            <div class="section-label">
-              Interactive Map
-            </div>
 
-            <h2 id="map-title">
-              古图点位导览
-            </h2>
-          </div>
+      <!-- ==================================================
+           06 项目说明
+           ================================================== -->
 
-          <p>
-            点击地图上的点位，查看古图名称、今日对应地点、点位类型与历史介绍。标记颜色表示点位的存续、变迁或待考状态；也可以在详情卡中留下与该地点有关的照片、故事或口述记忆。
-          </p>
-        </div>
-
-        <div class="map-workbench">
-          <div
-            class="map-panel"
-            aria-label="成都府古图"
-          >
-            <img
-              class="map-image"
-              src="./chengdu-map.png"
-              alt="四川成都府古图底图"
-            />
-
-            <div
-              class="map-markers"
-              id="mapMarkers"
-              aria-label="地图点位"
-            ></div>
-
-            <div
-              class="legend"
-              aria-label="点位图例"
-            >
-              <span>
-                <i class="dot status-existing"></i>
-                存续点
-              </span>
-
-              <span>
-                <i class="dot status-changed"></i>
-                变迁点
-              </span>
-
-              <span>
-                <i class="dot status-uncertain"></i>
-                待考点
-              </span>
-            </div>
-          </div>
-
-          <aside
-            class="detail-panel"
-            aria-live="polite"
-          >
-            <div class="detail-kicker">
-              Point Detail
-            </div>
-
-            <article
-              class="point-card"
-              id="pointDetail"
-            >
-              <p class="empty-state">
-                请选择地图点位，查看古今对照信息。
-              </p>
-            </article>
-          </aside>
-        </div>
-      </section>
-
-      <!-- 馆藏证据问答 -->
-      <section
-        class="ai-guide-section"
-        id="ai-guide"
-        aria-labelledby="ai-guide-title"
-      >
-        <div class="ai-guide-heading">
-          <div>
-            <div class="section-label ai-section-label">
-              Evidence-grounded Agent
-            </div>
-
-            <h2 id="ai-guide-title">
-              馆藏证据问答
-            </h2>
-
-            <p>
-              不靠模型记忆猜成都。每次回答先查点位档案与文献片段，再标出书名、PDF 页码和待核实边界。
-            </p>
-          </div>
-
-          <dl
-            class="evidence-metrics"
-            aria-label="知识库规模"
-          >
-            <div>
-              <dt>6</dt>
-              <dd>核心点位</dd>
-            </div>
-
-            <div>
-              <dt>25</dt>
-              <dd>文献片段</dd>
-            </div>
-
-            <div>
-              <dt>A–C</dt>
-              <dd>证据分级</dd>
-            </div>
-          </dl>
-        </div>
-
-        <div class="ai-reading-desk">
-          <aside
-            class="ai-point-index"
-            aria-label="六个点位索引"
-          >
-            <div class="ai-index-head">
-              <span>
-                六点位索引
-              </span>
-
-              <small>
-                选择后提问
-              </small>
-            </div>
-
-            <div
-              class="ai-point-tabs"
-              id="aiPointTabs"
-            >
-              <button
-                type="button"
-                class="ai-point-tab is-active"
-                data-ai-point="jiuyanqiao"
-              >
-                <span>01</span>
-                <b>九眼桥</b>
-                <small>古图：九贤桥</small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="wuhouci"
-              >
-                <span>02</span>
-                <b>武侯祠</b>
-                <small>蜀汉纪念空间</small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="wenshuyuan"
-              >
-                <span>03</span>
-                <b>文殊院</b>
-                <small>寺院与街巷</small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="qingyanggong"
-              >
-                <span>04</span>
-                <b>青羊宫</b>
-                <small>道观与地名</small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="mancheng"
-              >
-                <span>05</span>
-                <b>满城</b>
-                <small>宽窄巷子线索</small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="hongpailou"
-              >
-                <span>06</span>
-                <b>红牌楼</b>
-                <small>证据不足示例</small>
-              </button>
-            </div>
-
-            <div class="ai-evidence-promise">
-              <span
-                class="ai-seal"
-                aria-hidden="true"
-              >
-                据
-              </span>
-
-              <p>
-                <b>回答原则</b>
-                <br />
-                有据可查，逐页标注；资料不足，明确拒答。
-              </p>
-            </div>
-
-            <details
-              class="ai-setup"
-              id="aiSetup"
-              hidden
-            >
-              <summary>
-                连接设置
-              </summary>
-
-              <label for="aiAccessKeyInput">
-                CloudBase Publishable Key
-              </label>
-
-              <input
-                id="aiAccessKeyInput"
-                type="password"
-                autocomplete="off"
-                placeholder="只填写 Publishable Key"
-              />
-
-              <button
-                type="button"
-                id="aiSaveAccessKey"
-              >
-                保存到本机
-              </button>
-
-              <p>
-                请勿填写管理员 API Key。Publishable Key 专供网页调用，可在 CloudBase 环境配置中创建。
-              </p>
-            </details>
-          </aside>
-
-          <div class="ai-transcript">
-            <div class="ai-transcript-bar">
-              <div>
-                <i
-                  class="ai-live-dot"
-                  aria-hidden="true"
-                ></i>
-
-                <span id="aiConnectionStatus">
-                  正在连接馆藏知识库
-                </span>
-              </div>
-
-              <button
-                type="button"
-                class="ai-clear-button"
-                id="aiClearConversation"
-              >
-                新对话
-              </button>
-            </div>
-
-            <div
-              class="ai-messages"
-              id="aiMessages"
-              aria-live="polite"
-              aria-label="AI 问答记录"
-            >
-              <article class="ai-message ai-message--assistant">
-                <div class="ai-message-meta">
-                  <span>
-                    图绘成都 · 馆藏 AI
-                  </span>
-
-                  <time>
-                    馆藏证据模式
-                  </time>
-                </div>
-
-                <div class="ai-message-body">
-                  <p>
-                    请选择左侧点位，或直接提问。我会先检索《成都通览》《成都街巷志》与古图点位资料，再组织回答。
-                  </p>
-                </div>
-              </article>
-            </div>
-
-            <div
-              class="ai-suggestions"
-              id="aiSuggestions"
-              aria-label="推荐问题"
-            ></div>
-
-            <form
-              class="ai-ask-form"
-              id="aiAskForm"
-            >
-              <label
-                class="sr-only"
-                for="aiQuestionInput"
-              >
-                向馆藏 AI 提问
-              </label>
-
-              <textarea
-                id="aiQuestionInput"
-                rows="2"
-                maxlength="500"
-                placeholder="例如：九眼桥何时修建？请给出书名和 PDF 页码。"
-                required
-              ></textarea>
-
-              <button
-                type="submit"
-                id="aiSendButton"
-              >
-                <span>
-                  查阅并回答
-                </span>
-
-                <i aria-hidden="true">
-                  ↗
-                </i>
-              </button>
-            </form>
-
-            <p
-              class="ai-disclaimer"
-              id="aiDisclaimer"
-            >
-              AI 只在当前六点位知识库范围内作答；研究使用请回到原书页面复核。
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Citywalk -->
-      <section
-        class="citywalk-section section-band"
-        id="citywalk"
-        aria-labelledby="citywalk-title"
-      >
-        <div class="section-heading">
-          <div>
-            <div class="section-label">
-              Citywalk Route
-            </div>
-
-            <h2 id="citywalk-title">
-              一日步行路线
-            </h2>
-          </div>
-
-          <p>
-            以“桥、祠、寺、宫、城、城南交通节点”为线索，将古图中的文化地标转译为可行走的城市阅读路线。
-          </p>
-        </div>
-
-        <dl class="file-list">
-          <div>
-            <dt>
-              路线主题
-            </dt>
-
-            <dd>
-              从桥梁交通、祠庙记忆、佛寺空间、道教宫观、城址变迁到城南交通节点，观察古图中的空间节点如何在现代城市中延续、转化或消失。
-            </dd>
-          </div>
-
-          <div>
-            <dt>
-              推荐时长
-            </dt>
-
-            <dd>
-              半日到一日，可根据实地交通情况分段完成。
-            </dd>
-          </div>
-
-          <div>
-            <dt>
-              适合对象
-            </dt>
-
-            <dd>
-              高校师生、图书馆读者活动、城市文化爱好者、来馆参观与研学团队。
-            </dd>
-          </div>
-
-          <div>
-            <dt>
-              使用方式
-            </dt>
-
-            <dd>
-              可先在线阅读古图与重点点位介绍，再按照路线实地观察；回到对应点位详情卡，还可以提交现场照片、家庭旧照或个人故事。
-            </dd>
-          </div>
-        </dl>
-
-        <ol
-          class="route-list"
-          id="routeList"
-        ></ol>
-      </section>
-
-      <!-- 公众共创 -->
-      <section
-        class="cocreate-section"
-        id="cocreate"
-        aria-labelledby="cocreate-title"
-      >
-        <div>
-          <div class="section-label">
-            Public Contribution
-          </div>
-
-          <h2 id="cocreate-title">
-            公众共创 · 城市记忆
-          </h2>
-
-          <p>
-            城市历史不仅存在于地方文献中，也保存在家庭照片、个人经历、口述故事与日常观察里。选择一个地图点位，留下你与这个地方有关的城市记忆。
-          </p>
-        </div>
-
-        <dl class="file-list">
-          <div>
-            <dt>
-              01 选择地点
-            </dt>
-
-            <dd>
-              在交互地图中点击与你的照片或故事相关的历史点位。
-            </dd>
-          </div>
-
-          <div>
-            <dt>
-              02 提交记忆
-            </dt>
-
-            <dd>
-              点击点位详情中的“留下我的城市记忆”，可填写文字并上传最多 3 张照片。
-            </dd>
-          </div>
-
-          <div>
-            <dt>
-              03 AI 初审
-            </dt>
-
-            <dd>
-              投稿进入云端后由 AI 辅助判断点位相关度、内容摘要、关键词与风险提示，再交由馆员进行人工终审。
-            </dd>
-          </div>
-
-          <div>
-            <dt>
-              04 共建身份
-            </dt>
-
-            <dd>
-              审核通过的记忆将进入公众展示并点亮对应地标；投稿者获得“成都城市记忆共建者”身份，并按贡献类型解锁共建徽章。
-            </dd>
-          </div>
-        </dl>
-
-        <div class="contribute-actions">
-          <a
-            class="btn contribute"
-            href="#map"
-            aria-label="去地图选择点位并提交城市记忆"
-          >
-            去地图留下城市记忆
-          </a>
-        </div>
-      </section>
-
-      <!-- 项目说明 -->
       <section
         class="about-section section-band"
         id="about"
@@ -785,10 +889,15 @@
         </p>
 
         <p>
-          六个重点点位的基础介绍依据相关地方文献整理；其余点位资料将逐步补充。公众投稿须经审核后方可进入后续展示，上传者需确认相关文字与影像的使用授权。
+          六个重点点位的基础介绍依据相关地方文献整理；其余点位资料将逐步补充。公众投稿须经审核后方可进入后续公开展示，上传者需确认相关文字与影像的使用授权。
         </p>
       </section>
     </main>
+
+
+    <!-- ==================================================
+         页脚
+         ================================================== -->
 
     <footer class="site-footer">
       <a href="#top">
@@ -800,10 +909,12 @@
       </span>
     </footer>
 
+
     <!--
       script.js 必须放在 CloudBase SDK 之后。
       版本号用于避免浏览器继续读取旧缓存。
     -->
+
     <script
       src="./script.js?v=20260811-ai01"
     ></script>
