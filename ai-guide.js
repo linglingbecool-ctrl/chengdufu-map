@@ -10,7 +10,6 @@
   const STORAGE_KEY = "tuhui_cloudbase_publishable_key";
   const THREAD_KEY = "tuhui_agent_thread_id";
 
-  // 六个核心点位。
   const pointQuestions = {
     jiuyanqiao: {
       name: "九眼桥",
@@ -234,6 +233,7 @@
 
     if (pageMatch) {
       page = pageMatch[1];
+
       title = rawTitle
         .replace(pageMatch[1], "")
         .replace(/[｜|]\s*$/, "")
@@ -340,15 +340,18 @@
         let sectionClass = "";
 
         if (heading === "结论") {
-          sectionClass = " ai-answer-heading--conclusion";
+          sectionClass =
+            " ai-answer-heading--conclusion";
         }
 
         if (heading === "文献依据") {
-          sectionClass = " ai-answer-heading--evidence";
+          sectionClass =
+            " ai-answer-heading--evidence";
         }
 
         if (heading === "证据边界") {
-          sectionClass = " ai-answer-heading--boundary";
+          sectionClass =
+            " ai-answer-heading--boundary";
         }
 
         html.push(
@@ -361,7 +364,7 @@
       }
 
       // ----------------------------------------
-      // 文献依据中的 1｜2｜3｜ 自动生成证据卡
+      // 文献依据中的 1｜2｜3｜自动生成证据卡
       // ----------------------------------------
 
       const source =
@@ -500,7 +503,7 @@
 
     const title =
       role === "assistant"
-        ? "图绘成都 · AI 馆员"
+        ? "图绘成都 · 馆藏 AI"
         : "访客提问";
 
     article.innerHTML = `
@@ -726,12 +729,11 @@
         );
       });
 
-    // 固定显示三道比赛演示题
     renderDemoQuestions();
 
     if (elements.input) {
       elements.input.placeholder =
-        `向 AI 馆员询问${pointQuestions[pointId].name}……`;
+        `向馆藏 AI 询问${pointQuestions[pointId].name}……`;
     }
 
     if (shouldScroll) {
@@ -824,10 +826,6 @@
           forwardedProps: {}
         });
 
-      // ----------------------------------------
-      // AG-UI dataStream
-      // ----------------------------------------
-
       if (
         response.dataStream &&
         response.dataStream[
@@ -838,8 +836,6 @@
           const event of
           response.dataStream
         ) {
-          // 只接收最终自然语言文字。
-          // 工具调用 JSON 不进入公众页面。
           if (
             event.type ===
             "TEXT_MESSAGE_CONTENT"
@@ -865,10 +861,6 @@
           }
         }
       }
-
-      // ----------------------------------------
-      // 兼容 textStream
-      // ----------------------------------------
 
       else if (
         response.textStream &&
@@ -996,7 +988,7 @@
         <div class="ai-message-meta">
 
           <span>
-            图绘成都 · AI 馆员
+            图绘成都 · 馆藏 AI
           </span>
 
           <time>
