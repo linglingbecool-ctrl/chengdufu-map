@@ -11,7 +11,6 @@
   const THREAD_KEY = "tuhui_agent_thread_id";
 
   // 六个核心点位。
-  // 保留原来的点位信息，用于左侧点位切换和输入框提示。
   const pointQuestions = {
     jiuyanqiao: {
       name: "九眼桥",
@@ -120,7 +119,7 @@
   }
 
   // ========================================================
-  // 文本安全与回答渲染
+  // 文本安全
   // ========================================================
 
   function escapeHtml(value) {
@@ -134,24 +133,17 @@
 
   function inlineMarkup(value) {
     return String(value ?? "")
-      // **加粗**
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-
-      // 书名
       .replace(
         /(《[^》]+》(?:（PDF第[^）]+页）)?)/g,
         '<mark class="ai-citation">$1</mark>'
       )
-
-      // PDF 页码
       .replace(
         /(PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页)/g,
         '<span class="ai-page">$1</span>'
       );
   }
 
-  // 最后一道前端保险：
-  // 即使模型意外输出少量内部状态词，也尽量避免直接展示英文后台值。
   function publicFacingText(value) {
     return String(value ?? "")
       .replace(
@@ -217,14 +209,94 @@
     );
   }
 
+  // ========================================================
+  // 证据卡
+  // ========================================================
+
+  function parseSourceHeader(text) {
+    const match = String(text ?? "")
+      .trim()
+      .match(/^(\d+)[｜|]\s*(.+)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    const number = match[1];
+    const rawTitle = match[2].trim();
+
+    const pageMatch = rawTitle.match(
+      /(PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页)/
+    );
+
+    let title = rawTitle;
+    let page = "";
+
+    if (pageMatch) {
+      page = pageMatch[1];
+      title = rawTitle
+        .replace(pageMatch[1], "")
+        .replace(/[｜|]\s*$/, "")
+        .trim();
+    }
+
+    return {
+      number,
+      title,
+      page
+    };
+  }
+
+  function sourceCardHeader(source) {
+    return `
+      <div class="ai-evidence-card-head">
+
+        <span class="ai-evidence-number">
+          ${escapeHtml(source.number)}
+        </span>
+
+        <div class="ai-evidence-source">
+
+          <strong>
+            ${inlineMarkup(source.title)}
+          </strong>
+
+          ${
+            source.page
+              ? `
+                <small>
+                  ${inlineMarkup(source.page)}
+                </small>
+              `
+              : ""
+          }
+
+        </div>
+
+      </div>
+
+      <div class="ai-evidence-card-body">
+    `;
+  }
+
+  // ========================================================
+  // 回答渲染
+  // ========================================================
+
   function renderAnswer(text) {
-    const safeText = escapeHtml(publicFacingText(text));
+    const safeText = escapeHtml(
+      publicFacingText(text)
+    );
+
     const lines = safeText.split(/\r?\n/);
 
     const html = [];
 
     let unorderedListOpen = false;
     let orderedListOpen = false;
+
+    let currentSection = "";
+    let evidenceCardOpen = false;
 
     function closeLists() {
       if (unorderedListOpen) {
@@ -238,6 +310,15 @@
       }
     }
 
+    function closeEvidenceCard() {
+      closeLists();
+
+      if (evidenceCardOpen) {
+        html.push("</div></article>");
+        evidenceCardOpen = false;
+      }
+    }
+
     lines.forEach((line) => {
       const trimmed = line.trim();
 
@@ -246,21 +327,71 @@
         return;
       }
 
-      // 【结论】 / 【文献依据】 / 【证据边界】
+      // ----------------------------------------
+      // 结论 / 文献依据 / 证据边界
+      // ----------------------------------------
+
       if (isSectionHeading(trimmed)) {
-        closeLists();
+        closeEvidenceCard();
 
         const heading = normalizeHeading(trimmed);
+        currentSection = heading;
+
+        let sectionClass = "";
+
+        if (heading === "结论") {
+          sectionClass = " ai-answer-heading--conclusion";
+        }
+
+        if (heading === "文献依据") {
+          sectionClass = " ai-answer-heading--evidence";
+        }
+
+        if (heading === "证据边界") {
+          sectionClass = " ai-answer-heading--boundary";
+        }
 
         html.push(
-          `<h4 class="ai-answer-heading">${inlineMarkup(heading)}</h4>`
+          `<h4 class="ai-answer-heading${sectionClass}">
+            ${inlineMarkup(heading)}
+          </h4>`
         );
 
         return;
       }
 
+      // ----------------------------------------
+      // 文献依据中的 1｜2｜3｜ 自动生成证据卡
+      // ----------------------------------------
+
+      const source =
+        parseSourceHeader(trimmed);
+
+      if (
+        currentSection === "文献依据" &&
+        source
+      ) {
+        closeEvidenceCard();
+
+        evidenceCardOpen = true;
+
+        html.push(
+          `<article class="ai-evidence-card">`
+        );
+
+        html.push(
+          sourceCardHeader(source)
+        );
+
+        return;
+      }
+
+      // ----------------------------------------
       // 无序列表
-      const bulletMatch = trimmed.match(/^[-•]\s+(.+)$/);
+      // ----------------------------------------
+
+      const bulletMatch =
+        trimmed.match(/^[-•]\s+(.+)$/);
 
       if (bulletMatch) {
         if (orderedListOpen) {
@@ -273,33 +404,21 @@
           unorderedListOpen = true;
         }
 
-        html.push(`<li>${inlineMarkup(bulletMatch[1])}</li>`);
-        return;
-      }
-
-      // 1｜《成都通览》
-      // 2｜《成都街巷志》
-      const sourceNumberMatch = trimmed.match(
-        /^(\d+)[｜|]\s*(.+)$/
-      );
-
-      if (sourceNumberMatch) {
-        closeLists();
-
         html.push(
-          `<p class="ai-source-heading">
-            <span class="ai-source-number">${escapeHtml(
-              sourceNumberMatch[1]
-            )}</span>
-            <strong>${inlineMarkup(sourceNumberMatch[2])}</strong>
-          </p>`
+          `<li>${inlineMarkup(
+            bulletMatch[1]
+          )}</li>`
         );
 
         return;
       }
 
-      // 普通 1. 2. 3. 有序列表
-      const numberedMatch = trimmed.match(/^\d+[.)、]\s*(.+)$/);
+      // ----------------------------------------
+      // 普通编号列表
+      // ----------------------------------------
+
+      const numberedMatch =
+        trimmed.match(/^\d+[.)、]\s*(.+)$/);
 
       if (numberedMatch) {
         if (unorderedListOpen) {
@@ -313,7 +432,9 @@
         }
 
         html.push(
-          `<li>${inlineMarkup(numberedMatch[1])}</li>`
+          `<li>${inlineMarkup(
+            numberedMatch[1]
+          )}</li>`
         );
 
         return;
@@ -321,11 +442,42 @@
 
       closeLists();
 
+      // ----------------------------------------
+      // 证据卡正文
+      // ----------------------------------------
+
+      if (evidenceCardOpen) {
+        html.push(
+          `<p>${inlineMarkup(trimmed)}</p>`
+        );
+
+        return;
+      }
+
+      // ----------------------------------------
+      // 证据边界视觉块
+      // ----------------------------------------
+
+      if (currentSection === "证据边界") {
+        html.push(
+          `<p class="ai-boundary-text">
+            ${inlineMarkup(trimmed)}
+          </p>`
+        );
+
+        return;
+      }
+
+      // ----------------------------------------
+      // 普通正文
+      // ----------------------------------------
+
       html.push(
         `<p>${inlineMarkup(trimmed)}</p>`
       );
     });
 
+    closeEvidenceCard();
     closeLists();
 
     return html.join("");
@@ -335,10 +487,16 @@
   // 消息区域
   // ========================================================
 
-  function addMessage(role, content, options = {}) {
-    const article = document.createElement("article");
+  function addMessage(
+    role,
+    content,
+    options = {}
+  ) {
+    const article =
+      document.createElement("article");
 
-    article.className = `ai-message ai-message--${role}`;
+    article.className =
+      `ai-message ai-message--${role}`;
 
     const title =
       role === "assistant"
@@ -347,20 +505,33 @@
 
     article.innerHTML = `
       <div class="ai-message-meta">
-        <span>${title}</span>
-        <time>${escapeHtml(options.status || "刚刚")}</time>
+
+        <span>
+          ${title}
+        </span>
+
+        <time>
+          ${escapeHtml(
+            options.status || "刚刚"
+          )}
+        </time>
+
       </div>
 
       <div class="ai-message-body">
+
         ${
           role === "assistant"
             ? renderAnswer(content)
             : `<p>${escapeHtml(content)}</p>`
         }
+
       </div>
     `;
 
-    elements.messages.appendChild(article);
+    elements.messages.appendChild(
+      article
+    );
 
     elements.messages.scrollTo({
       top: elements.messages.scrollHeight,
@@ -376,7 +547,9 @@
     status = "刚刚"
   ) {
     const body =
-      article.querySelector(".ai-message-body");
+      article.querySelector(
+        ".ai-message-body"
+      );
 
     const time =
       article.querySelector("time");
@@ -386,14 +559,20 @@
     }
 
     if (text) {
-      body.innerHTML = renderAnswer(text);
+      body.innerHTML =
+        renderAnswer(text);
     } else {
       body.innerHTML = `
         <div class="ai-thinking">
+
           <i></i>
           <i></i>
           <i></i>
-          <span>正在查阅点位档案与文献片段</span>
+
+          <span>
+            正在查阅点位档案与文献片段
+          </span>
+
         </div>
       `;
     }
@@ -408,32 +587,43 @@
   // 连接状态
   // ========================================================
 
-  function setStatus(label, state = "ready") {
+  function setStatus(
+    label,
+    state = "ready"
+  ) {
     if (elements.connectionStatus) {
-      elements.connectionStatus.textContent = label;
+      elements.connectionStatus.textContent =
+        label;
     }
 
     if (elements.liveDot) {
-      elements.liveDot.dataset.state = state;
+      elements.liveDot.dataset.state =
+        state;
     }
   }
 
   function getPublishableKey() {
     return String(
       config.publishableKey ||
-        localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem(
+          STORAGE_KEY
+        ) ||
         ""
     ).trim();
   }
 
   function getAiClient() {
-    if (aiApp && typeof aiApp.ai === "function") {
+    if (
+      aiApp &&
+      typeof aiApp.ai === "function"
+    ) {
       return aiApp.ai();
     }
 
     if (
       !window.cloudbase ||
-      typeof window.cloudbase.init !== "function"
+      typeof window.cloudbase.init !==
+        "function"
     ) {
       throw new Error(
         "CloudBase Web SDK 尚未加载"
@@ -449,11 +639,14 @@
     };
 
     if (accessKey) {
-      initOptions.accessKey = accessKey;
+      initOptions.accessKey =
+        accessKey;
     }
 
     aiApp =
-      window.cloudbase.init(initOptions);
+      window.cloudbase.init(
+        initOptions
+      );
 
     if (
       !aiApp ||
@@ -483,11 +676,24 @@
             <button
               type="button"
               class="ai-demo-question"
-              data-ai-question="${escapeHtml(item.question)}"
-              title="${escapeHtml(item.question)}"
+              data-ai-question="${escapeHtml(
+                item.question
+              )}"
+              title="${escapeHtml(
+                item.question
+              )}"
             >
-              <span>0${index + 1}</span>
-              ${escapeHtml(item.label)}｜${escapeHtml(item.question)}
+
+              <span>
+                0${index + 1}
+              </span>
+
+              ${escapeHtml(
+                item.label
+              )}｜${escapeHtml(
+                item.question
+              )}
+
             </button>
           `
         )
@@ -509,16 +715,18 @@
     activePointId = pointId;
 
     document
-      .querySelectorAll("[data-ai-point]")
+      .querySelectorAll(
+        "[data-ai-point]"
+      )
       .forEach((button) => {
         button.classList.toggle(
           "is-active",
-          button.dataset.aiPoint === pointId
+          button.dataset.aiPoint ===
+            pointId
         );
       });
 
-    // 推荐问题固定为三道比赛示范题，
-    // 不随左侧六点位切换而变化。
+    // 固定显示三道比赛演示题
     renderDemoQuestions();
 
     if (elements.input) {
@@ -548,14 +756,20 @@
     const cleanedQuestion =
       String(question || "").trim();
 
-    if (!cleanedQuestion || busy) {
+    if (
+      !cleanedQuestion ||
+      busy
+    ) {
       return;
     }
 
     busy = true;
 
-    elements.sendButton.disabled = true;
-    elements.input.disabled = true;
+    elements.sendButton.disabled =
+      true;
+
+    elements.input.disabled =
+      true;
 
     setStatus(
       "正在检索馆藏证据",
@@ -588,12 +802,15 @@
       content: cleanedQuestion
     };
 
-    conversation.push(userMessage);
+    conversation.push(
+      userMessage
+    );
 
     let answer = "";
 
     try {
-      const ai = getAiClient();
+      const ai =
+        getAiClient();
 
       const response =
         await ai.bot.sendMessage({
@@ -607,16 +824,22 @@
           forwardedProps: {}
         });
 
+      // ----------------------------------------
       // AG-UI dataStream
+      // ----------------------------------------
+
       if (
         response.dataStream &&
-        response.dataStream[Symbol.asyncIterator]
+        response.dataStream[
+          Symbol.asyncIterator
+        ]
       ) {
         for await (
-          const event of response.dataStream
+          const event of
+          response.dataStream
         ) {
-          // 只接收最终文字增量。
-          // TOOL_CALL / TOOL_RESULT 等调试信息不进入公众界面。
+          // 只接收最终自然语言文字。
+          // 工具调用 JSON 不进入公众页面。
           if (
             event.type ===
             "TEXT_MESSAGE_CONTENT"
@@ -632,7 +855,8 @@
           }
 
           if (
-            event.type === "RUN_ERROR"
+            event.type ===
+            "RUN_ERROR"
           ) {
             throw new Error(
               event.message ||
@@ -642,13 +866,19 @@
         }
       }
 
+      // ----------------------------------------
       // 兼容 textStream
+      // ----------------------------------------
+
       else if (
         response.textStream &&
-        response.textStream[Symbol.asyncIterator]
+        response.textStream[
+          Symbol.asyncIterator
+        ]
       ) {
         for await (
-          const delta of response.textStream
+          const delta of
+          response.textStream
         ) {
           answer +=
             String(delta || "");
@@ -714,13 +944,12 @@
         "连接未完成"
       );
 
-      // HTML 中该区域目前为 hidden，
-      // 这里保留兼容逻辑，不改变现有配置。
       if (
         elements.setup &&
         needsKey
       ) {
-        elements.setup.open = true;
+        elements.setup.open =
+          true;
       }
 
       setStatus(
@@ -765,6 +994,7 @@
       <article class="ai-message ai-message--assistant">
 
         <div class="ai-message-meta">
+
           <span>
             图绘成都 · AI 馆员
           </span>
@@ -772,12 +1002,15 @@
           <time>
             新对话
           </time>
+
         </div>
 
         <div class="ai-message-body">
+
           <p>
             对话已清空。请选择点位，或点击下方示范问题，开始一次新的馆藏证据检索。
           </p>
+
         </div>
 
       </article>
@@ -847,7 +1080,8 @@
 
         if (questionButton) {
           sendQuestion(
-            questionButton.dataset.aiQuestion
+            questionButton.dataset
+              .aiQuestion
           );
         }
       }
@@ -858,9 +1092,6 @@
       clearConversation
     );
 
-    // 保留原来的 Publishable Key 兼容逻辑。
-    // 当前页面的连接设置已经 hidden，
-    // 正常访客不需要手工填写。
     elements.saveAccessKey.addEventListener(
       "click",
       () => {
@@ -943,8 +1174,6 @@
         "#aiSaveAccessKey"
       );
 
-    // 如果当前 HTML 不是 AI 问答页面结构，
-    // 就直接停止，不影响网站其他模块。
     if (
       Object.values(elements).some(
         (element) => !element
@@ -958,7 +1187,6 @@
 
     bindEvents();
 
-    // 默认九眼桥保持高亮。
     selectPoint(activePointId);
 
     if (
