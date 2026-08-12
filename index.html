@@ -19,7 +19,7 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260812-maphub02"
+      href="./style.css?v=20260812-maphub03"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
@@ -676,13 +676,25 @@
                 </span>
               </div>
 
-              <button
-                type="button"
-                class="ai-clear-button"
-                id="aiClearConversation"
-              >
-                新对话
-              </button>
+              <div class="ai-transcript-actions">
+                <button
+                  type="button"
+                  class="ai-clear-button ai-question-toggle"
+                  id="aiToggleSuggestions"
+                  aria-expanded="true"
+                  aria-controls="aiSuggestions"
+                >
+                  换个问题
+                </button>
+
+                <button
+                  type="button"
+                  class="ai-clear-button"
+                  id="aiClearConversation"
+                >
+                  新对话
+                </button>
+              </div>
             </div>
 
             <div
@@ -1019,11 +1031,11 @@
     -->
 
     <script
-      src="./script.js?v=20260812-maphub02"
+      src="./script.js?v=20260812-maphub03"
     ></script>
 
     <script
-      src="./ai-guide.js?v=20260812-maphub02"
+      src="./ai-guide.js?v=20260812-maphub03"
     ></script>
   </body>
 </html>

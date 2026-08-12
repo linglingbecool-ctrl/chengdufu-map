@@ -582,8 +582,27 @@
 
     time.textContent = status;
 
-    elements.messages.scrollTop =
-      elements.messages.scrollHeight;
+    if (
+      article.classList.contains(
+        "is-latest-answer"
+      )
+    ) {
+      const messageTop =
+        article.getBoundingClientRect().top -
+        elements.messages.getBoundingClientRect().top +
+        elements.messages.scrollTop;
+
+      elements.messages.scrollTo({
+        top: Math.max(0, messageTop - 8),
+        behavior:
+          status === "已核对知识库"
+            ? "smooth"
+            : "auto"
+      });
+    } else {
+      elements.messages.scrollTop =
+        elements.messages.scrollHeight;
+    }
   }
 
   // ========================================================
@@ -701,6 +720,17 @@
           `
         )
         .join("");
+
+    elements.suggestions.classList.remove(
+      "is-collapsed"
+    );
+
+    if (elements.toggleSuggestions) {
+      elements.toggleSuggestions.setAttribute(
+        "aria-expanded",
+        "true"
+      );
+    }
   }
 
   // ========================================================
@@ -792,7 +822,18 @@
       "working"
     );
 
-    addMessage(
+    elements.messages
+      .querySelectorAll(
+        ".is-latest-question, .is-latest-answer"
+      )
+      .forEach((article) => {
+        article.classList.remove(
+          "is-latest-question",
+          "is-latest-answer"
+        );
+      });
+
+    const userArticle = addMessage(
       "user",
       cleanedQuestion
     );
@@ -805,6 +846,29 @@
           status: "查阅中"
         }
       );
+
+    userArticle.classList.add(
+      "is-latest-question"
+    );
+
+    assistantArticle.classList.add(
+      "is-latest-answer"
+    );
+
+    elements.messages.classList.add(
+      "has-answer-focus"
+    );
+
+    elements.suggestions.classList.add(
+      "is-collapsed"
+    );
+
+    if (elements.toggleSuggestions) {
+      elements.toggleSuggestions.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+    }
 
     updateAssistantMessage(
       assistantArticle,
@@ -1022,6 +1086,10 @@
       </article>
     `;
 
+    elements.messages.classList.remove(
+      "has-answer-focus"
+    );
+
     renderDemoQuestions();
 
     setStatus(
@@ -1098,6 +1166,26 @@
       clearConversation
     );
 
+    elements.toggleSuggestions.addEventListener(
+      "click",
+      () => {
+        const willExpand =
+          elements.suggestions.classList.contains(
+            "is-collapsed"
+          );
+
+        elements.suggestions.classList.toggle(
+          "is-collapsed",
+          !willExpand
+        );
+
+        elements.toggleSuggestions.setAttribute(
+          "aria-expanded",
+          String(willExpand)
+        );
+      }
+    );
+
     elements.saveAccessKey.addEventListener(
       "click",
       () => {
@@ -1171,6 +1259,11 @@
     elements.clearButton =
       document.querySelector(
         "#aiClearConversation"
+      );
+
+    elements.toggleSuggestions =
+      document.querySelector(
+        "#aiToggleSuggestions"
       );
 
     elements.connectionStatus =
