@@ -3150,3 +3150,525 @@ p {
   }
 
 }
+/* =========================================================
+   V3 · 我的成都记忆即时点亮
+   2026-08-12
+
+   规则：
+   1. 公共 approved 记忆可以展示数量，但不替当前用户点亮；
+   2. 当前用户自己的 pending / processing / approved 投稿立即点亮；
+   3. rejected 不点亮；
+   4. 投稿成功后显示金色地图涟漪 + 站内成功提示。
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. 取消旧版“只要有公共记忆就金色发光”的视觉语义
+   --------------------------------------------------------- */
+
+.map-marker.memory-lit:not(.my-memory-lit) {
+  animation: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 240, 0.78),
+    0 8px 18px rgba(36, 33, 28, 0.18);
+}
+
+.map-marker.memory-lit:not(.my-memory-lit)::before {
+  content: none;
+}
+
+/* 公共记忆仍然保留一个非常克制的“已有资料”提示，
+   但不使用金色点亮效果。 */
+.map-marker.has-public-memory:not(.my-memory-lit) {
+  outline:
+    1px solid
+    rgba(53, 95, 87, 0.42);
+  outline-offset: 4px;
+}
+
+
+/* ---------------------------------------------------------
+   2. 我的点亮：pending / processing / approved 共用金色状态
+   --------------------------------------------------------- */
+
+.map-marker.my-memory-lit {
+  z-index: 8;
+
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(255, 250, 240, 0.96),
+    0 0 0 7px rgba(196, 154, 69, 0.34),
+    0 0 20px rgba(196, 154, 69, 0.7),
+    0 8px 22px rgba(70, 50, 28, 0.26);
+
+  animation:
+    myMemoryBreath
+    2.7s
+    ease-in-out
+    infinite;
+}
+
+/* 覆盖旧版审核中虚线 / 已公开青色外圈。
+   审核状态仍保留在 title、我的记忆面板与成功提示中，
+   地图上的“金色”只表达：这是我亲自留下过记忆的地方。 */
+.map-marker.my-memory-lit.my-memory-processing,
+.map-marker.my-memory-lit.my-memory-approved {
+  outline: none;
+}
+
+.map-marker.my-memory-lit::before {
+  content: "\2726";
+
+  position: absolute;
+  right: -11px;
+  top: -14px;
+
+  z-index: 9;
+
+  display: grid;
+  place-items: center;
+
+  width: 19px;
+  height: 19px;
+
+  border:
+    1px solid
+    rgba(126, 83, 32, 0.26);
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 248, 224, 0.96);
+
+  color:
+    #b07d25;
+
+  font-size: 11px;
+  line-height: 1;
+
+  box-shadow:
+    0 3px 10px
+    rgba(78, 55, 28, 0.18);
+
+  pointer-events: none;
+}
+
+@keyframes myMemoryBreath {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(255, 250, 240, 0.96),
+      0 0 0 7px rgba(196, 154, 69, 0.26),
+      0 0 16px rgba(196, 154, 69, 0.52),
+      0 8px 22px rgba(70, 50, 28, 0.22);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(255, 250, 240, 0.98),
+      0 0 0 10px rgba(196, 154, 69, 0.34),
+      0 0 30px rgba(196, 154, 69, 0.82),
+      0 10px 28px rgba(70, 50, 28, 0.28);
+  }
+}
+
+
+/* ---------------------------------------------------------
+   3. 刚刚投稿成功：一次性“墨晕 / 金色涟漪”
+   --------------------------------------------------------- */
+
+.map-marker.my-memory-lit.just-lit {
+  animation:
+    personalMarkerBurst
+    3.2s
+    cubic-bezier(0.2, 0.72, 0.24, 1)
+    1;
+}
+
+@keyframes personalMarkerBurst {
+  0% {
+    box-shadow:
+      0 0 0 2px rgba(255, 250, 240, 1),
+      0 0 0 4px rgba(196, 154, 69, 0.82),
+      0 0 4px rgba(196, 154, 69, 0.35),
+      0 8px 18px rgba(70, 50, 28, 0.2);
+  }
+
+  24% {
+    box-shadow:
+      0 0 0 3px rgba(255, 250, 240, 0.98),
+      0 0 0 14px rgba(196, 154, 69, 0.42),
+      0 0 0 26px rgba(196, 154, 69, 0.18),
+      0 0 42px rgba(196, 154, 69, 0.9),
+      0 10px 30px rgba(70, 50, 28, 0.28);
+  }
+
+  58% {
+    box-shadow:
+      0 0 0 3px rgba(255, 250, 240, 0.98),
+      0 0 0 24px rgba(196, 154, 69, 0.18),
+      0 0 0 44px rgba(196, 154, 69, 0.06),
+      0 0 34px rgba(196, 154, 69, 0.72),
+      0 10px 28px rgba(70, 50, 28, 0.26);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(255, 250, 240, 0.96),
+      0 0 0 7px rgba(196, 154, 69, 0.26),
+      0 0 16px rgba(196, 154, 69, 0.52),
+      0 8px 22px rgba(70, 50, 28, 0.22);
+  }
+}
+
+
+/* ---------------------------------------------------------
+   4. 投稿成功后的站内提示卡
+   --------------------------------------------------------- */
+
+.personal-light-toast[hidden] {
+  display: none;
+}
+
+.personal-light-toast {
+  position: fixed;
+  left: 50%;
+  top: clamp(90px, 16vh, 170px);
+
+  z-index: 12050;
+
+  display: grid;
+  grid-template-columns:
+    54px
+    minmax(0, 1fr);
+
+  gap: 15px;
+  align-items: start;
+
+  width:
+    min(470px, calc(100vw - 32px));
+
+  padding:
+    18px
+    20px
+    18px
+    17px;
+
+  border:
+    1px solid
+    rgba(151, 109, 48, 0.34);
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 251, 240, 0.98),
+      rgba(246, 232, 202, 0.97)
+    );
+
+  color:
+    var(--ink, #29251f);
+
+  box-shadow:
+    0 22px 58px rgba(52, 37, 20, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.38) inset;
+
+  opacity: 0;
+
+  transform:
+    translate(-50%, -16px)
+    scale(0.97);
+
+  transition:
+    opacity 360ms ease,
+    transform 440ms cubic-bezier(0.2, 0.75, 0.24, 1);
+
+  pointer-events: none;
+}
+
+.personal-light-toast.is-visible {
+  opacity: 1;
+
+  transform:
+    translate(-50%, 0)
+    scale(1);
+}
+
+.personal-light-toast::after {
+  content: "";
+
+  position: absolute;
+  inset: 5px;
+
+  border:
+    1px solid
+    rgba(164, 121, 54, 0.12);
+
+  border-radius: 9px;
+
+  pointer-events: none;
+}
+
+.personal-light-toast__spark {
+  position: relative;
+  z-index: 1;
+
+  display: grid;
+  place-items: center;
+
+  width: 50px;
+  height: 50px;
+
+  border:
+    1px solid
+    rgba(162, 114, 39, 0.3);
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 250, 230, 1) 0%,
+      rgba(222, 185, 111, 0.22) 64%,
+      rgba(222, 185, 111, 0.04) 100%
+    );
+
+  color: #a66f1f;
+
+  font-size: 23px;
+
+  box-shadow:
+    0 0 0 7px rgba(196, 154, 69, 0.08),
+    0 0 24px rgba(196, 154, 69, 0.28);
+
+  animation:
+    personalToastSpark
+    1.8s
+    ease-in-out
+    infinite;
+}
+
+@keyframes personalToastSpark {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 7px rgba(196, 154, 69, 0.07),
+      0 0 20px rgba(196, 154, 69, 0.24);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 10px rgba(196, 154, 69, 0.12),
+      0 0 30px rgba(196, 154, 69, 0.4);
+  }
+}
+
+.personal-light-toast__content {
+  position: relative;
+  z-index: 1;
+
+  min-width: 0;
+}
+
+.personal-light-toast__eyebrow {
+  margin: 0 0 3px;
+
+  color:
+    rgba(126, 83, 32, 0.76);
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.personal-light-toast__content > strong {
+  display: block;
+
+  margin: 0;
+
+  color:
+    var(--cinnabar-dark, #7e3528);
+
+  font-family:
+    "Songti SC",
+    "STSong",
+    "Noto Serif SC",
+    serif;
+
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.personal-light-toast__content > p:not(.personal-light-toast__eyebrow) {
+  margin:
+    3px 0
+    8px;
+
+  color:
+    var(--ink-soft, #625646);
+
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.personal-light-toast__progress {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 26px;
+
+  padding:
+    3px
+    9px;
+
+  border:
+    1px solid
+    rgba(164, 121, 54, 0.22);
+
+  border-radius: 999px;
+
+  background:
+    rgba(196, 154, 69, 0.09);
+
+  color:
+    #825f25;
+
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.personal-light-toast__content > small {
+  display: block;
+
+  margin-top: 8px;
+
+  color:
+    rgba(75, 64, 52, 0.72);
+
+  font-size: 0.69rem;
+  line-height: 1.5;
+}
+
+
+/* ---------------------------------------------------------
+   5. Citywalk：金色卡片只代表“我已点亮”
+   --------------------------------------------------------- */
+
+.route-card.is-my-lit {
+  position: relative;
+}
+
+.route-card.is-my-lit::after {
+  content: "我的点亮";
+
+  position: absolute;
+  right: 12px;
+  top: 11px;
+
+  padding:
+    2px
+    7px;
+
+  border:
+    1px solid
+    rgba(160, 112, 37, 0.23);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255, 248, 225, 0.86);
+
+  color: #99691f;
+
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.route-my-light-note {
+  color: #986820;
+}
+
+.route-public-memory-note {
+  display: inline-block;
+
+  margin-top: 10px;
+
+  color:
+    var(--qing-deep, #355f57);
+
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* 如果旧样式曾经根据公共记忆给 route-card.has-memory 金色效果，
+   新版 script 只会在“我已点亮”时添加 has-memory，因此无需删除原设计。 */
+
+
+/* ---------------------------------------------------------
+   6. 手机端
+   --------------------------------------------------------- */
+
+@media (max-width: 700px) {
+  .personal-light-toast {
+    top: 84px;
+
+    grid-template-columns:
+      44px
+      minmax(0, 1fr);
+
+    gap: 11px;
+
+    width:
+      calc(100vw - 24px);
+
+    padding:
+      15px
+      15px
+      15px
+      13px;
+  }
+
+  .personal-light-toast__spark {
+    width: 42px;
+    height: 42px;
+
+    font-size: 19px;
+  }
+
+  .personal-light-toast__content > strong {
+    font-size: 1.05rem;
+  }
+
+  .route-card.is-my-lit::after {
+    position: static;
+
+    display: inline-block;
+
+    margin-bottom: 8px;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   7. 减少动态偏好
+   --------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker.my-memory-lit,
+  .map-marker.my-memory-lit.just-lit,
+  .personal-light-toast__spark {
+    animation: none !important;
+  }
+
+  .personal-light-toast {
+    transition: opacity 120ms linear;
+  }
+}
