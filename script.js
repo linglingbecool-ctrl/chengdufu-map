@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260812-rewrite03";
+const APP_VERSION = "20260812-maphub01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -160,6 +160,33 @@ const citywalkOrder = [
   "mancheng",
   "hongpailou"
 ];
+
+const MAP_HUB_MODES = {
+  explore: {
+    label: "01 · 探古",
+    caption: "六个核心点位正在古图上显影",
+    hint: "点击墨点，阅读古今点位档案"
+  },
+
+  ask: {
+    label: "02 · 问图",
+    caption: "选择核心点位，让地图与馆藏证据同步聚焦",
+    hint: "点击六个核心点位，右侧选择证据问题"
+  },
+
+  memory: {
+    label: "03 · 留忆",
+    caption: "选择地点，写下真实记忆并点亮我的成都",
+    hint: "点击任一点位，进入城市记忆共创工坊"
+  }
+};
+
+let mapHubMode = "explore";
+let mapMemoryLayer = "mine";
+let activeMapPointId = "jiuyanqiao";
+let mapHubInitialized = false;
+
+const mapHubElements = {};
 
 /* ===============================================
    CloudBase 初始化
@@ -819,6 +846,577 @@ function getMyCitywalkLitCount() {
         )
     )
     .length;
+}
+
+function getPublicMemoryCount() {
+  let count = 0;
+
+  approvedMemoriesByPoint
+    .forEach(
+      (memories) => {
+        count +=
+          Array.isArray(memories)
+            ? memories.length
+            : 0;
+      }
+    );
+
+  return count;
+}
+
+function updateMapMemoryLayerCounts() {
+  const mineCount =
+    document.querySelector(
+      "#mapMineCount"
+    );
+
+  const cityCount =
+    document.querySelector(
+      "#mapCityCount"
+    );
+
+  if (mineCount) {
+    mineCount.textContent =
+      String(
+        getMyLitPointCount()
+      );
+  }
+
+  if (cityCount) {
+    cityCount.textContent =
+      String(
+        getPublicMemoryCount()
+      );
+  }
+}
+
+function setMapMemoryLayer(
+  layer
+) {
+  mapMemoryLayer =
+    layer === "city"
+      ? "city"
+      : "mine";
+
+  if (mapHubElements.hub) {
+    mapHubElements.hub.dataset
+      .memoryLayer =
+        mapMemoryLayer;
+  }
+
+  document
+    .querySelectorAll(
+      "[data-memory-layer]"
+    )
+    .forEach(
+      (button) => {
+        if (
+          !button.matches(
+            ".map-memory-toggle button"
+          )
+        ) {
+          return;
+        }
+
+        const selected =
+          button.dataset
+            .memoryLayer ===
+          mapMemoryLayer;
+
+        button.classList.toggle(
+          "is-active",
+          selected
+        );
+
+        button.setAttribute(
+          "aria-pressed",
+          selected
+            ? "true"
+            : "false"
+        );
+      }
+    );
+
+  updateMapMemoryLayerCounts();
+}
+
+function updateMapPointContext(
+  point
+) {
+  if (!point) {
+    return;
+  }
+
+  const context =
+    mapHubElements.aiPointContext;
+
+  if (!context) {
+    return;
+  }
+
+  const isCorePoint =
+    citywalkOrder.includes(
+      point.id
+    );
+
+  if (!isCorePoint) {
+    context.textContent =
+      `${
+        point.nameModern ||
+        point.nameAncient ||
+        "该点位"
+      }尚未进入六点位馆藏知识库，请切回“探古”阅读基础档案。`;
+
+    return;
+  }
+
+  context.textContent =
+    `古图“${
+      point.nameAncient ||
+      "待考"
+    }” · 今日“${
+      point.nameModern ||
+      point.nameAncient
+    }” · 点击下方推荐问题开始查证。`;
+}
+
+function focusMapPoint(
+  point
+) {
+  if (!point) {
+    return;
+  }
+
+  activeMapPointId =
+    point.id;
+
+  document
+    .querySelectorAll(
+      ".map-marker"
+    )
+    .forEach(
+      (marker) => {
+        marker.classList.toggle(
+          "active",
+          marker.dataset.pointId ===
+            point.id
+        );
+      }
+    );
+
+  if (mapHubElements.hub) {
+    const x = Number(point.x);
+    const y = Number(point.y);
+
+    if (
+      Number.isFinite(x) &&
+      Number.isFinite(y)
+    ) {
+      mapHubElements.hub.style
+        .setProperty(
+          "--map-focus-x",
+          `${x}%`
+        );
+
+      mapHubElements.hub.style
+        .setProperty(
+          "--map-focus-y",
+          `${y}%`
+        );
+    }
+  }
+
+  updateMapPointContext(
+    point
+  );
+}
+
+function notifyAiPointSelection(
+  pointId
+) {
+  document.dispatchEvent(
+    new CustomEvent(
+      "tuhui:map-select-ai-point",
+      {
+        detail: {
+          pointId
+        }
+      }
+    )
+  );
+}
+
+function setMapHubMode(
+  mode,
+  {
+    shouldScroll = false,
+    notifyAi = true
+  } = {}
+) {
+  mapHubMode =
+    MAP_HUB_MODES[mode]
+      ? mode
+      : "explore";
+
+  const copy =
+    MAP_HUB_MODES[
+      mapHubMode
+    ];
+
+  if (mapHubElements.hub) {
+    mapHubElements.hub.dataset
+      .mapMode =
+        mapHubMode;
+  }
+
+  document
+    .querySelectorAll(
+      ".map-entry-card[data-map-mode]"
+    )
+    .forEach(
+      (button) => {
+        const selected =
+          button.dataset.mapMode ===
+          mapHubMode;
+
+        button.classList.toggle(
+          "is-active",
+          selected
+        );
+
+        button.setAttribute(
+          "aria-pressed",
+          selected
+            ? "true"
+            : "false"
+        );
+      }
+    );
+
+  if (mapHubElements.caption) {
+    mapHubElements.caption
+      .innerHTML = `
+        <span>${copy.label}</span>
+        <small>${copy.caption}</small>
+      `;
+  }
+
+  if (mapHubElements.hint) {
+    mapHubElements.hint.textContent =
+      copy.hint;
+  }
+
+  const drawerOpen =
+    mapHubMode === "ask";
+
+  mapHubElements.aiDrawer
+    ?.setAttribute(
+      "aria-hidden",
+      drawerOpen
+        ? "false"
+        : "true"
+    );
+
+  mapHubElements.detailPanel
+    ?.setAttribute(
+      "aria-hidden",
+      drawerOpen
+        ? "true"
+        : "false"
+    );
+
+  const activePoint =
+    allPoints.find(
+      (point) =>
+        point.id ===
+        activeMapPointId
+    ) ||
+    allPoints[0];
+
+  if (activePoint) {
+    focusMapPoint(
+      activePoint
+    );
+
+    if (
+      drawerOpen &&
+      notifyAi &&
+      citywalkOrder.includes(
+        activePoint.id
+      )
+    ) {
+      notifyAiPointSelection(
+        activePoint.id
+      );
+    }
+
+    if (
+      mapHubMode !== "ask"
+    ) {
+      renderDetail(
+        activePoint
+      );
+    }
+  }
+
+  if (shouldScroll) {
+    document
+      .querySelector("#map")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+  }
+}
+
+function handleMapPointInteraction(
+  point
+) {
+  focusMapPoint(
+    point
+  );
+
+  if (mapHubMode === "ask") {
+    if (
+      citywalkOrder.includes(
+        point.id
+      )
+    ) {
+      notifyAiPointSelection(
+        point.id
+      );
+    }
+
+    return;
+  }
+
+  renderDetail(
+    point,
+    mapHubMode === "explore"
+  );
+
+  if (mapHubMode === "memory") {
+    openContributionModal(
+      point
+    );
+  }
+}
+
+function initMapHubShell() {
+  if (mapHubInitialized) {
+    return;
+  }
+
+  mapHubElements.hub =
+    document.querySelector(
+      "#mapHub"
+    );
+
+  if (!mapHubElements.hub) {
+    return;
+  }
+
+  mapHubInitialized = true;
+
+  mapHubElements.caption =
+    document.querySelector(
+      "#mapModeCaption"
+    );
+
+  mapHubElements.hint =
+    document.querySelector(
+      "#mapActionHint"
+    );
+
+  mapHubElements.detailPanel =
+    document.querySelector(
+      "#mapDetailPanel"
+    );
+
+  mapHubElements.aiDrawer =
+    document.querySelector(
+      "#mapAiDrawer"
+    );
+
+  mapHubElements.aiPointContext =
+    document.querySelector(
+      "#mapAiPointContext"
+    );
+
+  const aiHost =
+    document.querySelector(
+      "#mapAiHost"
+    );
+
+  const readingDesk =
+    document.querySelector(
+      "#ai-guide .ai-reading-desk"
+    );
+
+  if (
+    aiHost &&
+    readingDesk
+  ) {
+    aiHost.appendChild(
+      readingDesk
+    );
+
+    document
+      .querySelector(
+        "#ai-guide"
+      )
+      ?.classList
+      .remove(
+        "has-reading-desk"
+      );
+  }
+
+  document
+    .querySelectorAll(
+      ".map-entry-card[data-map-mode]"
+    )
+    .forEach(
+      (button) => {
+        button.addEventListener(
+          "click",
+          () =>
+            setMapHubMode(
+              button.dataset
+                .mapMode
+            )
+        );
+      }
+    );
+
+  document
+    .querySelectorAll(
+      ".map-memory-toggle [data-memory-layer]"
+    )
+    .forEach(
+      (button) => {
+        button.addEventListener(
+          "click",
+          () =>
+            setMapMemoryLayer(
+              button.dataset
+                .memoryLayer
+            )
+        );
+      }
+    );
+
+  document
+    .querySelectorAll(
+      "[data-map-mode-launch]"
+    )
+    .forEach(
+      (link) => {
+        link.addEventListener(
+          "click",
+          () =>
+            setMapHubMode(
+              link.dataset
+                .mapModeLaunch,
+              {
+                shouldScroll:
+                  true
+              }
+            )
+        );
+      }
+    );
+
+  document
+    .querySelector(
+      "#mapAiClose"
+    )
+    ?.addEventListener(
+      "click",
+      () =>
+        setMapHubMode(
+          "explore"
+        )
+    );
+
+  document.addEventListener(
+    "tuhui:ai-point-selected",
+    (event) => {
+      const pointId =
+        event.detail
+          ?.pointId;
+
+      const point =
+        allPoints.find(
+          (item) =>
+            item.id ===
+            pointId
+        );
+
+      if (!point) {
+        return;
+      }
+
+      setMapHubMode(
+        "ask",
+        {
+          notifyAi: false
+        }
+      );
+
+      focusMapPoint(
+        point
+      );
+    }
+  );
+
+  const revealHub = () => {
+    mapHubElements.hub
+      ?.classList.add(
+        "is-visible"
+      );
+  };
+
+  if (
+    "IntersectionObserver" in
+    window
+  ) {
+    const observer =
+      new IntersectionObserver(
+        (entries) => {
+          if (
+            entries.some(
+              (entry) =>
+                entry.isIntersecting
+            )
+          ) {
+            revealHub();
+            observer.disconnect();
+          }
+        },
+        {
+          threshold: 0.18
+        }
+      );
+
+    observer.observe(
+      mapHubElements.hub
+    );
+  }
+
+  else {
+    revealHub();
+  }
+
+  setMapMemoryLayer(
+    "mine"
+  );
+
+  setMapHubMode(
+    "explore",
+    {
+      notifyAi: false
+    }
+  );
 }
 
 function ensurePersonalLightToast() {
@@ -2307,6 +2905,22 @@ function renderMarkers(points) {
       button.dataset.pointId =
         point.id;
 
+      const corePointIndex =
+        citywalkOrder.indexOf(
+          point.id
+        );
+
+      if (corePointIndex >= 0) {
+        button.classList.add(
+          "is-core-point"
+        );
+
+        button.style.setProperty(
+          "--marker-order",
+          String(corePointIndex)
+        );
+      }
+
       button.setAttribute(
         "aria-label",
         point.nameModern ||
@@ -2400,28 +3014,8 @@ function renderMarkers(points) {
       button.addEventListener(
         "click",
         () => {
-          document
-            .querySelectorAll(
-              ".map-marker"
-            )
-            .forEach(
-              (marker) =>
-                marker
-                  .classList
-                  .remove(
-                    "active"
-                  )
-            );
-
-          button
-            .classList
-            .add(
-              "active"
-            );
-
-          renderDetail(
-            point,
-            true
+          handleMapPointInteraction(
+            point
           );
         }
       );
@@ -2432,7 +3026,16 @@ function renderMarkers(points) {
         );
 
       if (
-        index === 0
+        point.id ===
+          activeMapPointId ||
+        (
+          index === 0 &&
+          !points.some(
+            (item) =>
+              item.id ===
+              activeMapPointId
+          )
+        )
       ) {
         button
           .classList
@@ -2446,6 +3049,22 @@ function renderMarkers(points) {
       }
     }
   );
+
+  const activePoint =
+    points.find(
+      (point) =>
+        point.id ===
+        activeMapPointId
+    ) ||
+    points[0];
+
+  if (activePoint) {
+    focusMapPoint(
+      activePoint
+    );
+  }
+
+  updateMapMemoryLayerCounts();
 }
 
 /* ===============================================
@@ -5557,6 +6176,8 @@ async function init() {
 
     return;
   }
+
+  initMapHubShell();
 
   ensureContributionModal();
 

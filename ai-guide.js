@@ -709,7 +709,8 @@
 
   function selectPoint(
     pointId,
-    shouldScroll = false
+    shouldScroll = false,
+    notifyMap = true
   ) {
     if (!pointQuestions[pointId]) {
       return;
@@ -731,6 +732,19 @@
 
     renderDemoQuestions();
 
+    if (notifyMap) {
+      document.dispatchEvent(
+        new CustomEvent(
+          "tuhui:ai-point-selected",
+          {
+            detail: {
+              pointId
+            }
+          }
+        )
+      );
+    }
+
     if (elements.input) {
       elements.input.placeholder =
         `向馆藏 AI 询问${pointQuestions[pointId].name}……`;
@@ -738,7 +752,7 @@
 
     if (shouldScroll) {
       document
-        .querySelector("#ai-guide")
+        .querySelector("#map")
         ?.scrollIntoView({
           behavior: "smooth",
           block: "start"
@@ -1104,6 +1118,24 @@
         window.location.reload();
       }
     );
+
+    document.addEventListener(
+      "tuhui:map-select-ai-point",
+      (event) => {
+        const pointId =
+          event.detail?.pointId;
+
+        if (!pointQuestions[pointId]) {
+          return;
+        }
+
+        selectPoint(
+          pointId,
+          false,
+          false
+        );
+      }
+    );
   }
 
   // ========================================================
@@ -1179,7 +1211,11 @@
 
     bindEvents();
 
-    selectPoint(activePointId);
+    selectPoint(
+      activePointId,
+      false,
+      false
+    );
 
     if (
       window.cloudbase &&
