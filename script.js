@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-07-04
+// 版本：2026-08-12-V3-个人即时点亮
 // ===============================================
 
-const APP_VERSION = "20260811-ai01";
+const APP_VERSION = "20260812-light01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -46,8 +46,9 @@ let approvedMemoriesByPoint =
  * 当前浏览器用户自己的投稿数据。
  *
  * 注意：
- * - “个人足迹”在投稿进入后台后即可显示；
- * - “公共点亮”仍然只由 approved 投稿触发。
+ * - pending / processing / approved 都计入“我的点亮”；
+ * - rejected 不计入个人点亮；
+ * - 公共 approved 记忆仍可展示数量，但不替当前用户点亮地图。
  */
 let myContributionData = null;
 
@@ -121,6 +122,7 @@ async function initCloudBase() {
         cloudbaseOptions
       );
 
+    // 供馆藏 AI 等前端模块共享当前 CloudBase App。
     window.tuhuiCloudApp =
       cloudApp;
 
@@ -697,6 +699,271 @@ function getMyPointState(
       .get(pointId) ||
     ""
   );
+}
+
+
+function isMyPointLitStatus(
+  status
+) {
+  return (
+    status === "pending" ||
+    status === "processing" ||
+    status === "approved"
+  );
+}
+
+function getMyLitPointCount() {
+  let count = 0;
+
+  myContributionPointState
+    .forEach(
+      (status) => {
+        if (
+          isMyPointLitStatus(
+            status
+          )
+        ) {
+          count += 1;
+        }
+      }
+    );
+
+  return count;
+}
+
+function getMyCitywalkLitCount() {
+  return citywalkOrder
+    .filter(
+      (pointId) =>
+        isMyPointLitStatus(
+          getMyPointState(
+            pointId
+          )
+        )
+    )
+    .length;
+}
+
+function ensurePersonalLightToast() {
+  let toast =
+    document.querySelector(
+      "#personalLightToast"
+    );
+
+  if (toast) {
+    return toast;
+  }
+
+  toast =
+    document.createElement(
+      "div"
+    );
+
+  toast.id =
+    "personalLightToast";
+
+  toast.className =
+    "personal-light-toast";
+
+  toast.hidden = true;
+
+  toast.setAttribute(
+    "role",
+    "status"
+  );
+
+  toast.setAttribute(
+    "aria-live",
+    "polite"
+  );
+
+  document.body
+    .appendChild(
+      toast
+    );
+
+  return toast;
+}
+
+function focusPersonalLitPoint(
+  point
+) {
+  if (!point) {
+    return;
+  }
+
+  const mapSection =
+    document.querySelector(
+      "#map"
+    );
+
+  mapSection
+    ?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+  document
+    .querySelectorAll(
+      ".map-marker"
+    )
+    .forEach(
+      (marker) =>
+        marker
+          .classList
+          .remove(
+            "active",
+            "just-lit"
+          )
+    );
+
+  const marker =
+    Array.from(
+      document.querySelectorAll(
+        ".map-marker"
+      )
+    )
+      .find(
+        (item) =>
+          item.dataset.pointId ===
+          point.id
+      );
+
+  if (marker) {
+    marker.classList.add(
+      "active",
+      "just-lit"
+    );
+
+    window.setTimeout(
+      () => {
+        marker.classList.remove(
+          "just-lit"
+        );
+      },
+      3600
+    );
+  }
+
+  renderDetail(
+    point,
+    false
+  );
+}
+
+function showPersonalLightCelebration(
+  point,
+  processingStarted = true
+) {
+  if (!point) {
+    return;
+  }
+
+  const toast =
+    ensurePersonalLightToast();
+
+  const pointName =
+    point.nameModern ||
+    point.nameAncient ||
+    "这个地点";
+
+  const isCitywalkPoint =
+    citywalkOrder.includes(
+      point.id
+    );
+
+  const progressText =
+    isCitywalkPoint
+      ? `六点 Citywalk · ${getMyCitywalkLitCount()} / ${citywalkOrder.length}`
+      : `我的点亮 · ${getMyLitPointCount()} 个地点`;
+
+  const statusText =
+    processingStarted
+      ? "记忆已记录，正在等待 AI 辅助初审与馆员审核"
+      : "记忆已记录，自动处理暂未启动；公开前仍需馆员审核";
+
+  toast.innerHTML = `
+    <span
+      class="personal-light-toast__spark"
+      aria-hidden="true"
+    >
+      ✦
+    </span>
+
+    <div
+      class="personal-light-toast__content"
+    >
+      <p
+        class="personal-light-toast__eyebrow"
+      >
+        MY CHENGDU MEMORY
+      </p>
+
+      <strong>
+        你点亮了${escapeHtml(
+          pointName
+        )}
+      </strong>
+
+      <p>
+        你的城市记忆已被记录
+      </p>
+
+      <span
+        class="personal-light-toast__progress"
+      >
+        ${escapeHtml(
+          progressText
+        )}
+      </span>
+
+      <small>
+        ${escapeHtml(
+          statusText
+        )}
+      </small>
+    </div>
+  `;
+
+  toast.hidden = false;
+  toast.classList.remove(
+    "is-visible"
+  );
+
+  requestAnimationFrame(
+    () => {
+      requestAnimationFrame(
+        () => {
+          toast.classList.add(
+            "is-visible"
+          );
+        }
+      );
+    }
+  );
+
+  window.clearTimeout(
+    showPersonalLightCelebration
+      .hideTimer
+  );
+
+  showPersonalLightCelebration
+    .hideTimer =
+    window.setTimeout(
+      () => {
+        toast.classList.remove(
+          "is-visible"
+        );
+
+        window.setTimeout(
+          () => {
+            toast.hidden = true;
+          },
+          420
+        );
+      },
+      4300
+    );
 }
 
 function updateMyMemoryNav() {
@@ -1290,13 +1557,11 @@ function renderMyMemoryPanel() {
 
       <div>
         <strong>
-          ${Number(
-            summary.litPoints
-          ) || 0}
+          ${getMyLitPointCount()}
         </strong>
 
         <span>
-          点亮地点
+          我的点亮
         </span>
       </div>
     </div>
@@ -1495,7 +1760,7 @@ function renderMemorySection(
           </span>
 
           <span>
-            该点位已被城市记忆点亮 · 已收录 ${count} 份
+            该点位已收录公众城市记忆 · 共 ${count} 份
           </span>
         </div>
       `
@@ -1510,7 +1775,7 @@ function renderMemorySection(
           </span>
 
           <span>
-            等待第一份审核通过的城市记忆
+            等待第一份审核通过的公众城市记忆
           </span>
         </div>
       `;
@@ -1538,7 +1803,7 @@ function renderMemorySection(
           </strong>
 
           <p>
-            如果你有与此地有关的老照片、家庭故事或现场观察，可以提交材料，审核通过后将在这里展示并点亮地图标记。
+            如果你有与此地有关的老照片、家庭故事或现场观察，可以提交材料，审核通过后将在这里公开展示；地图上的个人点亮由你自己的投稿触发。
           </p>
         </div>
       </section>
@@ -1849,29 +2114,13 @@ function renderDetail(
         point
       )}
 
-      <div class="point-action-row">
-        ${
-          point.detailLevel === "core"
-            ? `
-              <button
-                type="button"
-                class="ai-point-button"
-                data-ai-point="${escapeHtml(point.id)}"
-              >
-                询问 AI 馆员
-              </button>
-            `
-            : ""
-        }
-
-        <button
-          type="button"
-          class="memory-btn"
-          data-memory-button
-        >
-          留下我的城市记忆
-        </button>
-      </div>
+      <button
+        type="button"
+        class="memory-btn"
+        data-memory-button
+      >
+        留下我的城市记忆
+      </button>
 
       <p
         class="memory-help"
@@ -1973,6 +2222,9 @@ function renderMarkers(points) {
       button.style.top =
         `${y}%`;
 
+      button.dataset.pointId =
+        point.id;
+
       button.setAttribute(
         "aria-label",
         point.nameModern ||
@@ -1989,15 +2241,38 @@ function renderMarkers(points) {
         );
       }
 
+      // 公共审核通过记忆：只记录数量，不再替当前用户点亮。
       const memoryCount =
         getPointMemories(
           point.id
         ).length;
 
+      if (
+        memoryCount > 0
+      ) {
+        button.dataset.memoryCount =
+          String(memoryCount);
+
+        button.classList.add(
+          "has-public-memory"
+        );
+      }
+
+      // 个人即时点亮：只要自己的投稿已保存且未被拒绝，就点亮。
       const myPointState =
         getMyPointState(
           point.id
         );
+
+      if (
+        isMyPointLitStatus(
+          myPointState
+        )
+      ) {
+        button.classList.add(
+          "my-memory-lit"
+        );
+      }
 
       if (
         myPointState === "approved"
@@ -2016,17 +2291,6 @@ function renderMarkers(points) {
         );
       }
 
-      if (
-        memoryCount > 0
-      ) {
-        button.classList.add(
-          "memory-lit"
-        );
-
-        button.dataset.memoryCount =
-          String(memoryCount);
-      }
-
       button.title =
         `${
           point.nameModern ||
@@ -2038,16 +2302,16 @@ function renderMarkers(points) {
           )
         }${
           memoryCount
-            ? `｜已收录${memoryCount}份城市记忆`
+            ? `｜已收录${memoryCount}份公众城市记忆`
             : ""
         }${
           myPointState === "approved"
-            ? "｜我的记忆已公开"
+            ? "｜我已点亮｜我的记忆已公开"
             : (
                 myPointState === "processing" ||
                 myPointState === "pending"
               )
-              ? "｜我的记忆审核中"
+              ? "｜我已点亮｜我的记忆审核中"
               : ""
         }`;
 
@@ -2135,11 +2399,25 @@ function renderRoute(points) {
               point.id
             ).length;
 
+          const myPointState =
+            getMyPointState(
+              point.id
+            );
+
+          const isPersonallyLit =
+            isMyPointLitStatus(
+              myPointState
+            );
+
           return `
             <li
               class="route-card ${
+                isPersonallyLit
+                  ? "has-memory is-my-lit"
+                  : ""
+              } ${
                 memoryCount > 0
-                  ? "has-memory"
+                  ? "has-public-memory"
                   : ""
               }"
             >
@@ -2157,15 +2435,27 @@ function renderRoute(points) {
               </p>
 
               ${
-                memoryCount > 0
+                isPersonallyLit
                   ? `
                     <span
-                      class="route-memory-note"
+                      class="route-memory-note route-my-light-note"
                     >
-                      ✦ 已收录 ${memoryCount} 份城市记忆
+                      ✦ 我已点亮 · ${escapeHtml(
+                        getMyContributionStatusLabel(
+                          myPointState
+                        )
+                      )}
                     </span>
                   `
-                  : ""
+                  : memoryCount > 0
+                    ? `
+                      <span
+                        class="route-public-memory-note"
+                      >
+                        已收录 ${memoryCount} 份公众城市记忆
+                      </span>
+                    `
+                    : ""
               }
             </li>
           `;
@@ -2916,6 +3206,10 @@ async function handleContributionSubmit(
     return;
   }
 
+  // 保存当前点位引用，避免关闭弹窗后 activeContributionPoint 被清空。
+  const submittedPoint =
+    activeContributionPoint;
+
   const content =
     document
       .querySelector(
@@ -3042,7 +3336,7 @@ async function handleContributionSubmit(
     ) {
       imageFileIds =
         await uploadContributionImages(
-          activeContributionPoint,
+          submittedPoint,
           files,
           statusElement
         );
@@ -3066,10 +3360,10 @@ async function handleContributionSubmit(
         )
         .add({
           pointId:
-            activeContributionPoint.id,
+            submittedPoint.id,
 
           pointName:
-            activeContributionPoint.nameModern,
+            submittedPoint.nameModern,
 
           originalContent:
             content,
@@ -3146,32 +3440,6 @@ async function handleContributionSubmit(
       statusElement.textContent =
         result.message ||
         "投稿已进入自动处理流程。";
-
-      /*
-       * 投稿进入后台后立即刷新“我的城市记忆”。
-       * 公共地图仍然只有审核通过后才正式点亮。
-       */
-      await loadMyContributions();
-
-      renderMarkers(
-        allPoints
-      );
-
-      renderRoute(
-        allPoints
-      );
-
-      const myMemoryPanel =
-        document.querySelector(
-          "#myMemoryPanel"
-        );
-
-      if (
-        myMemoryPanel &&
-        !myMemoryPanel.hidden
-      ) {
-        renderMyMemoryPanel();
-      }
     }
 
     catch (
@@ -3183,7 +3451,7 @@ async function handleContributionSubmit(
       );
 
       statusElement.textContent =
-        "投稿已经保存，但自动处理暂未启动，管理员可稍后重新处理。";
+        "投稿已经保存，但自动处理暂未启动；你的个人地图仍会立即点亮，公开前继续等待馆员审核。";
 
       statusElement
         .classList
@@ -3192,18 +3460,51 @@ async function handleContributionSubmit(
         );
     }
 
-    setTimeout(
+    /*
+     * 无论自动处理是否成功启动，只要投稿记录已经保存，
+     * 都立即刷新当前用户自己的投稿状态。
+     * 这一步只触发“我的点亮”，不会把内容直接公开。
+     */
+    await loadMyContributions();
+
+    renderMarkers(
+      allPoints
+    );
+
+    renderRoute(
+      allPoints
+    );
+
+    const myMemoryPanel =
+      document.querySelector(
+        "#myMemoryPanel"
+      );
+
+    if (
+      myMemoryPanel &&
+      !myMemoryPanel.hidden
+    ) {
+      renderMyMemoryPanel();
+    }
+
+    window.setTimeout(
       () => {
         closeContributionModal();
 
-        alert(
+        // 回到古图，让本次投稿的地点成为视觉中心。
+        focusPersonalLitPoint(
+          submittedPoint
+        );
+
+        // 用站内动效替代浏览器原生 alert。
+        showPersonalLightCelebration(
+          submittedPoint,
           processingStarted
-            ? "记忆已保存到“我的城市记忆”。\n\n当前状态：审核中。\n审核通过后将正式进入公众展示，并解锁相应共建者身份与徽章。"
-            : `投稿已保存：共上传 ${imageFileIds.length} 张照片，但自动处理暂未启动。`
         );
       },
-      700
+      520
     );
+
   }
 
   catch (error) {
@@ -3352,15 +3653,15 @@ async function init() {
 
       /*
        * 同时读取当前用户自己的投稿。
-       * 审核中的投稿只显示为“个人足迹”，
-       * 不影响公共点亮状态。
+       * pending / processing / approved 都进入“我的点亮”；
+       * 公共展示仍然只读取 approved 内容。
        */
       await loadMyContributions();
 
       /*
        * 再渲染一次：
-       * - approved 公共投稿显示公共点亮；
-       * - 当前用户投稿显示个人足迹状态。
+       * - approved 公共投稿只显示公共记忆数量；
+       * - 当前用户自己的有效投稿触发个人即时点亮。
        */
       renderMarkers(
         allPoints
