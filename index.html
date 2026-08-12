@@ -19,7 +19,7 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260811-ai01"
+      href="./style.css?v=20260812-archive01"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
@@ -58,7 +58,7 @@
           </a>
 
           <a href="#ai-guide">
-            AI 馆员
+            馆藏 AI
           </a>
 
           <a href="#citywalk">
@@ -157,16 +157,30 @@
         </div>
 
         <div class="archive-grid">
-          <div>
+          <div class="archive-intro">
             <h2 id="archive-title">
               项目档案
             </h2>
 
-            <div class="archive-rare-badge" aria-label="馆藏属性：孤本">
-              <span class="archive-rare-seal">孤</span>
+            <div
+              class="archive-rare-badge"
+              aria-label="馆藏属性：四川大学图书馆馆藏孤本"
+            >
+              <span
+                class="archive-rare-seal"
+                aria-hidden="true"
+              >
+                孤
+              </span>
+
               <span class="archive-rare-text">
-                <strong>馆藏孤本</strong>
-                <small>四川大学图书馆藏</small>
+                <strong>
+                  馆藏孤本
+                </strong>
+
+                <small>
+                  四川大学图书馆藏
+                </small>
               </span>
             </div>
 
@@ -179,7 +193,7 @@
             </p>
           </div>
 
-          <dl class="file-list">
+          <dl class="file-list archive-file-list">
             <div>
               <dt>
                 题名
@@ -190,13 +204,13 @@
               </dd>
             </div>
 
-            <div>
+            <div class="archive-highlight-row">
               <dt>
                 馆藏属性
               </dt>
 
               <dd>
-                《清初四川通省山川形胜全图》为四川大学图书馆馆藏孤本
+                四川大学图书馆馆藏孤本
               </dd>
             </div>
 
@@ -307,26 +321,17 @@
               aria-label="点位图例"
             >
               <span>
-                <i
-                  class="dot status-existing"
-                ></i>
-
+                <i class="dot status-existing"></i>
                 存续点
               </span>
 
               <span>
-                <i
-                  class="dot status-changed"
-                ></i>
-
+                <i class="dot status-changed"></i>
                 变迁点
               </span>
 
               <span>
-                <i
-                  class="dot status-uncertain"
-                ></i>
-
+                <i class="dot status-uncertain"></i>
                 待考点
               </span>
             </div>
@@ -373,7 +378,10 @@
             </p>
           </div>
 
-          <dl class="evidence-metrics" aria-label="知识库规模">
+          <dl
+            class="evidence-metrics"
+            aria-label="知识库规模"
+          >
             <div>
               <dt>6</dt>
               <dd>核心点位</dd>
@@ -392,75 +400,197 @@
         </div>
 
         <div class="ai-reading-desk">
-          <aside class="ai-point-index" aria-label="六个点位索引">
+          <aside
+            class="ai-point-index"
+            aria-label="六个点位索引"
+          >
             <div class="ai-index-head">
-              <span>六点位索引</span>
-              <small>选择后提问</small>
+              <span>
+                六点位索引
+              </span>
+
+              <small>
+                选择后提问
+              </small>
             </div>
 
-            <div class="ai-point-tabs" id="aiPointTabs">
-              <button type="button" class="ai-point-tab is-active" data-ai-point="jiuyanqiao">
-                <span>01</span><b>九眼桥</b><small>古图：九贤桥</small>
+            <div
+              class="ai-point-tabs"
+              id="aiPointTabs"
+            >
+              <button
+                type="button"
+                class="ai-point-tab is-active"
+                data-ai-point="jiuyanqiao"
+              >
+                <span>01</span>
+                <b>九眼桥</b>
+                <small>古图：九贤桥</small>
               </button>
-              <button type="button" class="ai-point-tab" data-ai-point="wuhouci">
-                <span>02</span><b>武侯祠</b><small>蜀汉纪念空间</small>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="wuhouci"
+              >
+                <span>02</span>
+                <b>武侯祠</b>
+                <small>蜀汉纪念空间</small>
               </button>
-              <button type="button" class="ai-point-tab" data-ai-point="wenshuyuan">
-                <span>03</span><b>文殊院</b><small>寺院与街巷</small>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="wenshuyuan"
+              >
+                <span>03</span>
+                <b>文殊院</b>
+                <small>寺院与街巷</small>
               </button>
-              <button type="button" class="ai-point-tab" data-ai-point="qingyanggong">
-                <span>04</span><b>青羊宫</b><small>道观与地名</small>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="qingyanggong"
+              >
+                <span>04</span>
+                <b>青羊宫</b>
+                <small>道观与地名</small>
               </button>
-              <button type="button" class="ai-point-tab" data-ai-point="mancheng">
-                <span>05</span><b>满城</b><small>宽窄巷子线索</small>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="mancheng"
+              >
+                <span>05</span>
+                <b>满城</b>
+                <small>宽窄巷子线索</small>
               </button>
-              <button type="button" class="ai-point-tab" data-ai-point="hongpailou">
-                <span>06</span><b>红牌楼</b><small>证据不足示例</small>
+
+              <button
+                type="button"
+                class="ai-point-tab"
+                data-ai-point="hongpailou"
+              >
+                <span>06</span>
+                <b>红牌楼</b>
+                <small>证据不足示例</small>
               </button>
             </div>
 
             <div class="ai-evidence-promise">
-              <span class="ai-seal" aria-hidden="true">据</span>
+              <span
+                class="ai-seal"
+                aria-hidden="true"
+              >
+                据
+              </span>
+
               <p>
-                <b>回答原则</b><br />
+                <b>回答原则</b>
+                <br />
                 有据可查，逐页标注；资料不足，明确拒答。
               </p>
             </div>
 
-            <details class="ai-setup" id="aiSetup" hidden>
-              <summary>连接设置</summary>
-              <label for="aiAccessKeyInput">CloudBase Publishable Key</label>
-              <input id="aiAccessKeyInput" type="password" autocomplete="off" placeholder="只填写 Publishable Key" />
-              <button type="button" id="aiSaveAccessKey">保存到本机</button>
-              <p>请勿填写管理员 API Key。Publishable Key 专供网页调用，可在 CloudBase 环境配置中创建。</p>
+            <details
+              class="ai-setup"
+              id="aiSetup"
+              hidden
+            >
+              <summary>
+                连接设置
+              </summary>
+
+              <label for="aiAccessKeyInput">
+                CloudBase Publishable Key
+              </label>
+
+              <input
+                id="aiAccessKeyInput"
+                type="password"
+                autocomplete="off"
+                placeholder="只填写 Publishable Key"
+              />
+
+              <button
+                type="button"
+                id="aiSaveAccessKey"
+              >
+                保存到本机
+              </button>
+
+              <p>
+                请勿填写管理员 API Key。Publishable Key 专供网页调用，可在 CloudBase 环境配置中创建。
+              </p>
             </details>
           </aside>
 
           <div class="ai-transcript">
             <div class="ai-transcript-bar">
               <div>
-                <i class="ai-live-dot" aria-hidden="true"></i>
-                <span id="aiConnectionStatus">正在连接馆藏知识库</span>
+                <i
+                  class="ai-live-dot"
+                  aria-hidden="true"
+                ></i>
+
+                <span id="aiConnectionStatus">
+                  正在连接馆藏知识库
+                </span>
               </div>
-              <button type="button" class="ai-clear-button" id="aiClearConversation">新对话</button>
+
+              <button
+                type="button"
+                class="ai-clear-button"
+                id="aiClearConversation"
+              >
+                新对话
+              </button>
             </div>
 
-            <div class="ai-messages" id="aiMessages" aria-live="polite" aria-label="AI 问答记录">
+            <div
+              class="ai-messages"
+              id="aiMessages"
+              aria-live="polite"
+              aria-label="AI 问答记录"
+            >
               <article class="ai-message ai-message--assistant">
                 <div class="ai-message-meta">
-                  <span>图绘成都 · AI 馆员</span>
-                  <time>馆藏证据模式</time>
+                  <span>
+                    图绘成都 · 馆藏 AI
+                  </span>
+
+                  <time>
+                    馆藏证据模式
+                  </time>
                 </div>
+
                 <div class="ai-message-body">
-                  <p>请选择左侧点位，或直接提问。我会先检索《成都通览》《成都街巷志》与古图点位资料，再组织回答。</p>
+                  <p>
+                    请选择左侧点位，或直接提问。我会先检索《成都通览》《成都街巷志》与古图点位资料，再组织回答。
+                  </p>
                 </div>
               </article>
             </div>
 
-            <div class="ai-suggestions" id="aiSuggestions" aria-label="推荐问题"></div>
+            <div
+              class="ai-suggestions"
+              id="aiSuggestions"
+              aria-label="推荐问题"
+            ></div>
 
-            <form class="ai-ask-form" id="aiAskForm">
-              <label class="sr-only" for="aiQuestionInput">向馆藏 AI 提问</label>
+            <form
+              class="ai-ask-form"
+              id="aiAskForm"
+            >
+              <label
+                class="sr-only"
+                for="aiQuestionInput"
+              >
+                向馆藏 AI 提问
+              </label>
+
               <textarea
                 id="aiQuestionInput"
                 rows="2"
@@ -468,13 +598,25 @@
                 placeholder="例如：九眼桥何时修建？请给出书名和 PDF 页码。"
                 required
               ></textarea>
-              <button type="submit" id="aiSendButton">
-                <span>查阅并回答</span>
-                <i aria-hidden="true">↗</i>
+
+              <button
+                type="submit"
+                id="aiSendButton"
+              >
+                <span>
+                  查阅并回答
+                </span>
+
+                <i aria-hidden="true">
+                  ↗
+                </i>
               </button>
             </form>
 
-            <p class="ai-disclaimer" id="aiDisclaimer">
+            <p
+              class="ai-disclaimer"
+              id="aiDisclaimer"
+            >
               AI 只在当前六点位知识库范围内作答；研究使用请回到原书页面复核。
             </p>
           </div>
@@ -665,5 +807,9 @@
     <script
       src="./script.js?v=20260811-ai01"
     ></script>
- <script src="./ai-guide.js?v=20260812-ai03"></script>
+
+    <script
+      src="./ai-guide.js?v=20260812-ai04"
+    ></script>
+  </body>
 </html>
