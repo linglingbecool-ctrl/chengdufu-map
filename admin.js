@@ -273,8 +273,45 @@ function createReviewCard(item) {
     </span>
   `;
 
-  fragment.querySelector(".submission-text").textContent =
-    item.originalContent || "该投稿未填写文字说明。";
+  const originalContent =
+    item.originalContent ||
+    "该投稿未填写文字说明。";
+
+  const collaborativeDraft =
+    item.collaborativeDraft ||
+    "";
+
+  const draftAccepted =
+    item.collaborativeDraftAccepted === true &&
+    Boolean(
+      collaborativeDraft.trim()
+    );
+
+  fragment.querySelector(".submission-text").innerHTML = `
+    <div class="submission-version">
+      <span>真实原文 · 永久保留</span>
+      <p>${escapeHtml(originalContent)}</p>
+    </div>
+
+    ${
+      collaborativeDraft
+        ? `
+          <div class="submission-version submission-version--draft">
+            <span>浏览器基础整理稿 · 无模型</span>
+            <p>${escapeHtml(collaborativeDraft)}</p>
+          </div>
+        `
+        : ""
+    }
+
+    <p class="submission-choice">
+      ${
+        draftAccepted
+          ? "用户选择：公开时采用基础整理稿"
+          : "用户选择：公开时保留真实原文"
+      }
+    </p>
+  `;
 
   const imageContainer = fragment.querySelector(".submission-images");
   const imageUrls = Array.isArray(item.imageUrls) ? item.imageUrls : [];
@@ -317,6 +354,14 @@ function createReviewCard(item) {
       <dt>权利确认</dt>
       <dd>${item.rightsConfirmed ? "已确认" : "未确认"}</dd>
     </div>
+    <div>
+      <dt>表达偏好</dt>
+      <dd>${escapeHtml(item.writingStyleName || "保持原声")}</dd>
+    </div>
+    <div>
+      <dt>整理引擎</dt>
+      <dd>${escapeHtml(item.rewriteEngine || "未使用")}</dd>
+    </div>
   `;
 
   fragment.querySelector(".ai-score").innerHTML = `
@@ -329,16 +374,16 @@ function createReviewCard(item) {
       }</strong>
     </div>
     <div class="score-box">
-      <span>AI 建议</span>
+      <span>初筛状态</span>
       <strong>${suggestion.toUpperCase()}</strong>
     </div>
   `;
 
   fragment.querySelector(".ai-summary").textContent =
-    ai.summary || "AI 未生成摘要。";
+    ai.summary || "暂无自动摘要，请直接查看原始材料。";
 
   fragment.querySelector(".ai-reason").textContent =
-    ai.reason || "AI 未生成审核理由。";
+    ai.reason || "当前未启用模型服务，请进行人工审核。";
 
   const tags = Array.isArray(ai.tags) ? ai.tags : [];
 

@@ -3673,17 +3673,18 @@ p {
   }
 }
 /* =========================================================
-   V3-3A · AI城市记忆共创工坊
+   V3-3B · 城市记忆共创工坊 + 零模型基础整理
    2026-08-12
 
-   本轮仅完成：
+   本轮完成：
    - STEP 01 真实记忆
-   - STEP 02 8张“作家灵感”卡
+   - STEP 02 8张表达偏好卡
    - 补充表达方向（可选）
-   - STEP 03 AI协作表达占位区
+   - STEP 03 零模型基础整理与原文对照
+   - 用户明确选择原文或整理稿
 
-   注意：当前仍以 originalContent 原始记忆提交，
-   尚未调用 AI 改写接口。
+   注意：originalContent 永久保存；
+   整理稿使用独立 collaborativeDraft 字段。
    ========================================================= */
 
 /* ---------------------------------------------------------
@@ -3979,7 +3980,7 @@ p {
 
 
 /* ---------------------------------------------------------
-   5. 8张“作家灵感”卡
+   5. 8张表达偏好卡
    --------------------------------------------------------- */
 
 .writing-style-grid {
@@ -4244,7 +4245,7 @@ p {
 
 
 /* ---------------------------------------------------------
-   7. STEP 03 AI 协作占位区
+   7. STEP 03 零模型基础整理
    --------------------------------------------------------- */
 
 .ai-writing-preview {
@@ -4308,19 +4309,269 @@ p {
 
   border:
     1px solid
-    rgba(53, 95, 87, 0.2);
+    rgba(53, 95, 87, 0.48);
 
   border-radius: 8px;
 
   background:
-    rgba(255, 255, 255, 0.56);
+    var(--qing-deep, #355f57);
 
   color:
-    rgba(53, 95, 87, 0.58);
+    #fffdf7;
 
   font-size: 0.76rem;
 
-  cursor: not-allowed;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.ai-writing-trigger:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  background:
+    #284d46;
+
+  box-shadow:
+    0 7px 18px
+    rgba(53, 95, 87, 0.2);
+}
+
+.ai-writing-trigger:focus-visible {
+  outline:
+    2px solid
+    rgba(196, 154, 69, 0.88);
+
+  outline-offset: 3px;
+}
+
+.ai-writing-trigger:disabled {
+  opacity: 0.64;
+
+  cursor: wait;
+}
+
+.ai-writing-preview.is-loading {
+  border-style: solid;
+
+  background:
+    linear-gradient(
+      110deg,
+      rgba(111, 155, 139, 0.06) 20%,
+      rgba(255, 255, 255, 0.52) 42%,
+      rgba(111, 155, 139, 0.06) 64%
+    );
+
+  background-size: 220% 100%;
+
+  animation:
+    memory-rewrite-loading
+    1.45s linear infinite;
+}
+
+.ai-writing-preview.is-success {
+  border-style: solid;
+
+  border-color:
+    rgba(53, 95, 87, 0.44);
+
+  background:
+    rgba(111, 155, 139, 0.1);
+}
+
+.ai-writing-preview.is-error {
+  border-color:
+    rgba(143, 58, 45, 0.42);
+
+  background:
+    rgba(168, 79, 54, 0.065);
+}
+
+.ai-writing-preview.is-stale {
+  border-color:
+    rgba(196, 154, 69, 0.44);
+
+  background:
+    rgba(196, 154, 69, 0.06);
+}
+
+.memory-rewrite-status {
+  min-height: 1.45em;
+
+  margin:
+    9px 2px 0;
+
+  color:
+    var(--qing-deep, #355f57);
+
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.memory-rewrite-status.is-error {
+  color:
+    var(--cinnabar-dark, #7e3528);
+}
+
+.memory-rewrite-comparison {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 12px;
+
+  margin-top: 14px;
+}
+
+.memory-rewrite-comparison[hidden] {
+  display: none;
+}
+
+.memory-rewrite-comparison article {
+  min-width: 0;
+  min-height: 154px;
+
+  padding:
+    14px 15px;
+
+  border:
+    1px solid
+    rgba(75, 57, 34, 0.15);
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 253, 248, 0.76);
+}
+
+.memory-rewrite-comparison article.is-draft {
+  border-color:
+    rgba(53, 95, 87, 0.26);
+
+  background:
+    rgba(238, 245, 240, 0.86);
+}
+
+.memory-rewrite-comparison article > span {
+  display: inline-block;
+
+  margin-bottom: 8px;
+
+  color:
+    var(--cinnabar-dark, #7e3528);
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+}
+
+.memory-rewrite-comparison article.is-draft > span {
+  color:
+    var(--qing-deep, #355f57);
+}
+
+.memory-rewrite-comparison article p {
+  margin: 0;
+
+  color:
+    var(--ink, #24211c);
+
+  font-family:
+    "Songti SC",
+    "STSong",
+    serif;
+
+  font-size: 0.94rem;
+  line-height: 1.88;
+
+  white-space: pre-wrap;
+}
+
+.memory-rewrite-choice {
+  display: flex;
+
+  grid-column:
+    1 / -1;
+
+  justify-content: flex-end;
+
+  gap: 9px;
+}
+
+.memory-rewrite-choice__button {
+  padding:
+    8px 12px;
+
+  border:
+    1px solid
+    rgba(75, 57, 34, 0.22);
+
+  border-radius: 8px;
+
+  background:
+    rgba(255, 253, 248, 0.88);
+
+  color:
+    var(--ink-soft, #615744);
+
+  font-size: 0.76rem;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.memory-rewrite-choice__button.is-selected {
+  border-color:
+    rgba(53, 95, 87, 0.62);
+
+  background:
+    var(--qing-deep, #355f57);
+
+  color:
+    #fffdf7;
+}
+
+.memory-rewrite-choice__button:focus-visible {
+  outline:
+    2px solid
+    rgba(196, 154, 69, 0.82);
+
+  outline-offset: 2px;
+}
+
+.memory-rewrite-choice-note {
+  margin:
+    2px 0 12px;
+
+  padding:
+    8px 10px;
+
+  border-left:
+    2px solid
+    var(--qing-deep, #355f57);
+
+  background:
+    rgba(111, 155, 139, 0.055);
+
+  color:
+    var(--qing-deep, #355f57);
+
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+@keyframes memory-rewrite-loading {
+  to {
+    background-position:
+      -220% 0;
+  }
 }
 
 
@@ -4466,6 +4717,21 @@ p {
     align-self: flex-start;
   }
 
+  .memory-rewrite-comparison {
+    grid-template-columns:
+      1fr;
+  }
+
+  .memory-rewrite-choice {
+    grid-column: 1;
+
+    flex-direction: column;
+  }
+
+  .memory-rewrite-choice__button {
+    width: 100%;
+  }
+
   .contribution-modal--workshop .contribution-actions-row {
     flex-direction: column-reverse;
   }
@@ -4482,5 +4748,13 @@ p {
 
   .writing-style-card:hover {
     transform: none;
+  }
+
+  .ai-writing-preview.is-loading {
+    animation: none;
+  }
+
+  .ai-writing-trigger {
+    transition: none;
   }
 }

@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-12-V3-AI城市记忆共创工坊UI
+// 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260812-coauthor01";
+const APP_VERSION = "20260812-rewrite01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -38,9 +38,9 @@ let activeContributionPoint = null;
 let previewObjectUrls = [];
 
 /*
- * AI城市记忆共创工坊：作家灵感选择。
- * 本阶段只完成前端选择与交互，不调用改写模型，
- * 也不会覆盖用户的 originalContent。
+ * 城市记忆共创工坊：表达偏好标签。
+ * 零模型版本在浏览器本地完成基础整理，
+ * 不会覆盖用户的 originalContent。
  */
 const WRITING_STYLES = [
   {
@@ -102,6 +102,17 @@ const WRITING_STYLES = [
 ];
 
 let selectedWritingStyle = "original";
+
+/*
+ * 零模型智能整理状态。
+ *
+ * originalContent 永远保留真实原文；
+ * collaborativeDraft 只在用户明确选择后作为公开表达偏好保存。
+ */
+let currentRewriteDraft = "";
+let currentRewriteAccepted = false;
+let currentRewriteMeta = null;
+let rewriteRequestToken = 0;
 
 let allPoints = [];
 
@@ -1924,14 +1935,19 @@ function renderMemorySection(
               `
               : "";
 
+          const publicContent =
+            memory.publicContent ||
+            memory.originalContent ||
+            "";
+
           const textHtml =
-            memory.originalContent
+            publicContent
               ? `
                 <p
                   class="memory-card__text"
                 >
                   ${escapeHtml(
-                    memory.originalContent
+                    publicContent
                   )}
                 </p>
               `
@@ -2653,6 +2669,559 @@ function handleWritingStyleSelection(event) {
   syncWritingStyleSelection(
     modal
   );
+
+  invalidateRewriteDraft(
+    modal,
+    "表达偏好已经改变，请重新整理。"
+  );
+}
+
+function setRewriteChoice(
+  modal,
+  accepted
+) {
+  if (
+    !modal ||
+    !currentRewriteDraft
+  ) {
+    return;
+  }
+
+  currentRewriteAccepted =
+    accepted === true;
+
+  const useDraftButton =
+    modal.querySelector(
+      "#useRewriteDraft"
+    );
+
+  const keepOriginalButton =
+    modal.querySelector(
+      "#keepOriginalMemory"
+    );
+
+  useDraftButton
+    ?.classList
+    .toggle(
+      "is-selected",
+      currentRewriteAccepted
+    );
+
+  useDraftButton
+    ?.setAttribute(
+      "aria-pressed",
+      currentRewriteAccepted
+        ? "true"
+        : "false"
+    );
+
+  keepOriginalButton
+    ?.classList
+    .toggle(
+      "is-selected",
+      !currentRewriteAccepted
+    );
+
+  keepOriginalButton
+    ?.setAttribute(
+      "aria-pressed",
+      currentRewriteAccepted
+        ? "false"
+        : "true"
+    );
+
+  const choiceNote =
+    modal.querySelector(
+      "#memoryRewriteChoice"
+    );
+
+  if (choiceNote) {
+    choiceNote.textContent =
+      currentRewriteAccepted
+        ? "已选择：公开展示时优先采用整理稿；真实原文仍单独保存。"
+        : "已选择：保留真实原文作为公开表达。";
+  }
+}
+
+function renderRewriteState(
+  modal,
+  state = "idle",
+  message = ""
+) {
+  if (!modal) {
+    return;
+  }
+
+  const panel =
+    modal.querySelector(
+      "#memoryRewritePanel"
+    );
+
+  const trigger =
+    modal.querySelector(
+      "#memoryRewriteTrigger"
+    );
+
+  const status =
+    modal.querySelector(
+      "#memoryRewriteStatus"
+    );
+
+  const comparison =
+    modal.querySelector(
+      "#memoryRewriteComparison"
+    );
+
+  if (!panel || !trigger) {
+    return;
+  }
+
+  panel.classList.remove(
+    "is-idle",
+    "is-loading",
+    "is-success",
+    "is-error",
+    "is-stale"
+  );
+
+  panel.classList.add(
+    `is-${state}`
+  );
+
+  const loading =
+    state === "loading";
+
+  trigger.disabled =
+    loading;
+
+  trigger.setAttribute(
+    "aria-disabled",
+    loading
+      ? "true"
+      : "false"
+  );
+
+  trigger.textContent =
+    loading
+      ? "正在整理……"
+      : currentRewriteDraft
+        ? "重新整理"
+        : "开始整理";
+
+  panel.setAttribute(
+    "aria-busy",
+    loading
+      ? "true"
+      : "false"
+  );
+
+  if (status) {
+    status.textContent =
+      message;
+
+    status.classList.toggle(
+      "is-error",
+      state === "error"
+    );
+  }
+
+  if (
+    comparison &&
+    currentRewriteDraft
+  ) {
+    comparison.hidden =
+      false;
+
+    const originalText =
+      modal.querySelector(
+        "#memoryRewriteOriginal"
+      );
+
+    const draftText =
+      modal.querySelector(
+        "#memoryRewriteDraft"
+      );
+
+    if (originalText) {
+      originalText.textContent =
+        modal
+          .querySelector(
+            "#contributionContent"
+          )
+          ?.value
+          ?.trim() ||
+        "";
+    }
+
+    if (draftText) {
+      draftText.textContent =
+        currentRewriteDraft;
+    }
+
+    setRewriteChoice(
+      modal,
+      currentRewriteAccepted
+    );
+  }
+
+  else if (comparison) {
+    comparison.hidden =
+      true;
+  }
+}
+
+function invalidateRewriteDraft(
+  modal,
+  message = ""
+) {
+  rewriteRequestToken += 1;
+
+  const hadDraft =
+    Boolean(
+      currentRewriteDraft
+    );
+
+  currentRewriteDraft =
+    "";
+
+  currentRewriteAccepted =
+    false;
+
+  currentRewriteMeta =
+    null;
+
+  const choiceNote =
+    modal?.querySelector(
+      "#memoryRewriteChoice"
+    );
+
+  if (choiceNote) {
+    choiceNote.textContent =
+      hadDraft
+        ? "整理条件已经改变，当前恢复为保留真实原文。"
+        : "当前将保存并展示真实原文。";
+  }
+
+  renderRewriteState(
+    modal,
+    hadDraft
+      ? "stale"
+      : "idle",
+    hadDraft
+      ? message
+      : ""
+  );
+}
+
+function normalizeMemoryPunctuation(
+  text
+) {
+  return String(text || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n+ */g, "\n")
+    .replace(/\.\.\.+/g, "……")
+    .replace(/,{2,}/g, "，")
+    .replace(/。{2,}/g, "。")
+    .replace(/！{2,}/g, "！")
+    .replace(/？{2,}/g, "？")
+    .replace(
+      /\s*([，。！？；：、])\s*/g,
+      "$1"
+    )
+    .replace(
+      /([，、；：])([。！？])/g,
+      "$2"
+    )
+    .replace(/，{2,}/g, "，")
+    .replace(/；{2,}/g, "；")
+    .replace(/：{2,}/g, "：")
+    .trim();
+}
+
+function splitMemorySentences(
+  text
+) {
+  return (
+    String(text || "")
+      .match(
+        /[^。！？!?；;\n]+[。！？!?；;]?/g
+      ) ||
+    []
+  )
+    .map(
+      (sentence) =>
+        sentence.trim()
+    )
+    .filter(Boolean);
+}
+
+function getMemorySentenceKey(
+  sentence
+) {
+  return sentence
+    .replace(
+      /[\s，。！？!?；;：“”‘’、]/g,
+      ""
+    )
+    .toLowerCase();
+}
+
+function buildLocalMemoryDraft({
+  originalContent,
+  writingIntent
+}) {
+  const seen =
+    new Set();
+
+  let sentences =
+    splitMemorySentences(
+      normalizeMemoryPunctuation(
+        originalContent
+      )
+    )
+      .filter(
+        (sentence) => {
+          const key =
+            getMemorySentenceKey(
+              sentence
+            );
+
+          if (
+            !key ||
+            seen.has(key)
+          ) {
+            return false;
+          }
+
+          seen.add(key);
+
+          return true;
+        }
+      )
+      .map(
+        (sentence) =>
+          /[。！？!?；;]$/
+            .test(sentence)
+            ? sentence
+                .replace(/!$/g, "！")
+                .replace(/\?$/g, "？")
+                .replace(/;$/g, "；")
+            : `${sentence}。`
+      );
+
+  const intent =
+    String(
+      writingIntent ||
+      ""
+    )
+      .toLowerCase();
+
+  let draft =
+    sentences.join("");
+
+  if (
+    /不要太伤感|不伤感|克制|不煽情/
+      .test(intent)
+  ) {
+    draft = draft
+      .replace(
+        /非常非常/g,
+        "很"
+      )
+      .replace(
+        /特别特别/g,
+        "很"
+      )
+      .replace(
+        /无比/g,
+        "很"
+      )
+      .replace(
+        /泪流满面/g,
+        "难过"
+      )
+      .replace(
+        /！/g,
+        "。"
+      );
+  }
+
+  if (
+    /简短|精简|简洁/
+      .test(intent)
+  ) {
+    sentences =
+      splitMemorySentences(
+        draft
+      );
+
+    draft =
+      sentences
+        .slice(0, 5)
+        .join("");
+  }
+
+  return normalizeMemoryPunctuation(
+    draft
+  )
+    .slice(
+      0,
+      1800
+    );
+}
+
+async function handleMemoryRewrite() {
+  const modal =
+    document.querySelector(
+      "#contributionModal"
+    );
+
+  if (!modal) {
+    return;
+  }
+
+  const originalContent =
+    modal
+      .querySelector(
+        "#contributionContent"
+      )
+      ?.value
+      ?.trim() ||
+    "";
+
+  if (!originalContent) {
+    renderRewriteState(
+      modal,
+      "error",
+      "请先在 STEP 01 写下真实记忆。"
+    );
+
+    modal
+      .querySelector(
+        "#contributionContent"
+      )
+      ?.focus();
+
+    return;
+  }
+
+  if (
+    originalContent.length < 10
+  ) {
+    renderRewriteState(
+      modal,
+      "error",
+      "内容至少需要 10 个字，才能进行基础整理。"
+    );
+
+    return;
+  }
+
+  currentRewriteDraft =
+    "";
+
+  currentRewriteAccepted =
+    false;
+
+  currentRewriteMeta =
+    null;
+
+  const requestToken =
+    ++rewriteRequestToken;
+
+  renderRewriteState(
+    modal,
+    "loading",
+    "正在本机浏览器中检查标点、重复句和基础格式。"
+  );
+
+  try {
+    await Promise.resolve();
+
+    if (
+      requestToken !==
+      rewriteRequestToken
+    ) {
+      return;
+    }
+
+    const writingIntent =
+      modal
+        .querySelector(
+          "#contributionWritingIntent"
+        )
+        ?.value
+        ?.trim() ||
+      "";
+
+    const draft =
+      buildLocalMemoryDraft({
+        originalContent,
+        writingIntent
+      });
+
+    if (!draft) {
+      throw new Error(
+        "基础整理没有产生有效内容"
+      );
+    }
+
+    currentRewriteDraft =
+      draft;
+
+    currentRewriteMeta = {
+      engine:
+        "rule-based-browser-v1",
+
+      model:
+        null,
+
+      modelServiceRequired:
+        false,
+
+      notice:
+        "当前为浏览器本地基础整理：修正格式、标点和重复，不调用云函数或生成式模型，也不新增事实。"
+    };
+
+    renderRewriteState(
+      modal,
+      "success",
+      "整理完成。请对照原文，并明确选择采用整理稿或保留原文。"
+    );
+
+    setRewriteChoice(
+      modal,
+      false
+    );
+  }
+
+  catch (error) {
+    if (
+      requestToken !==
+      rewriteRequestToken
+    ) {
+      return;
+    }
+
+    console.error(
+      "城市记忆基础整理失败：",
+      error
+    );
+
+    currentRewriteDraft =
+      "";
+
+    currentRewriteMeta =
+      null;
+
+    renderRewriteState(
+      modal,
+      "error",
+      error?.message ||
+      "基础整理暂时不可用；你仍可直接提交真实原文。"
+    );
+  }
 }
 
 function resetWritingWorkshop(modal) {
@@ -2680,6 +3249,10 @@ function resetWritingWorkshop(modal) {
   if (intentDetails) {
     intentDetails.open = false;
   }
+
+  invalidateRewriteDraft(
+    modal
+  );
 }
 
 function ensureContributionModal() {
@@ -2727,13 +3300,13 @@ function ensureContributionModal() {
       </button>
 
       <p class="detail-kicker">
-        AI Memory Co-creation
+        Memory Co-creation
       </p>
 
       <h2
         id="contributionModalTitle"
       >
-        AI 城市记忆共创工坊
+        城市记忆共创工坊
       </h2>
 
       <p
@@ -2750,7 +3323,7 @@ function ensureContributionModal() {
         </span>
 
         <p>
-          先留下真实经历，再选择一种作家灵感。AI 只帮助整理表达，
+          先留下真实经历，再选择表达偏好。智能工具只做基础整理，
           <strong>不会改变你的真实经历，也不会补写你没有提供的人物、时间与事实。</strong>
         </p>
       </div>
@@ -2797,7 +3370,7 @@ function ensureContributionModal() {
             ></textarea>
 
             <small>
-              这份原始文字将作为你的真实记忆保留，后续 AI 协作稿不会覆盖它。
+              这份原始文字将作为你的真实记忆保留，后续整理稿不会覆盖它。
             </small>
           </label>
 
@@ -2861,7 +3434,7 @@ function ensureContributionModal() {
             >
 
             <small>
-              支持 JPG、PNG、WebP；每张不超过5MB。照片属于真实记忆材料，与后续 AI 生成图像分开保存。
+              支持 JPG、PNG、WebP；每张不超过5MB。照片属于真实记忆材料，将与文字整理稿分开保存。
             </small>
           </label>
 
@@ -2883,16 +3456,16 @@ function ensureContributionModal() {
 
             <div>
               <h3 id="memoryStepTwoTitle">
-                选择一种作家灵感
+                记录一种表达偏好
               </h3>
 
               <p>
-                选择的是表达方向，不是让 AI 冒充作家本人。后续生成内容会明确标注为“AI 协作表达”。
+                当前无模型版本只记录偏好标签，不生成或模仿作家风格。
               </p>
             </div>
 
             <small>
-              不改变事实
+              偏好标签
             </small>
           </div>
 
@@ -2900,7 +3473,7 @@ function ensureContributionModal() {
             class="writing-style-grid"
             id="writingStyleGrid"
             role="group"
-            aria-label="作家灵感选择"
+            aria-label="表达偏好选择"
           >
             ${buildWritingStyleCards()}
           </div>
@@ -2915,10 +3488,10 @@ function ensureContributionModal() {
             </span>
 
             已选择：
-            <strong>
-              保持原声
-            </strong>
-            · 我的记忆，我来说
+                <strong>
+                  保持原声
+                </strong>
+                · 无模型整理以原声优先
           </p>
 
           <details
@@ -2957,20 +3530,24 @@ function ensureContributionModal() {
 
             <div>
               <h3 id="memoryStepThreeTitle">
-                AI 协作表达
+                智能基础整理
               </h3>
 
               <p>
-                下一步接入 AI 后，可在这里对照“真实原文”和“AI 协作稿”，由你决定是否采用。
+                直接在本机浏览器检查标点、重复句和基础格式，不调用云函数或生成式模型；真实原文永久保留。
               </p>
             </div>
 
             <small>
-              用户确认
+              无模型调用
             </small>
           </div>
 
-          <div class="ai-writing-preview is-pending">
+          <div
+            class="ai-writing-preview is-idle"
+            id="memoryRewritePanel"
+            aria-busy="false"
+          >
             <div>
               <span aria-hidden="true">
                 ✦
@@ -2978,11 +3555,11 @@ function ensureContributionModal() {
 
               <div>
                 <strong>
-                  AI 帮我整理这段记忆
+                  帮我整理这段记忆
                 </strong>
 
                 <p>
-                  本轮先完成共创工坊界面与作家灵感选择。当前提交仍以你的“原始记忆”为准，不会自动改写。
+                  整理前后并排显示，由你决定采用哪一版。没有整理也可以直接投稿。
                 </p>
               </div>
             </div>
@@ -2990,12 +3567,64 @@ function ensureContributionModal() {
             <button
               type="button"
               class="ai-writing-trigger"
-              disabled
-              aria-disabled="true"
-              title="下一步接入 AI 协作改写"
+              id="memoryRewriteTrigger"
+              aria-disabled="false"
+              title="在本机浏览器进行基础整理"
             >
-              即将启用
+              开始整理
             </button>
+          </div>
+
+          <p
+            class="memory-rewrite-status"
+            id="memoryRewriteStatus"
+            aria-live="polite"
+          ></p>
+
+          <div
+            class="memory-rewrite-comparison"
+            id="memoryRewriteComparison"
+            hidden
+          >
+            <article>
+              <span>
+                真实原文 · 永久保留
+              </span>
+
+              <p id="memoryRewriteOriginal"></p>
+            </article>
+
+            <article class="is-draft">
+              <span>
+                基础整理稿 · 无模型
+              </span>
+
+              <p id="memoryRewriteDraft"></p>
+            </article>
+
+            <div
+              class="memory-rewrite-choice"
+              role="group"
+              aria-label="选择投稿表达版本"
+            >
+              <button
+                type="button"
+                id="keepOriginalMemory"
+                class="memory-rewrite-choice__button is-selected"
+                aria-pressed="true"
+              >
+                保留原文
+              </button>
+
+              <button
+                type="button"
+                id="useRewriteDraft"
+                class="memory-rewrite-choice__button"
+                aria-pressed="false"
+              >
+                采用整理稿
+              </button>
+            </div>
           </div>
         </section>
 
@@ -3005,7 +3634,15 @@ function ensureContributionModal() {
           </h3>
 
           <p>
-            只要投稿保存成功，你自己的地图就会立即点亮；内容进入公共城市记忆前，仍需 AI 辅助初审和馆员终审。
+            只要投稿保存成功，你自己的地图就会立即点亮；内容进入公共城市记忆前，仍需自动初审和馆员终审。
+          </p>
+
+          <p
+            class="memory-rewrite-choice-note"
+            id="memoryRewriteChoice"
+            aria-live="polite"
+          >
+            当前将保存并展示真实原文。
           </p>
 
           <label
@@ -3104,6 +3741,62 @@ function ensureContributionModal() {
         );
       }
     );
+
+  modal
+    .querySelector(
+      "#memoryRewriteTrigger"
+    )
+    .addEventListener(
+      "click",
+      handleMemoryRewrite
+    );
+
+  modal
+    .querySelector(
+      "#keepOriginalMemory"
+    )
+    .addEventListener(
+      "click",
+      () =>
+        setRewriteChoice(
+          modal,
+          false
+        )
+    );
+
+  modal
+    .querySelector(
+      "#useRewriteDraft"
+    )
+    .addEventListener(
+      "click",
+      () =>
+        setRewriteChoice(
+          modal,
+          true
+        )
+    );
+
+  [
+    "#contributionContent",
+    "#contributionTime",
+    "#contributionWritingIntent"
+  ].forEach(
+    (selector) => {
+      modal
+        .querySelector(
+          selector
+        )
+        ?.addEventListener(
+          "input",
+          () =>
+            invalidateRewriteDraft(
+              modal,
+              "原文或整理条件已经改变，请重新整理。"
+            )
+        );
+    }
+  );
 
   modal
     .querySelector(
@@ -3641,6 +4334,29 @@ async function handleContributionSubmit(
       .value
       .trim();
 
+  const writingIntent =
+    document
+      .querySelector(
+        "#contributionWritingIntent"
+      )
+      ?.value
+      ?.trim() ||
+    "";
+
+  const writingStyle =
+    getWritingStyle(
+      selectedWritingStyle
+    );
+
+  const collaborativeDraft =
+    currentRewriteDraft;
+
+  const collaborativeDraftAccepted =
+    Boolean(
+      currentRewriteDraft &&
+      currentRewriteAccepted
+    );
+
   const memoryType =
     document
       .querySelector(
@@ -3782,6 +4498,43 @@ async function handleContributionSubmit(
 
           originalContent:
             content,
+
+          collaborativeDraft,
+
+          collaborativeDraftAccepted,
+
+          preferredPublicContent:
+            collaborativeDraftAccepted
+              ? "collaborativeDraft"
+              : "originalContent",
+
+          writingStyleId:
+            writingStyle.id,
+
+          writingStyleName:
+            writingStyle.name,
+
+          writingIntent,
+
+          rewriteEngine:
+            currentRewriteMeta
+              ?.engine ||
+            "",
+
+          rewriteModel:
+            currentRewriteMeta
+              ?.model ??
+            null,
+
+          rewriteModelServiceRequired:
+            currentRewriteMeta
+              ?.modelServiceRequired
+              === true,
+
+          rewriteNotice:
+            currentRewriteMeta
+              ?.notice ||
+            "",
 
           approximateTime,
 

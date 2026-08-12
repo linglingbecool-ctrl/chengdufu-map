@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>馆员审核台｜图绘成都</title>
-  <meta name="description" content="图绘成都公众城市记忆馆员审核台：查看AI初审结果并进行人工终审。">
-  <link rel="stylesheet" href="./admin.css?v=20260807-admin1">
+  <meta name="description" content="图绘成都公众城市记忆馆员审核台：查看自动登记结果并进行馆员人工审核。">
+  <link rel="stylesheet" href="./admin.css?v=20260812-rewrite01">
   <script
     src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"
     onload="console.log('CloudBase SDK 2.27.1 加载成功')"
@@ -18,7 +18,7 @@
       <div>
         <p class="eyebrow">LIBRARIAN REVIEW CONSOLE</p>
         <h1>馆员审核台</h1>
-        <p class="subtitle">AI 初审 · 馆员终审 · 城市记忆公开</p>
+        <p class="subtitle">无模型自动登记 · 馆员审核 · 城市记忆公开</p>
       </div>
       <div class="header-actions">
         <a class="btn ghost" href="./index.html" target="_blank" rel="noopener">查看公众端</a>
@@ -43,15 +43,15 @@
           <strong id="statTotal">0</strong>
         </article>
         <article class="stat-card stat-pass">
-          <span>AI 建议通过</span>
+          <span>自动初筛通过</span>
           <strong id="statPass">0</strong>
         </article>
         <article class="stat-card stat-review">
-          <span>AI 建议复核</span>
+          <span>等待人工复核</span>
           <strong id="statReview">0</strong>
         </article>
         <article class="stat-card stat-reject">
-          <span>AI 建议拒绝</span>
+          <span>自动初筛拦截</span>
           <strong id="statReject">0</strong>
         </article>
       </div>
@@ -62,7 +62,7 @@
           <h2>待审投稿</h2>
         </div>
         <label class="filter-control">
-          <span>筛选 AI 建议</span>
+          <span>筛选初筛状态</span>
           <select id="suggestionFilter">
             <option value="all">全部</option>
             <option value="pass">PASS · 建议通过</option>
@@ -96,7 +96,7 @@
         </section>
 
         <section class="panel ai-panel">
-          <p class="panel-label">AI 初审</p>
+          <p class="panel-label">自动初筛 · 无模型</p>
           <div class="ai-score"></div>
 
           <div class="ai-field">
@@ -124,7 +124,7 @@
       <section class="human-review">
         <p class="panel-label">馆员终审</p>
         <p class="human-review__help">
-          AI 结果仅作为辅助。公开、继续核验或不予公开均由馆员决定。
+          当前未启用模型服务。公开、继续核验或不予公开均由馆员根据原始材料决定。
         </p>
 
         <label class="review-note">
@@ -147,6 +147,6 @@
     </article>
   </template>
 
-  <script src="./admin.js?v=20260807-admin1"></script>
+  <script src="./admin.js?v=20260812-rewrite01"></script>
 </body>
 </html>
