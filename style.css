@@ -2768,3 +2768,385 @@ p {
 .archive-highlight-row dt { color:#91372c!important; }
 .archive-highlight-row dd { color:#7f342b; font-weight:700; }
 @media (max-width:720px) { .archive-rare-badge { gap:9px; margin-top:5px; margin-bottom:19px; padding:6px 12px 6px 7px; } .archive-rare-seal { width:34px; height:34px; flex-basis:34px; font-size:19px; } .archive-rare-text strong { font-size:14px; } .archive-rare-text small { font-size:10px; } .archive-highlight-row::before { left:-7px; } }
+/* =========================================================
+   馆藏证据问答 · 回答结构与证据卡
+   ========================================================= */
+
+.ai-answer-heading {
+  position: relative;
+
+  margin:
+    22px 0
+    12px;
+
+  padding-left: 13px;
+
+  color: var(--ink);
+
+  font-family:
+    "Songti SC",
+    "STSong",
+    "Noto Serif SC",
+    serif;
+
+  font-size: 1rem;
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+}
+
+.ai-answer-heading::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 0.18em;
+  bottom: 0.18em;
+
+  width: 2px;
+
+  background:
+    var(--qing-deep);
+}
+
+
+/* 结论 */
+.ai-answer-heading--conclusion {
+  color: var(--qing-deep);
+}
+
+
+/* 文献依据 */
+.ai-answer-heading--evidence {
+  color: var(--cinnabar-dark);
+}
+
+.ai-answer-heading--evidence::before {
+  background:
+    var(--cinnabar);
+}
+
+
+/* 证据边界 */
+.ai-answer-heading--boundary {
+  color:
+    rgba(90, 69, 49, 0.9);
+}
+
+.ai-answer-heading--boundary::before {
+  background:
+    var(--gold);
+}
+
+
+/* =========================================================
+   文献证据卡
+   ========================================================= */
+
+.ai-evidence-card {
+  position: relative;
+
+  margin:
+    10px 0
+    12px;
+
+  border:
+    1px solid
+    rgba(75, 57, 34, 0.18);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 252, 245, 0.92),
+      rgba(244, 234, 215, 0.5)
+    );
+
+  box-shadow:
+    0 4px 14px
+    rgba(74, 54, 35, 0.035);
+
+  overflow: hidden;
+}
+
+
+/* 顶部来源栏 */
+.ai-evidence-card-head {
+  display: flex;
+
+  align-items: stretch;
+
+  min-height: 48px;
+
+  border-bottom:
+    1px solid
+    rgba(75, 57, 34, 0.13);
+}
+
+
+/* 证据编号 */
+.ai-evidence-number {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 48px;
+  flex: 0 0 48px;
+
+  color:
+    var(--cinnabar-dark);
+
+  background:
+    rgba(168, 79, 54, 0.055);
+
+  border-right:
+    1px solid
+    rgba(168, 79, 54, 0.16);
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size:
+    0.82rem;
+
+  font-weight:
+    700;
+}
+
+
+/* 书名 + 页码 */
+.ai-evidence-source {
+  display: flex;
+
+  flex: 1;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  padding:
+    9px 13px;
+}
+
+.ai-evidence-source strong {
+  color:
+    var(--ink);
+
+  font-family:
+    "Songti SC",
+    "STSong",
+    "Noto Serif SC",
+    serif;
+
+  font-size:
+    0.9rem;
+
+  font-weight:
+    700;
+
+  line-height:
+    1.5;
+}
+
+.ai-evidence-source small {
+  flex: 0 0 auto;
+
+  padding:
+    2px 6px;
+
+  border:
+    1px solid
+    rgba(53, 95, 87, 0.18);
+
+  background:
+    rgba(111, 155, 139, 0.07);
+
+  color:
+    var(--qing-deep);
+
+  font-size:
+    0.66rem;
+
+  line-height:
+    1.4;
+
+  white-space:
+    nowrap;
+}
+
+
+/* 卡片正文 */
+.ai-evidence-card-body {
+  padding:
+    12px 14px
+    13px
+    48px;
+}
+
+.ai-evidence-card-body p {
+  margin:
+    0 0
+    8px;
+
+  color:
+    var(--ink-soft);
+
+  font-size:
+    0.86rem;
+
+  line-height:
+    1.72;
+}
+
+.ai-evidence-card-body p:last-child {
+  margin-bottom:
+    0;
+}
+
+
+/* 卡片中的书名不再做黄色 mark */
+.ai-evidence-card
+.ai-citation {
+  margin: 0;
+
+  padding: 0;
+
+  border: 0;
+
+  background:
+    transparent;
+
+  color:
+    inherit;
+
+  font-size:
+    inherit;
+}
+
+
+/* =========================================================
+   PDF 页码
+   ========================================================= */
+
+.ai-page {
+  display:
+    inline-block;
+
+  margin:
+    0 3px;
+
+  padding:
+    1px 5px;
+
+  border:
+    1px solid
+    rgba(53, 95, 87, 0.2);
+
+  background:
+    rgba(111, 155, 139, 0.08);
+
+  color:
+    var(--qing-deep);
+
+  font-size:
+    0.72rem;
+}
+
+
+/* =========================================================
+   证据边界
+   ========================================================= */
+
+.ai-boundary-text {
+  margin:
+    8px 0;
+
+  padding:
+    10px 12px;
+
+  border-left:
+    2px solid
+    rgba(196, 154, 69, 0.72);
+
+  background:
+    rgba(196, 154, 69, 0.055);
+
+  color:
+    var(--ink-soft);
+
+  line-height:
+    1.72;
+}
+
+
+/* =========================================================
+   三道评委示范题
+   ========================================================= */
+
+.ai-demo-question {
+  text-align:
+    left;
+}
+
+.ai-demo-question > span {
+  margin-right:
+    5px;
+
+  color:
+    var(--cinnabar-dark);
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-weight:
+    700;
+}
+
+
+/* =========================================================
+   手机适配
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  .ai-evidence-source {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+
+    gap:
+      4px;
+  }
+
+  .ai-evidence-source small {
+    white-space:
+      normal;
+  }
+
+  .ai-evidence-card-body {
+    padding:
+      11px 12px;
+  }
+
+  .ai-evidence-number {
+    width:
+      40px;
+
+    flex-basis:
+      40px;
+  }
+
+  .ai-answer-heading {
+    margin-top:
+      19px;
+  }
+
+}
