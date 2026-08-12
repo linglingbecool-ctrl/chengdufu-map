@@ -1,10 +1,10 @@
 // ===============================================
 // 成都府图：50点导览 + CloudBase 城市记忆投稿
 // + 审核通过后点亮地标
-// 版本：2026-08-12-V3-个人即时点亮
+// 版本：2026-08-12-V3-AI城市记忆共创工坊UI
 // ===============================================
 
-const APP_VERSION = "20260812-light01";
+const APP_VERSION = "20260812-coauthor01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -36,6 +36,72 @@ let routeListEl = null;
 let activeContributionPoint = null;
 
 let previewObjectUrls = [];
+
+/*
+ * AI城市记忆共创工坊：作家灵感选择。
+ * 本阶段只完成前端选择与交互，不调用改写模型，
+ * 也不会覆盖用户的 originalContent。
+ */
+const WRITING_STYLES = [
+  {
+    id: "original",
+    mark: "原",
+    name: "保持原声",
+    tagline: "我的记忆，我来说",
+    description: "尽量保留你的原话，只整理语序、错字和重复。"
+  },
+  {
+    id: "sushi",
+    mark: "苏",
+    name: "苏轼",
+    tagline: "清旷 · 日常 · 有味",
+    description: "适合饮食、出游、朋友与普通生活中的细小滋味。"
+  },
+  {
+    id: "dufu",
+    mark: "杜",
+    name: "杜甫",
+    tagline: "沉静 · 时地 · 深情",
+    description: "适合老地方、成长、离别与时间变化中的真实感受。"
+  },
+  {
+    id: "libai",
+    mark: "李",
+    name: "李白",
+    tagline: "明快 · 山水 · 想象",
+    description: "适合江河、夜景、旅行与青春记忆，强调空间与意象。"
+  },
+  {
+    id: "lijieren",
+    mark: "劼",
+    name: "李劼人",
+    tagline: "街巷 · 市井 · 成都",
+    description: "适合老街、商铺、邻里与成都日常生活的细节观察。"
+  },
+  {
+    id: "luxun",
+    mark: "鲁",
+    name: "鲁迅",
+    tagline: "白描 · 观察 · 克制",
+    description: "适合人物、街景与细节观察，减少空泛抒情。"
+  },
+  {
+    id: "alai",
+    mark: "阿",
+    name: "阿来",
+    tagline: "地方 · 自然 · 时间",
+    description: "适合地域、家园与时间痕迹，以地方经验为中心。"
+  },
+  {
+    id: "guomoruo",
+    mark: "郭",
+    name: "郭沫若",
+    tagline: "历史 · 抒情 · 联想",
+    description: "适合古迹、故乡与历史空间，强调时代与空间联想。"
+  }
+];
+
+let selectedWritingStyle = "original";
 
 let allPoints = [];
 
@@ -2468,6 +2534,154 @@ function renderRoute(points) {
    投稿弹窗
    =============================================== */
 
+function getWritingStyle(styleId) {
+  return (
+    WRITING_STYLES.find(
+      (item) => item.id === styleId
+    ) ||
+    WRITING_STYLES[0]
+  );
+}
+
+function buildWritingStyleCards() {
+  return WRITING_STYLES
+    .map(
+      (style) => `
+        <button
+          type="button"
+          class="writing-style-card${style.id === "original" ? " is-selected" : ""}"
+          data-writing-style="${escapeHtml(style.id)}"
+          aria-pressed="${style.id === "original" ? "true" : "false"}"
+        >
+          <span
+            class="writing-style-card__mark"
+            aria-hidden="true"
+          >
+            ${escapeHtml(style.mark)}
+          </span>
+
+          <span class="writing-style-card__copy">
+            <strong>
+              ${escapeHtml(style.name)}
+            </strong>
+
+            <em>
+              ${escapeHtml(style.tagline)}
+            </em>
+
+            <small>
+              ${escapeHtml(style.description)}
+            </small>
+          </span>
+        </button>
+      `
+    )
+    .join("");
+}
+
+function syncWritingStyleSelection(modal) {
+  if (!modal) {
+    return;
+  }
+
+  const activeStyle =
+    getWritingStyle(
+      selectedWritingStyle
+    );
+
+  modal
+    .querySelectorAll(
+      "[data-writing-style]"
+    )
+    .forEach(
+      (button) => {
+        const selected =
+          button.dataset.writingStyle ===
+          activeStyle.id;
+
+        button.classList.toggle(
+          "is-selected",
+          selected
+        );
+
+        button.setAttribute(
+          "aria-pressed",
+          selected
+            ? "true"
+            : "false"
+        );
+      }
+    );
+
+  const note =
+    modal.querySelector(
+      "#selectedWritingStyleNote"
+    );
+
+  if (note) {
+    note.innerHTML = `
+      <span aria-hidden="true">✓</span>
+      已选择：
+      <strong>${escapeHtml(activeStyle.name)}</strong>
+      · ${escapeHtml(activeStyle.tagline)}
+    `;
+  }
+}
+
+function handleWritingStyleSelection(event) {
+  const button =
+    event.currentTarget;
+
+  const styleId =
+    button?.dataset
+      ?.writingStyle;
+
+  if (!styleId) {
+    return;
+  }
+
+  selectedWritingStyle =
+    getWritingStyle(
+      styleId
+    ).id;
+
+  const modal =
+    document.querySelector(
+      "#contributionModal"
+    );
+
+  syncWritingStyleSelection(
+    modal
+  );
+}
+
+function resetWritingWorkshop(modal) {
+  selectedWritingStyle =
+    "original";
+
+  syncWritingStyleSelection(
+    modal
+  );
+
+  const intent =
+    modal?.querySelector(
+      "#contributionWritingIntent"
+    );
+
+  if (intent) {
+    intent.value = "";
+  }
+
+  const intentDetails =
+    modal?.querySelector(
+      "#writingIntentDetails"
+    );
+
+  if (intentDetails) {
+    intentDetails.open = false;
+  }
+}
+
 function ensureContributionModal() {
   if (
     document.querySelector(
@@ -2486,7 +2700,7 @@ function ensureContributionModal() {
     "contributionModal";
 
   modal.className =
-    "contribution-modal";
+    "contribution-modal contribution-modal--workshop";
 
   modal.hidden =
     true;
@@ -2498,7 +2712,7 @@ function ensureContributionModal() {
     ></div>
 
     <section
-      class="contribution-modal__dialog"
+      class="contribution-modal__dialog contribution-workshop-dialog"
       role="dialog"
       aria-modal="true"
       aria-labelledby="contributionModalTitle"
@@ -2512,16 +2726,14 @@ function ensureContributionModal() {
         ×
       </button>
 
-      <p
-        class="detail-kicker"
-      >
-        Public Contribution
+      <p class="detail-kicker">
+        AI Memory Co-creation
       </p>
 
       <h2
         id="contributionModalTitle"
       >
-        留下城市记忆
+        AI 城市记忆共创工坊
       </h2>
 
       <p
@@ -2529,117 +2741,299 @@ function ensureContributionModal() {
         id="contributionPointName"
       ></p>
 
+      <div class="contribution-workshop-intro">
+        <span
+          class="contribution-workshop-intro__seal"
+          aria-hidden="true"
+        >
+          记
+        </span>
+
+        <p>
+          先留下真实经历，再选择一种作家灵感。AI 只帮助整理表达，
+          <strong>不会改变你的真实经历，也不会补写你没有提供的人物、时间与事实。</strong>
+        </p>
+      </div>
+
       <form
         id="contributionForm"
       >
-        <label
-          class="contribution-field"
+        <section
+          class="contribution-workshop-step"
+          aria-labelledby="memoryStepOneTitle"
         >
-          <span>
-            文字说明
-          </span>
+          <div class="contribution-workshop-step__head">
+            <span>
+              STEP 01
+            </span>
 
-          <textarea
-            id="contributionContent"
-            rows="5"
-            maxlength="1200"
-            placeholder="写下你的现场观察、家庭记忆、口述线索或照片说明。"
-          ></textarea>
-        </label>
+            <div>
+              <h3 id="memoryStepOneTitle">
+                写下真实记忆
+              </h3>
 
-        <label
-          class="contribution-field"
-        >
-          <span>
-            大约时间
-          </span>
+              <p>
+                不用写历史介绍。写你真正经历过的事情就好。
+              </p>
+            </div>
 
-          <input
-            id="contributionTime"
-            type="text"
-            maxlength="80"
-            placeholder="例如：2000年前后、童年时期、2026年7月"
+            <small>
+              真实材料
+            </small>
+          </div>
+
+          <label
+            class="contribution-field contribution-field--primary"
           >
-        </label>
+            <span>
+              我的原始记忆
+            </span>
 
-        <label
-          class="contribution-field"
-        >
-          <span>
-            记忆类型
-          </span>
+            <textarea
+              id="contributionContent"
+              rows="6"
+              maxlength="1200"
+              placeholder="例如：大概哪一年、当时为什么来这里、和谁一起来、印象最深的是什么……不用写成文章。"
+            ></textarea>
 
-          <select
-            id="contributionMemoryType"
+            <small>
+              这份原始文字将作为你的真实记忆保留，后续 AI 协作稿不会覆盖它。
+            </small>
+          </label>
+
+          <div class="contribution-field-grid">
+            <label
+              class="contribution-field"
+            >
+              <span>
+                大约时间
+              </span>
+
+              <input
+                id="contributionTime"
+                type="text"
+                maxlength="80"
+                placeholder="例如：2000年前后、童年时期、2026年7月"
+              >
+            </label>
+
+            <label
+              class="contribution-field"
+            >
+              <span>
+                记忆类型
+              </span>
+
+              <select
+                id="contributionMemoryType"
+              >
+                <option value="general">
+                  城市记忆 / 现场观察
+                </option>
+
+                <option value="place_name">
+                  地名线索
+                </option>
+
+                <option value="oral_history">
+                  口述记忆
+                </option>
+              </select>
+
+              <small>
+                审核通过后，不同类型的贡献可解锁相应共建徽章。
+              </small>
+            </label>
+          </div>
+
+          <label
+            class="contribution-field"
           >
-            <option value="general">
-              城市记忆 / 现场观察
-            </option>
+            <span>
+              上传真实照片（最多3张）
+            </span>
 
-            <option value="place_name">
-              地名线索
-            </option>
+            <input
+              id="contributionImages"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+            >
 
-            <option value="oral_history">
-              口述记忆
-            </option>
-          </select>
+            <small>
+              支持 JPG、PNG、WebP；每张不超过5MB。照片属于真实记忆材料，与后续 AI 生成图像分开保存。
+            </small>
+          </label>
 
-          <small>
-            审核通过后，不同类型的贡献可解锁相应共建徽章。
-          </small>
-        </label>
+          <div
+            class="contribution-preview"
+            id="contributionPreview"
+            aria-live="polite"
+          ></div>
+        </section>
 
-        <label
-          class="contribution-field"
+        <section
+          class="contribution-workshop-step contribution-workshop-step--writing"
+          aria-labelledby="memoryStepTwoTitle"
         >
-          <span>
-            上传照片（最多3张）
-          </span>
+          <div class="contribution-workshop-step__head">
+            <span>
+              STEP 02
+            </span>
 
-          <input
-            id="contributionImages"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
+            <div>
+              <h3 id="memoryStepTwoTitle">
+                选择一种作家灵感
+              </h3>
+
+              <p>
+                选择的是表达方向，不是让 AI 冒充作家本人。后续生成内容会明确标注为“AI 协作表达”。
+              </p>
+            </div>
+
+            <small>
+              不改变事实
+            </small>
+          </div>
+
+          <div
+            class="writing-style-grid"
+            id="writingStyleGrid"
+            role="group"
+            aria-label="作家灵感选择"
           >
+            ${buildWritingStyleCards()}
+          </div>
 
-          <small>
-            支持 JPG、PNG、WebP；每张不超过5MB。
-          </small>
-        </label>
+          <p
+            class="writing-style-selected"
+            id="selectedWritingStyleNote"
+            aria-live="polite"
+          >
+            <span aria-hidden="true">
+              ✓
+            </span>
 
-        <label
-          class="contribution-consent"
+            已选择：
+            <strong>
+              保持原声
+            </strong>
+            · 我的记忆，我来说
+          </p>
+
+          <details
+            class="writing-intent-details"
+            id="writingIntentDetails"
+          >
+            <summary>
+              补充表达方向（可选）
+            </summary>
+
+            <label
+              class="contribution-field writing-intent-field"
+            >
+              <span>
+                你还希望保留什么感觉？
+              </span>
+
+              <textarea
+                id="contributionWritingIntent"
+                rows="3"
+                maxlength="300"
+                placeholder="例如：不要写得太伤感；重点保留爸爸第一次带我来这里的感觉；尽量保留我原来的口语。"
+              ></textarea>
+            </label>
+          </details>
+        </section>
+
+        <section
+          class="contribution-workshop-step contribution-workshop-step--ai"
+          aria-labelledby="memoryStepThreeTitle"
         >
-          <input
-            id="consentToPublish"
-            type="checkbox"
+          <div class="contribution-workshop-step__head">
+            <span>
+              STEP 03
+            </span>
+
+            <div>
+              <h3 id="memoryStepThreeTitle">
+                AI 协作表达
+              </h3>
+
+              <p>
+                下一步接入 AI 后，可在这里对照“真实原文”和“AI 协作稿”，由你决定是否采用。
+              </p>
+            </div>
+
+            <small>
+              用户确认
+            </small>
+          </div>
+
+          <div class="ai-writing-preview is-pending">
+            <div>
+              <span aria-hidden="true">
+                ✦
+              </span>
+
+              <div>
+                <strong>
+                  AI 帮我整理这段记忆
+                </strong>
+
+                <p>
+                  本轮先完成共创工坊界面与作家灵感选择。当前提交仍以你的“原始记忆”为准，不会自动改写。
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="ai-writing-trigger"
+              disabled
+              aria-disabled="true"
+              title="下一步接入 AI 协作改写"
+            >
+              即将启用
+            </button>
+          </div>
+        </section>
+
+        <section class="contribution-workshop-final">
+          <h3>
+            确认投稿
+          </h3>
+
+          <p>
+            只要投稿保存成功，你自己的地图就会立即点亮；内容进入公共城市记忆前，仍需 AI 辅助初审和馆员终审。
+          </p>
+
+          <label
+            class="contribution-consent"
           >
+            <input
+              id="consentToPublish"
+              type="checkbox"
+            >
 
-          <span>
-            我同意该投稿经审核后在本项目中公开展示
-          </span>
-        </label>
+            <span>
+              我同意该投稿经审核后在本项目中公开展示
+            </span>
+          </label>
 
-        <label
-          class="contribution-consent"
-        >
-          <input
-            id="rightsConfirmed"
-            type="checkbox"
+          <label
+            class="contribution-consent"
           >
+            <input
+              id="rightsConfirmed"
+              type="checkbox"
+            >
 
-          <span>
-            我确认上传的文字、照片由本人提供，或已获得相关权利人的授权
-          </span>
-        </label>
-
-        <div
-          class="contribution-preview"
-          id="contributionPreview"
-          aria-live="polite"
-        ></div>
+            <span>
+              我确认上传的文字、照片由本人提供，或已获得相关权利人的授权
+            </span>
+          </label>
+        </section>
 
         <p
           class="contribution-status"
@@ -2663,7 +3057,7 @@ function ensureContributionModal() {
             class="btn primary"
             id="contributionSubmit"
           >
-            提交城市记忆
+            确认投稿并点亮
           </button>
         </div>
       </form>
@@ -2696,6 +3090,19 @@ function ensureContributionModal() {
     .addEventListener(
       "change",
       handleImageSelection
+    );
+
+  modal
+    .querySelectorAll(
+      "[data-writing-style]"
+    )
+    .forEach(
+      (button) => {
+        button.addEventListener(
+          "click",
+          handleWritingStyleSelection
+        );
+      }
     );
 
   modal
@@ -2767,6 +3174,10 @@ function openContributionModal(
 
   form.reset();
 
+  resetWritingWorkshop(
+    modal
+  );
+
   clearPreviewUrls();
 
   modal
@@ -2837,6 +3248,10 @@ function closeContributionModal() {
     .remove(
       "modal-open"
     );
+
+  resetWritingWorkshop(
+    modal
+  );
 
   clearPreviewUrls();
 }
@@ -3531,7 +3946,7 @@ async function handleContributionSubmit(
       false;
 
     submitButton.textContent =
-      "提交城市记忆";
+      "确认投稿并点亮";
   }
 }
 
