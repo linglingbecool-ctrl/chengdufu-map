@@ -3061,6 +3061,18 @@ p {
     transform 320ms ease;
 }
 
+/* 探古与留忆需要持续阅读长档案，右栏不再受古图短边高度限制。 */
+@media (min-width: 861px) {
+  .map-hub[data-map-mode="explore"] .detail-panel,
+  .map-hub[data-map-mode="memory"] .detail-panel {
+    height: max(
+      var(--map-stage-height),
+      min(760px, calc(100vh - 120px))
+    );
+    scrollbar-gutter: stable;
+  }
+}
+
 .map-ai-drawer__head {
   position: relative;
   flex: 0 0 auto;
