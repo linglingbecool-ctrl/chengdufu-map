@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260813-evidence01";
+const APP_VERSION = "20260813-evidence02";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -2081,26 +2081,6 @@ function toContributionDate(value) {
     : date;
 }
 
-function formatPublicArchiveDate(
-  value
-) {
-  const date =
-    toContributionDate(value);
-
-  if (!date) {
-    return "公开时间待补录";
-  }
-
-  return new Intl.DateTimeFormat(
-    "zh-CN",
-    {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit"
-    }
-  ).format(date);
-}
-
 function getFirstPublicMemoryDate(
   items
 ) {
@@ -2972,12 +2952,6 @@ function renderMemorySection(
               "collaborativeDraft" &&
             collaborativeDraft;
 
-         const publishedAt =
-           memory.publishedAt ||
-           memory.approvedAt ||
-           memory.reviewedAt ||
-            memory.updatedAt;
-
           return `
             <article
               class="memory-card public-archive-card"
@@ -3027,8 +3001,6 @@ function renderMemorySection(
 
               <dl class="public-archive-card__ledger">
                 <div><dt>投稿类型</dt><dd>${escapeHtml(getMaterialTypeLabel(memory.materialType))}</dd></div>
-                <div><dt>审核状态</dt><dd>馆员终审通过</dd></div>
-                <div><dt>公开时间</dt><dd>${escapeHtml(formatPublicArchiveDate(publishedAt))}</dd></div>
               </dl>
 
               <div class="public-archive-card__mark">
