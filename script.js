@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260813-rewards02";
+const APP_VERSION = "20260813-labels03";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -5767,7 +5767,7 @@ function ensureContributionModal() {
 
             <div>
               <h3 id="memoryStepThreeTitle">
-                智能基础整理
+                表达偏好整理
               </h3>
 
               <p>
@@ -5776,7 +5776,7 @@ function ensureContributionModal() {
             </div>
 
             <small>
-              无模型调用
+              浏览器本地整理 · 零成本
             </small>
           </div>
 
