@@ -19,7 +19,7 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260813-maphub04"
+      href="./style.css?v=20260813-scenes01"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
@@ -67,13 +67,21 @@
             点亮成都
           </a>
 
-          <a href="#citywalk">
-            Citywalk
-          </a>
+          <button
+            type="button"
+            class="nav-scene-button"
+            data-open-citywalk
+          >
+            去行走
+          </button>
 
-          <a href="#archive">
-            项目档案
-          </a>
+          <button
+            type="button"
+            class="nav-scene-button"
+            data-open-project
+          >
+            ⓘ 项目档案
+          </button>
 
           <button
             type="button"
@@ -93,62 +101,34 @@
             </span>
           </button>
 
-          <a href="#about">
-            说明
-          </a>
         </div>
       </nav>
 
       <div class="hero-inner">
-        <p class="eyebrow">
-          四川大学图书馆古籍特藏资源活化展示
-        </p>
+        <p class="eyebrow">四川大学图书馆 · 馆藏孤本</p>
 
         <h1>
           图绘成都
         </h1>
 
-        <p class="subtitle">
-          川大馆藏《全图·成都府图》数字导览
-        </p>
-
-        <p class="intro">
-          从四川大学图书馆馆藏《清初四川通省山川形胜全图》中的“四川成都府”图出发，将古地图中的桥梁、寺观、祠庙、城址与交通节点转化为可浏览、可点击、可行走的数字导览资源，并结合地方文献、古今影像与公众城市记忆，呈现成都城市空间的历史变迁。
-        </p>
+        <p class="subtitle">从一幅清代成都府图，重新进入今天的成都。</p>
 
         <div class="hero-actions">
           <a
             class="btn primary"
             href="#map"
           >
-            进入古图导览
+            进入成都府图
           </a>
-
-          <a
-            class="btn ai-hero-button"
-            href="#map"
-            data-map-mode-launch="ask"
-          >
-            询问馆藏 AI
-          </a>
-
-          <a
-            class="btn ghost"
-            href="#citywalk"
-          >
-            查看 Citywalk
-          </a>
-
-          <button
-            type="button"
-            class="btn ghost"
-            id="myMemoryHeroButton"
-            aria-haspopup="dialog"
-            aria-controls="myMemoryPanel"
-          >
-            我的城市记忆
-          </button>
         </div>
+
+        <button
+          type="button"
+          class="hero-info-button"
+          data-open-project
+        >
+          馆藏与项目说明 ↗
+        </button>
       </div>
     </header>
 
@@ -164,20 +144,19 @@
         id="map"
         aria-labelledby="map-title"
       >
-        <div class="section-heading">
+        <div class="map-scene-head">
           <div>
-            <div class="section-label">
-              Interactive Map
-            </div>
-
-            <h2 id="map-title">
-              一张古图，三种进入
-            </h2>
+            <div class="section-label">SCENE 02 · MAP HUB</div>
+            <h2 id="map-title">成都府图</h2>
           </div>
 
-          <p>
-            从“探古”读古今点位，从“问图”查馆藏证据，从“留忆”写下真实经历。地图始终留在视野中央，资料、问答与共创围绕同一地点逐层展开。
-          </p>
+          <button
+            type="button"
+            class="map-exit-button"
+            data-open-citywalk
+          >
+            沿古图走进今天的成都 →
+          </button>
         </div>
 
         <div
@@ -781,6 +760,7 @@
         class="citywalk-section section-band"
         id="citywalk"
         aria-labelledby="citywalk-title"
+        hidden
       >
         <div class="section-heading">
           <div>
@@ -851,6 +831,7 @@
            04 项目档案
            ================================================== -->
 
+      <div class="supplementary-content" id="supplementaryContent" hidden>
       <section
         class="archive-section section-band"
         id="archive"
@@ -1007,7 +988,73 @@
           六个重点点位的基础介绍依据相关地方文献整理；其余点位资料将逐步补充。公众投稿须经审核后方可进入后续公开展示，上传者需确认相关文字与影像的使用授权。
         </p>
       </section>
+      </div>
     </main>
+
+    <aside
+      class="project-drawer"
+      id="projectDrawer"
+      hidden
+      aria-hidden="true"
+      aria-labelledby="projectDrawerTitle"
+    >
+      <button
+        type="button"
+        class="project-drawer__backdrop"
+        data-close-project
+        aria-label="关闭项目档案"
+      ></button>
+
+      <div class="project-drawer__panel" role="dialog" aria-modal="true">
+        <div class="project-drawer__head">
+          <div>
+            <p>COLLECTION FILE</p>
+            <h2 id="projectDrawerTitle">馆藏与项目档案</h2>
+          </div>
+          <button type="button" data-close-project aria-label="关闭">×</button>
+        </div>
+
+        <div id="projectDrawerContent"></div>
+      </div>
+    </aside>
+
+    <section
+      class="walk-scene"
+      id="walkScene"
+      hidden
+      aria-hidden="true"
+      aria-labelledby="walkSceneTitle"
+    >
+      <div class="walk-scene__topbar">
+        <button type="button" data-close-citywalk>← 返回成都府图</button>
+        <div>
+          <span>SCENE 03</span>
+          <strong>沿古图走进今天的成都</strong>
+        </div>
+        <button type="button" data-open-project>ⓘ 项目档案</button>
+      </div>
+
+      <div class="walk-scene__layout">
+        <div class="walk-map" id="walkMap">
+          <img src="./chengdu-map.png" alt="成都府古图路线底图" />
+          <svg class="walk-route-svg" id="walkRouteSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <polyline id="walkRouteBase" points=""></polyline>
+            <polyline id="walkRouteProgress" points=""></polyline>
+          </svg>
+          <div class="walk-route-markers" id="walkRouteMarkers"></div>
+        </div>
+
+        <article class="walk-stop-card" id="walkStopCard">
+          <p class="walk-stop-card__eyebrow">CITYWALK · 01 / 06</p>
+          <h2 id="walkSceneTitle">九眼桥</h2>
+          <div class="walk-stop-card__facts" id="walkStopFacts"></div>
+          <div class="walk-stop-card__actions">
+            <button type="button" class="btn ghost" id="walkPrevious">上一站</button>
+            <button type="button" class="btn primary" id="walkNext">下一站</button>
+          </div>
+        </article>
+      </div>
+    </section>
 
 
     <!-- ==================================================
@@ -1031,11 +1078,11 @@
     -->
 
     <script
-      src="./script.js?v=20260812-maphub03"
+      src="./script.js?v=20260813-scenes01"
     ></script>
 
     <script
-      src="./ai-guide.js?v=20260812-maphub03"
+      src="./ai-guide.js?v=20260813-scenes01"
     ></script>
   </body>
 </html>

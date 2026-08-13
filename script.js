@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260812-maphub03";
+const APP_VERSION = "20260813-scenes01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -155,11 +155,93 @@ const statusLabel = {
 const citywalkOrder = [
   "jiuyanqiao",
   "wuhouci",
-  "wenshuyuan",
   "qingyanggong",
+  "wenshuyuan",
   "mancheng",
   "hongpailou"
 ];
+
+const CORE_POINT_KNOWLEDGE = {
+  jiuyanqiao: {
+    grade: "B",
+    timeline: [
+      ["1593", "洪济桥始建，历时五年建成"],
+      ["天启年间", "改名锁江桥"],
+      ["1788", "补修与九眼桥名称沿用，两书表述有别"],
+      ["1992", "明清旧桥拆除"],
+      ["2001", "异地仿建九孔石拱桥落成"]
+    ],
+    sources: [
+      ["《成都通览》", "PDF第33页", "A"],
+      ["《成都街巷志》", "PDF第126—131页", "A"]
+    ],
+    caution: "古图“九贤桥”与今日“九眼桥”的对应关系仍需地图与文字学复核。"
+  },
+  wuhouci: {
+    grade: "B",
+    timeline: [
+      ["1849", "刘沅主持调整与重塑祠内雕塑"],
+      ["1902", "赵藩撰写“攻心联”"],
+      ["清末文献", "昭烈陵衣冠陵与诸葛铜鼓均作为旧说记录"]
+    ],
+    sources: [
+      ["《成都通览》", "PDF第40页", "A"],
+      ["《成都街巷志》", "PDF第299—300、678页", "A"]
+    ],
+    caution: "古代祠庙空间不能直接等同今日武侯祠博物馆与周边文旅街区。"
+  },
+  wenshuyuan: {
+    grade: "B",
+    timeline: [
+      ["清代", "与延庆寺、大慈寺、石犀寺并列为成都四大寺院"],
+      ["清末至民国", "头福街西段因寺院改称文殊院街"]
+    ],
+    sources: [
+      ["《成都街巷志》", "PDF第676、708—709页", "A"]
+    ],
+    caution: "现有材料不足以可靠说明文殊院早期创建年代；现代文殊坊不等同古图寺院范围。"
+  },
+  qingyanggong: {
+    grade: "A",
+    timeline: [
+      ["883", "扩建后正式称青羊宫"],
+      ["1723", "单角铜羊由张鹏翮购赠"],
+      ["1829", "双角铜羊在成都铸造"],
+      ["清末", "花会、劝工会与劝业会形成公共文化空间"]
+    ],
+    sources: [
+      ["《成都通览》", "PDF第39页", "A"],
+      ["《成都街巷志》", "PDF第529—538页", "A"]
+    ],
+    caution: "青羊降临、张天师传道等属于传说；古图建筑形态不等同今日多次重建后的格局。"
+  },
+  mancheng: {
+    grade: "B",
+    timeline: [
+      ["1718", "安排八旗官兵长期驻防成都"],
+      ["1721", "驻防新城开始修筑"],
+      ["1912—1935", "满城城墙陆续拆除"],
+      ["近现代", "宽、窄、井巷子转化为公共文化街区"]
+    ],
+    sources: [
+      ["《成都通览》", "PDF第37页", "A"],
+      ["《成都街巷志》", "PDF第28—32、883—884页", "A"]
+    ],
+    caution: "1718可指安排驻防，1721可指筑城动工；宽窄巷子只是满城局部遗存。"
+  },
+  hongpailou: {
+    grade: "C",
+    timeline: [
+      ["20世纪40年代", "“成都外南红牌楼”地名已明确使用"],
+      ["旧建筑线索", "目录将红牌楼北街归入“以昔建筑命名”"]
+    ],
+    sources: [
+      ["《成都街巷志》", "PDF第65页", "A"],
+      ["《成都街巷志》目录", "PDF第1097页", "C"]
+    ],
+    caution: "创建年代、形制、用途与精确原址仍缺直接证据；嘉靖建牌楼等说法不得作为定论。"
+  }
+};
 
 const MAP_HUB_MODES = {
   explore: {
@@ -2691,6 +2773,36 @@ function renderDetail(
     point.detailLevel
       === "basic";
 
+  const knowledge =
+    CORE_POINT_KNOWLEDGE[
+      point.id
+    ];
+
+  const memoryCount =
+    getPointMemories(
+      point.id
+    ).length;
+
+  const imageCount =
+    getPointMemories(
+      point.id
+    ).reduce(
+      (count, memory) =>
+        count +
+        (
+          Array.isArray(
+            memory.imageUrls
+          )
+            ? memory.imageUrls.length
+            : Array.isArray(
+                memory.imageFileIds
+              )
+              ? memory.imageFileIds.length
+              : 0
+        ),
+      0
+    );
+
   const metaHtml =
     isBasic
       ? `
@@ -2762,41 +2874,62 @@ function renderDetail(
         </section>
       `
       : `
-        ${
-          point.quick
-            ? `
-              <section
-                class="official-summary"
-              >
-                <h4>
-                  点位导读
-                </h4>
+        <section class="detail-glance">
+          <p class="detail-section-label">第一眼</p>
+          <dl>
+            <div><dt>古图题名</dt><dd>${escapeHtml(point.nameAncient || "待考")}</dd></div>
+            <div><dt>今日对应</dt><dd>${escapeHtml(point.nameModern || point.nameAncient)}</dd></div>
+            <div><dt>状态</dt><dd>${escapeHtml(getStatusLabel(point))}</dd></div>
+            <div><dt>证据等级</dt><dd><span class="evidence-grade evidence-grade--${escapeHtml((knowledge?.grade || "C").toLowerCase())}">${escapeHtml(knowledge?.grade || "C")}</span></dd></div>
+          </dl>
+        </section>
 
-                ${renderParagraphs(
-                  point.quick
-                )}
-              </section>
-            `
-            : ""
-        }
+        ${point.quick ? `
+          <section class="official-summary detail-summary-card">
+            <p class="detail-section-label">一句话认识</p>
+            ${renderParagraphs(point.quick)}
+          </section>
+        ` : ""}
 
-        ${
-          point.extended
-            ? `
-              <section
-                class="official-intro"
-              >
-                <h4>
-                  历史简介
-                </h4>
+        ${knowledge?.timeline?.length ? `
+          <section class="detail-timeline-section">
+            <p class="detail-section-label">时间变化</p>
+            <ol class="detail-timeline">
+              ${knowledge.timeline.map(([period, content]) => `
+                <li>
+                  <time>${escapeHtml(period)}</time>
+                  <p>${escapeHtml(content)}</p>
+                </li>
+              `).join("")}
+            </ol>
+          </section>
+        ` : ""}
 
-                ${renderParagraphs(
-                  point.extended
-                )}
-              </section>
-            `
-            : ""
-        }
+        ${knowledge?.sources?.length ? `
+          <section class="detail-source-section">
+            <p class="detail-section-label">馆藏证据</p>
+            <div class="detail-source-list">
+              ${knowledge.sources.map(([title, page, grade], index) => `
+                <details class="detail-source-card" ${index === 0 ? "open" : ""}>
+                  <summary>
+                    <span><small>0${index + 1}</small><strong>${escapeHtml(title)}</strong></span>
+                    <em>${escapeHtml(page)}</em>
+                  </summary>
+                  <p>${escapeHtml(point.evidence || "请结合原书页面进一步复核。")}</p>
+                  <span class="source-grade">证据 ${escapeHtml(grade)} · 点击可收起</span>
+                </details>
+              `).join("")}
+            </div>
+            <p class="detail-caution"><strong>证据边界</strong>${escapeHtml(knowledge.caution)}</p>
+          </section>
+        ` : ""}
+
+        ${point.extended ? `
+          <details class="detail-longread">
+            <summary>展开完整历史导读</summary>
+            <div>${renderParagraphs(point.extended)}</div>
+          </details>
+        ` : ""}
       `;
 
   detailEl.innerHTML = `
@@ -2839,6 +2972,14 @@ function renderDetail(
       ${metaHtml}
 
       ${mainContent}
+
+      <section class="detail-memory-overview">
+        <p class="detail-section-label">成都人的记忆</p>
+        <div>
+          <strong>${memoryCount}</strong><span>条公开故事</span>
+          <strong>${imageCount}</strong><span>张公众照片</span>
+        </div>
+      </section>
 
       ${renderMemorySection(
         point
@@ -3213,6 +3354,528 @@ function renderRoute(points) {
         }
       )
       .join("");
+}
+
+/* ===============================================
+   三场景体验：项目抽屉 / 全屏 Citywalk
+   =============================================== */
+
+let activeWalkStopIndex = 0;
+let lastSceneTrigger = null;
+
+function getCitywalkPoints() {
+  const pointMap =
+    new Map(
+      allPoints.map(
+        (point) => [
+          point.id,
+          point
+        ]
+      )
+    );
+
+  return citywalkOrder
+    .map((id) => pointMap.get(id))
+    .filter(Boolean);
+}
+
+function renderProjectDrawerContent() {
+  const target =
+    document.querySelector(
+      "#projectDrawerContent"
+    );
+
+  if (!target || target.childElementCount) {
+    return;
+  }
+
+  const archive =
+    document.querySelector(
+      "#archive"
+    );
+
+  const about =
+    document.querySelector(
+      "#about"
+    );
+
+  const appendCleanClone = (source) => {
+    const clone = source.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.removeAttribute("aria-labelledby");
+    clone
+      .querySelectorAll("[id]")
+      .forEach((element) =>
+        element.removeAttribute("id")
+      );
+    target.appendChild(clone);
+  };
+
+  if (archive) {
+    appendCleanClone(archive);
+  }
+
+  if (about) {
+    appendCleanClone(about);
+  }
+}
+
+function setProjectDrawer(open) {
+  const drawer =
+    document.querySelector(
+      "#projectDrawer"
+    );
+
+  if (!drawer) {
+    return;
+  }
+
+  if (open) {
+    renderProjectDrawerContent();
+    drawer.hidden = false;
+    drawer.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+    document.body.classList.add(
+      "scene-overlay-open"
+    );
+    requestAnimationFrame(() => {
+      drawer.classList.add("is-open");
+    });
+    drawer
+      .querySelector(
+        "[data-close-project]"
+      )
+      ?.focus();
+  } else {
+    drawer.classList.remove("is-open");
+    drawer.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+    window.setTimeout(() => {
+      drawer.hidden = true;
+    }, 300);
+
+    if (
+      document
+        .querySelector("#walkScene")
+        ?.hidden
+    ) {
+      document.body.classList.remove(
+        "scene-overlay-open"
+      );
+    }
+
+    lastSceneTrigger?.focus?.();
+  }
+}
+
+function renderWalkScene() {
+  const points =
+    getCitywalkPoints();
+
+  if (!points.length) {
+    return;
+  }
+
+  activeWalkStopIndex =
+    Math.max(
+      0,
+      Math.min(
+        activeWalkStopIndex,
+        points.length - 1
+      )
+    );
+
+  const point =
+    points[activeWalkStopIndex];
+
+  const routePoints =
+    points
+      .map(
+        (item) =>
+          `${Number(item.x)},${Number(item.y)}`
+      )
+      .join(" ");
+
+  const progressPoints =
+    points
+      .slice(
+        0,
+        activeWalkStopIndex + 1
+      )
+      .map(
+        (item) =>
+          `${Number(item.x)},${Number(item.y)}`
+      )
+      .join(" ");
+
+  const base =
+    document.querySelector(
+      "#walkRouteBase"
+    );
+
+  const progress =
+    document.querySelector(
+      "#walkRouteProgress"
+    );
+
+  if (base) {
+    base.setAttribute(
+      "points",
+      routePoints
+    );
+  }
+
+  if (progress) {
+    progress.setAttribute(
+      "points",
+      progressPoints
+    );
+  }
+
+  const markers =
+    document.querySelector(
+      "#walkRouteMarkers"
+    );
+
+  if (markers) {
+    markers.innerHTML =
+      points.map(
+        (item, index) => `
+          <button
+            type="button"
+            class="walk-route-marker ${
+              index < activeWalkStopIndex
+                ? "is-visited"
+                : index === activeWalkStopIndex
+                  ? "is-active"
+                  : ""
+            }"
+            style="left:${Number(item.x)}%;top:${Number(item.y)}%"
+            data-walk-stop="${index}"
+            aria-label="第${index + 1}站：${escapeHtml(item.nameModern)}"
+          >
+            <span>${String(index + 1).padStart(2, "0")}</span>
+          </button>
+        `
+      ).join("");
+  }
+
+  const card =
+    document.querySelector(
+      "#walkStopCard"
+    );
+
+  const facts =
+    document.querySelector(
+      "#walkStopFacts"
+    );
+
+  const knowledge =
+    CORE_POINT_KNOWLEDGE[
+      point.id
+    ];
+
+  const memories =
+    getPointMemories(
+      point.id
+    );
+
+  if (card) {
+    card.querySelector(
+      ".walk-stop-card__eyebrow"
+    ).textContent =
+      `CITYWALK · ${String(activeWalkStopIndex + 1).padStart(2, "0")} / ${String(points.length).padStart(2, "0")}`;
+
+    card.querySelector("h2")
+      .textContent =
+        point.nameModern;
+  }
+
+  if (facts) {
+    facts.innerHTML = `
+      <section>
+        <small>古图怎么画</small>
+        <strong>${escapeHtml(point.nameAncient || "待考")}</strong>
+        <p>古图中的${escapeHtml(point.type || "城市点位")}，证据等级 ${escapeHtml(knowledge?.grade || "C")}。</p>
+      </section>
+      <section>
+        <small>今天在哪里</small>
+        <strong>${escapeHtml(point.nameModern || point.nameAncient)}</strong>
+        <p>${escapeHtml(point.quick || point.routeNote || "古今关系仍待进一步核查。")}</p>
+      </section>
+      <section>
+        <small>到现场看什么</small>
+        <p>${escapeHtml(point.routeNote || "观察地名、道路与城市空间的延续和变化。")}</p>
+      </section>
+      <section class="walk-memory-fact ${memories.length ? "has-memory" : ""}">
+        <small>有没有人留下记忆</small>
+        <strong>${memories.length} 条公开记忆</strong>
+        <button type="button" data-walk-memory>在古图留下我的记忆 →</button>
+      </section>
+    `;
+  }
+
+  const previous =
+    document.querySelector(
+      "#walkPrevious"
+    );
+
+  const next =
+    document.querySelector(
+      "#walkNext"
+    );
+
+  if (previous) {
+    previous.disabled =
+      activeWalkStopIndex === 0;
+  }
+
+  if (next) {
+    next.textContent =
+      activeWalkStopIndex ===
+        points.length - 1
+        ? "完成路线"
+        : "下一站";
+  }
+
+  const walkMap =
+    document.querySelector(
+      "#walkMap"
+    );
+
+  if (walkMap) {
+    walkMap.style.setProperty(
+      "--walk-focus-x",
+      `${Number(point.x)}%`
+    );
+    walkMap.style.setProperty(
+      "--walk-focus-y",
+      `${Number(point.y)}%`
+    );
+  }
+}
+
+function setWalkScene(open) {
+  const scene =
+    document.querySelector(
+      "#walkScene"
+    );
+
+  if (!scene) {
+    return;
+  }
+
+  if (open) {
+    activeWalkStopIndex = 0;
+    renderWalkScene();
+    scene.hidden = false;
+    scene.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+    document.body.classList.add(
+      "scene-overlay-open"
+    );
+    requestAnimationFrame(() => {
+      scene.classList.add("is-open");
+    });
+  } else {
+    scene.classList.remove("is-open");
+    scene.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+    window.setTimeout(() => {
+      scene.hidden = true;
+    }, 360);
+    document.body.classList.remove(
+      "scene-overlay-open"
+    );
+    document
+      .querySelector("#map")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+  }
+}
+
+function bindSceneExperience() {
+  document
+    .querySelectorAll(
+      "[data-open-project]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          lastSceneTrigger = button;
+          setProjectDrawer(true);
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      "[data-close-project]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => setProjectDrawer(false)
+      );
+    });
+
+  document
+    .querySelectorAll(
+      "[data-open-citywalk]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          lastSceneTrigger = button;
+          setWalkScene(true);
+        }
+      );
+    });
+
+  document
+    .querySelector(
+      "[data-close-citywalk]"
+    )
+    ?.addEventListener(
+      "click",
+      () => setWalkScene(false)
+    );
+
+  document
+    .querySelector(
+      "#walkPrevious"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        activeWalkStopIndex =
+          Math.max(
+            0,
+            activeWalkStopIndex - 1
+          );
+        renderWalkScene();
+      }
+    );
+
+  document
+    .querySelector(
+      "#walkNext"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        const points =
+          getCitywalkPoints();
+
+        if (
+          activeWalkStopIndex >=
+          points.length - 1
+        ) {
+          setWalkScene(false);
+          return;
+        }
+
+        activeWalkStopIndex += 1;
+        renderWalkScene();
+      }
+    );
+
+  document
+    .querySelector(
+      "#walkRouteMarkers"
+    )
+    ?.addEventListener(
+      "click",
+      (event) => {
+        const button =
+          event.target.closest(
+            "[data-walk-stop]"
+          );
+
+        if (!button) {
+          return;
+        }
+
+        activeWalkStopIndex =
+          Number(
+            button.dataset.walkStop
+          ) || 0;
+        renderWalkScene();
+      }
+    );
+
+  document
+    .querySelector(
+      "#walkStopFacts"
+    )
+    ?.addEventListener(
+      "click",
+      (event) => {
+        if (
+          !event.target.closest(
+            "[data-walk-memory]"
+          )
+        ) {
+          return;
+        }
+
+        const point =
+          getCitywalkPoints()[
+            activeWalkStopIndex
+          ];
+
+        if (!point) {
+          return;
+        }
+
+        setWalkScene(false);
+        setMapHubMode("memory");
+        focusMapPoint(point);
+        window.setTimeout(
+          () => openContributionModal(point),
+          380
+        );
+      }
+    );
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (
+        !document
+          .querySelector(
+            "#projectDrawer"
+          )
+          ?.hidden
+      ) {
+        setProjectDrawer(false);
+      } else if (
+        !document
+          .querySelector(
+            "#walkScene"
+          )
+          ?.hidden
+      ) {
+        setWalkScene(false);
+      }
+    }
+  );
 }
 
 /* ===============================================
@@ -6086,6 +6749,8 @@ async function handleContributionSubmit(
       allPoints
     );
 
+    renderWalkScene();
+
     const myMemoryPanel =
       document.querySelector(
         "#myMemoryPanel"
@@ -6229,6 +6894,8 @@ async function init() {
 
   initMapHubShell();
 
+  bindSceneExperience();
+
   ensureContributionModal();
 
   ensureMyMemoryPanel();
@@ -6283,6 +6950,8 @@ async function init() {
       renderRoute(
         allPoints
       );
+
+      renderWalkScene();
     }
   }
 
