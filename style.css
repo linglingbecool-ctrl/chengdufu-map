@@ -5036,7 +5036,7 @@ body.scene-overlay-open {
 }
 
 /* 覆盖旧版审核中虚线 / 已公开青色外圈。
-   审核状态仍保留在 title、我的记忆面板与成功提示中，
+   流程进度仍保留在 title、我的记忆面板与成功提示中，
    地图上的“金色”只表达：这是我亲自留下过记忆的地方。 */
 .map-marker.my-memory-lit.my-memory-processing,
 .map-marker.my-memory-lit.my-memory-approved {
