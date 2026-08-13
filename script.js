@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260813-labels03";
+const APP_VERSION = "20260813-evidence01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -621,6 +621,57 @@ function getPointMemories(
   );
 }
 
+function getEvidenceRecordsForPoint(
+  pointId
+) {
+  const records =
+    window.TUHUI_EVIDENCE
+      ?.byPoint?.[pointId];
+
+  return Array.isArray(records)
+    ? records
+    : [];
+}
+
+function renderPointEvidenceCards(
+  point
+) {
+  const records =
+    getEvidenceRecordsForPoint(
+      point.id
+    );
+
+  if (!records.length) {
+    return "";
+  }
+
+  return `
+    <section class="detail-source-section">
+      <p class="detail-section-label">馆藏证据</p>
+      <div class="detail-source-list">
+        ${records.map((record, index) => `
+          <article class="detail-source-card">
+            <div class="detail-source-card__head">
+              <span>
+                <small>${String(index + 1).padStart(2, "0")}</small>
+                <strong>${escapeHtml(record.title)}</strong>
+              </span>
+              <em>${escapeHtml(record.pageLabel)}</em>
+            </div>
+            <p>${escapeHtml(record.excerpt)}</p>
+            <div class="detail-source-card__footer">
+              <span class="source-grade">证据 ${escapeHtml(record.grade)} · ${escapeHtml(record.verification)}</span>
+              <button type="button" data-open-evidence="${escapeHtml(record.id)}">
+                ${record.pages?.length ? "查看原页" : "查看核验记录"} ↗
+              </button>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 /**
  * 把 CloudBase fileID 转成临时图片地址。
  */
@@ -971,6 +1022,66 @@ function updateMapMemoryLayerCounts() {
         getPublicMemoryCount()
       );
   }
+
+  document
+    .querySelectorAll(
+      "[data-archive-public-memory-count]"
+    )
+    .forEach((element) => {
+      element.textContent =
+        String(
+          getPublicMemoryCount()
+        );
+    });
+}
+
+function updateArchiveMetrics() {
+  const records =
+    window.TUHUI_EVIDENCE
+      ?.records || [];
+
+  const values = {
+    "[data-archive-map-count]": 1,
+    "[data-archive-source-count]": new Set(
+      records
+        .filter((record) =>
+          record.sourceKey !== "project"
+        )
+        .map((record) => record.title)
+    ).size,
+    "[data-archive-fragment-count]": records.length,
+    "[data-archive-profile-count]": citywalkOrder.length,
+    "[data-archive-point-count]": allPoints.length
+  };
+
+  Object.entries(values)
+    .forEach(([selector, value]) => {
+      document
+        .querySelectorAll(selector)
+        .forEach((element) => {
+          element.textContent =
+            String(value);
+        });
+    });
+
+  ["A", "B", "C"]
+    .forEach((grade) => {
+      const count = records.filter(
+        (record) =>
+          record.grade === grade
+      ).length;
+
+      document
+        .querySelectorAll(
+          `[data-archive-grade="${grade}"]`
+        )
+        .forEach((element) => {
+          element.textContent =
+            String(count);
+        });
+    });
+
+  updateMapMemoryLayerCounts();
 }
 
 function setMapMemoryLayer(
@@ -1916,6 +2027,21 @@ function getMemoryTypeLabel(
   );
 }
 
+function getMaterialTypeLabel(
+  materialType
+) {
+  const map = {
+    text: "文字记忆",
+    image: "影像记忆",
+    text_image: "图文记忆"
+  };
+
+  return (
+    map[materialType] ||
+    "城市记忆"
+  );
+}
+
 function toContributionDate(value) {
   if (!value) {
     return null;
@@ -1953,6 +2079,26 @@ function toContributionDate(value) {
   return Number.isNaN(date.getTime())
     ? null
     : date;
+}
+
+function formatPublicArchiveDate(
+  value
+) {
+  const date =
+    toContributionDate(value);
+
+  if (!date) {
+    return "公开时间待补录";
+  }
+
+  return new Intl.DateTimeFormat(
+    "zh-CN",
+    {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }
+  ).format(date);
 }
 
 function getFirstPublicMemoryDate(
@@ -2808,28 +2954,42 @@ function renderMemorySection(
               `
               : "";
 
-          const publicContent =
-            memory.publicContent ||
-            memory.originalContent ||
-            "";
+          const originalContent =
+            String(
+              memory.originalContent ||
+              memory.publicContent ||
+              ""
+            ).trim();
 
-          const textHtml =
-            publicContent
-              ? `
-                <p
-                  class="memory-card__text"
-                >
-                  ${escapeHtml(
-                    publicContent
-                  )}
-                </p>
-              `
-              : "";
+          const collaborativeDraft =
+            String(
+              memory.collaborativeDraft ||
+              ""
+            ).trim();
+
+          const hasAcceptedDraft =
+            memory.contentSource ===
+              "collaborativeDraft" &&
+            collaborativeDraft;
+
+         const publishedAt =
+           memory.publishedAt ||
+           memory.approvedAt ||
+           memory.reviewedAt ||
+            memory.updatedAt;
 
           return `
             <article
-              class="memory-card"
+              class="memory-card public-archive-card"
             >
+              <header class="public-archive-card__head">
+                <div>
+                  <span>城市公共记忆档案</span>
+                  <strong>${escapeHtml(memory.pointName || point.nameModern)}</strong>
+                </div>
+                <span class="public-archive-card__seal">已入档</span>
+              </header>
+
               <div
                 class="memory-card__meta"
               >
@@ -2845,13 +3005,36 @@ function renderMemorySection(
                 <span
                   class="memory-card__label"
                 >
-                  公众城市记忆
+                  ${escapeHtml(getMemoryTypeLabel(memory.memoryType))}
                 </span>
               </div>
 
-              ${textHtml}
+              ${originalContent ? `
+                <section class="public-archive-card__text">
+                  <small>原始记忆 · 用户真实材料</small>
+                  <p>${escapeHtml(originalContent)}</p>
+                </section>
+              ` : ""}
+
+              ${hasAcceptedDraft ? `
+                <section class="public-archive-card__text is-collaborative">
+                  <small>协作整理稿 · ${escapeHtml(memory.writingStyleName || "表达偏好整理")}</small>
+                  <p>${escapeHtml(collaborativeDraft)}</p>
+                </section>
+              ` : ""}
 
               ${imageHtml}
+
+              <dl class="public-archive-card__ledger">
+                <div><dt>投稿类型</dt><dd>${escapeHtml(getMaterialTypeLabel(memory.materialType))}</dd></div>
+                <div><dt>审核状态</dt><dd>馆员终审通过</dd></div>
+                <div><dt>公开时间</dt><dd>${escapeHtml(formatPublicArchiveDate(publishedAt))}</dd></div>
+              </dl>
+
+              <div class="public-archive-card__mark">
+                <span>✦</span>
+                进入城市公共记忆档案
+              </div>
             </article>
           `;
         }
@@ -3048,23 +3231,10 @@ function renderDetail(
           </section>
         ` : ""}
 
-        ${knowledge?.sources?.length ? `
-          <section class="detail-source-section">
-            <p class="detail-section-label">馆藏证据</p>
-            <div class="detail-source-list">
-              ${knowledge.sources.map(([title, page, grade], index) => `
-                <details class="detail-source-card" ${index === 0 ? "open" : ""}>
-                  <summary>
-                    <span><small>0${index + 1}</small><strong>${escapeHtml(title)}</strong></span>
-                    <em>${escapeHtml(page)}</em>
-                  </summary>
-                  <p>${escapeHtml(point.evidence || "请结合原书页面进一步复核。")}</p>
-                  <span class="source-grade">证据 ${escapeHtml(grade)} · 点击可收起</span>
-                </details>
-              `).join("")}
-            </div>
-            <p class="detail-caution"><strong>证据边界</strong>${escapeHtml(knowledge.caution)}</p>
-          </section>
+        ${renderPointEvidenceCards(point)}
+
+        ${knowledge?.caution ? `
+          <p class="detail-caution"><strong>证据边界</strong>${escapeHtml(knowledge.caution)}</p>
         ` : ""}
 
         ${point.extended ? `
@@ -3286,6 +3456,18 @@ function renderMarkers(points) {
         button.classList.add(
           "has-public-memory"
         );
+
+        button.dataset.publicMemoryLabel =
+          `已有${memoryCount}份成都记忆在这里公开`;
+
+        button.setAttribute(
+          "aria-label",
+          `${
+            point.nameModern ||
+            point.nameAncient ||
+            "历史点位"
+          }，${button.dataset.publicMemoryLabel}`
+        );
       }
 
       // 个人即时点亮：只要自己的投稿已保存且未被拒绝，就点亮。
@@ -3332,7 +3514,7 @@ function renderMarkers(points) {
           )
         }${
           memoryCount
-            ? `｜已收录${memoryCount}份公众城市记忆`
+            ? `｜已有${memoryCount}份成都记忆在这里公开`
             : ""
         }${
           myPointState === "approved"
@@ -3505,6 +3687,219 @@ function renderRoute(points) {
 
 let activeWalkStopIndex = 0;
 let lastSceneTrigger = null;
+let lastEvidenceTrigger = null;
+let lastWorkflowTrigger = null;
+
+function syncSceneOverlayBody() {
+  const hasOpenOverlay =
+    Boolean(
+      document.querySelector(
+        ".project-drawer.is-open, .ai-workflow-drawer.is-open, .evidence-viewer.is-open, .walk-scene.is-open"
+      )
+    );
+
+  document.body.classList.toggle(
+    "scene-overlay-open",
+    hasOpenOverlay
+  );
+}
+
+function getEvidenceStatusLabel(record) {
+  const labels = {
+    visually_verified: "原页目视核验",
+    text_layer_verified: "文字层与原页复核",
+    project_note: "项目核验记录"
+  };
+
+  return (
+    labels[record.verificationCode] ||
+    record.verification ||
+    "待复核"
+  );
+}
+
+function renderEvidenceViewer(record) {
+  const content =
+    document.querySelector(
+      "#evidenceViewerContent"
+    );
+
+  if (!content) {
+    return;
+  }
+
+  const pages =
+    Array.isArray(record.pages)
+      ? record.pages
+      : [];
+
+  const pageGallery = pages.length
+    ? `
+      <section class="evidence-scan-section">
+        <div class="evidence-viewer__section-head">
+          <div>
+            <span>SCAN</span>
+            <h3>扫描原页</h3>
+          </div>
+          <small>点击图片可单独查看清晰原页</small>
+        </div>
+        <div class="evidence-page-grid ${pages.length > 1 ? "has-multiple-pages" : ""}">
+          ${pages.map((page) => `
+            <figure class="evidence-page">
+              <a href="${escapeHtml(page.src)}" target="_blank" rel="noopener">
+                <img src="${escapeHtml(page.src)}" alt="${escapeHtml(record.title)} PDF第${Number(page.page)}页扫描原页" loading="eager">
+              </a>
+              <figcaption>PDF第${Number(page.page)}页${record.originalPage && page.page === record.pageStart ? ` · 原书第${escapeHtml(record.originalPage)}页` : ""}</figcaption>
+            </figure>
+          `).join("")}
+        </div>
+      </section>
+    `
+    : `
+      <section class="evidence-note-preview">
+        <img src="./chengdu-map.png" alt="馆藏成都府图" loading="eager">
+        <div>
+          <span>RESEARCH NOTE</span>
+          <strong>此条为项目核验记录</strong>
+          <p>${escapeHtml(record.note || "此记录用于标明证据边界，不冒充原书页证据。")}</p>
+        </div>
+      </section>
+    `;
+
+  content.innerHTML = `
+    <article class="evidence-record">
+      <header class="evidence-record__title">
+        <div>
+          <span>证据 ${escapeHtml(record.grade || "C")}</span>
+          <h3>${escapeHtml(record.title)}</h3>
+          <p>${escapeHtml(record.pageLabel || "项目记录")}</p>
+        </div>
+        <strong>${escapeHtml(getEvidenceStatusLabel(record))}</strong>
+      </header>
+
+      <dl class="evidence-bibliography">
+        <div><dt>书名</dt><dd>${escapeHtml(record.title)}</dd></div>
+        <div><dt>作者</dt><dd>${escapeHtml(record.author || "待补录")}</dd></div>
+        <div><dt>版本</dt><dd>${escapeHtml(record.edition || "待补录")}</dd></div>
+        <div><dt>页码</dt><dd>${escapeHtml(record.pageLabel || "无PDF页码")}</dd></div>
+        <div><dt>证据等级</dt><dd><span class="evidence-grade evidence-grade--${escapeHtml(String(record.grade || "C").toLowerCase())}">${escapeHtml(record.grade || "C")}</span></dd></div>
+        <div><dt>核验状态</dt><dd>${escapeHtml(getEvidenceStatusLabel(record))}</dd></div>
+      </dl>
+
+      ${pageGallery}
+
+      <section class="evidence-excerpt">
+        <span>对应原文 · 已定位</span>
+        <blockquote><mark>${escapeHtml(record.excerpt || "原文片段待补录")}</mark></blockquote>
+        <p>高亮文本为知识库节录；判断时仍以同屏原页和上下文为准。</p>
+      </section>
+
+      <div class="evidence-boundary-grid">
+        <section>
+          <span>CAN PROVE</span>
+          <h3>此材料能证明什么</h3>
+          <p>${escapeHtml(record.proves || "待进一步核验。")}</p>
+        </section>
+        <section>
+          <span>CANNOT PROVE</span>
+          <h3>此材料不能证明什么</h3>
+          <p>${escapeHtml(record.limits || "不得超出原文证据范围作结论。")}</p>
+        </section>
+      </div>
+    </article>
+  `;
+}
+
+function setEvidenceViewer(open, evidenceId = "") {
+  const viewer =
+    document.querySelector(
+      "#evidenceViewer"
+    );
+
+  if (!viewer) {
+    return;
+  }
+
+  if (open) {
+    const record =
+      window.TUHUI_EVIDENCE
+        ?.byId?.[evidenceId];
+
+    if (!record) {
+      return;
+    }
+
+    renderEvidenceViewer(record);
+    viewer.hidden = false;
+    viewer.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+    requestAnimationFrame(() => {
+      viewer.classList.add(
+        "is-open"
+      );
+      syncSceneOverlayBody();
+    });
+    viewer.querySelector(
+      "[data-close-evidence-viewer]"
+    )?.focus();
+  } else {
+    viewer.classList.remove(
+      "is-open"
+    );
+    viewer.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+    window.setTimeout(() => {
+      viewer.hidden = true;
+      syncSceneOverlayBody();
+    }, 300);
+    lastEvidenceTrigger?.focus?.();
+  }
+}
+
+function setAiWorkflowDrawer(open) {
+  const drawer =
+    document.querySelector(
+      "#aiWorkflowDrawer"
+    );
+
+  if (!drawer) {
+    return;
+  }
+
+  if (open) {
+    drawer.hidden = false;
+    drawer.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+    requestAnimationFrame(() => {
+      drawer.classList.add(
+        "is-open"
+      );
+      syncSceneOverlayBody();
+    });
+    drawer.querySelector(
+      "[data-close-ai-workflow]"
+    )?.focus();
+  } else {
+    drawer.classList.remove(
+      "is-open"
+    );
+    drawer.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+    window.setTimeout(() => {
+      drawer.hidden = true;
+      syncSceneOverlayBody();
+    }, 300);
+    lastWorkflowTrigger?.focus?.();
+  }
+}
 
 function getCitywalkPoints() {
   const pointMap =
@@ -3561,6 +3956,8 @@ function renderProjectDrawerContent() {
   if (about) {
     appendCleanClone(about);
   }
+
+  updateArchiveMetrics();
 }
 
 function setProjectDrawer(open) {
@@ -3848,6 +4245,60 @@ function setWalkScene(open) {
 }
 
 function bindSceneExperience() {
+  document.addEventListener(
+    "click",
+    (event) => {
+      const evidenceButton =
+        event.target.closest(
+          "[data-open-evidence]"
+        );
+
+      if (evidenceButton) {
+        lastEvidenceTrigger =
+          evidenceButton;
+        setEvidenceViewer(
+          true,
+          evidenceButton.dataset
+            .openEvidence
+        );
+        return;
+      }
+
+      const workflowButton =
+        event.target.closest(
+          "[data-open-ai-workflow]"
+        );
+
+      if (workflowButton) {
+        lastWorkflowTrigger =
+          workflowButton;
+        setAiWorkflowDrawer(true);
+      }
+    }
+  );
+
+  document
+    .querySelectorAll(
+      "[data-close-evidence-viewer]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => setEvidenceViewer(false)
+      );
+    });
+
+  document
+    .querySelectorAll(
+      "[data-close-ai-workflow]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => setAiWorkflowDrawer(false)
+      );
+    });
+
   document
     .querySelectorAll(
       "[data-open-project]"
@@ -4001,6 +4452,22 @@ function bindSceneExperience() {
       }
 
       if (
+        !document
+          .querySelector(
+            "#evidenceViewer"
+          )
+          ?.hidden
+      ) {
+        setEvidenceViewer(false);
+      } else if (
+        !document
+          .querySelector(
+            "#aiWorkflowDrawer"
+          )
+          ?.hidden
+      ) {
+        setAiWorkflowDrawer(false);
+      } else if (
         !document
           .querySelector(
             "#projectDrawer"
@@ -7061,6 +7528,8 @@ async function init() {
   try {
     allPoints =
       await loadPoints();
+
+    updateArchiveMetrics();
 
     /*
      * 先显示地图。

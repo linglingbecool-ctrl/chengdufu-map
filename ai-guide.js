@@ -72,19 +72,90 @@
 
   const demoQuestions = [
     {
+      id: "jiuyanqiao-map",
       label: "古图核证",
-      question: "九眼桥在古图中叫什么？请给出文献依据。"
+      grade: "证据充分",
+      pointId: "jiuyanqiao",
+      question: "九眼桥在古图中叫什么？请给出文献依据。",
+      answer: `结论
+在馆藏古图中，该桥标注为“九贤桥”，而非“九眼桥”。“九贤桥”与今日“九眼桥”存在值得继续核查的空间对应线索，但现有材料不足以直接证明二者为同一桥梁或连续桥名。
+
+文献依据
+1｜馆藏古图｜古图点位记录
+图中标注“九贤桥”。
+
+2｜《成都通览》｜PDF第33页
+“九眼桥（古名洪济桥，明名锁江桥，九洞……乾隆五十三年始改名九眼桥）。”
+
+3｜《成都街巷志》｜PDF第126页
+据天启《成都府志》记述，明万历二十一年（1593）起建桥，初名洪济桥，天启年间改名锁江桥。
+
+证据边界
+能够确认古图标注“九贤桥”，并确认洪济桥—锁江桥—九眼桥的文献沿革；不能确认“九贤桥”与今日九眼桥为同一地点，也不能把“贤/眼”解释为避讳、异体或讹写。`,
+      evidenceIds: [
+        "jiuyanqiao_map_01",
+        "jiuyanqiao_tonglan_p33_01",
+        "jiuyanqiao_jiexiang_p126_01"
+      ]
     },
     {
+      id: "jiuyanqiao-compare",
       label: "文献对读",
+      grade: "文献有差异",
+      pointId: "jiuyanqiao",
       question:
-        "《成都通览》和《成都街巷志》关于九眼桥名称沿革分别怎么记载？两书有哪些不同？"
+        "《成都通览》和《成都街巷志》关于九眼桥名称沿革分别怎么记载？两书有哪些不同？",
+      answer: `结论
+两书都把洪济桥、锁江桥与九眼桥置于同一桥梁沿革中，但对乾隆五十三年（1788）的表述重点不同：一书直接记为“始改名九眼桥”，另一书强调补修以及因九个桥洞形成的民间称呼。应并列保留，不能强行合并为唯一说法。
+
+文献依据
+1｜《成都通览》｜PDF第33页
+记“古名洪济桥，明名锁江桥”，并称乾隆五十三年“始改名九眼桥”。
+
+2｜《成都街巷志》｜PDF第126页
+据地方志记1593年起建洪济桥、天启年间改名锁江桥，并叙清代补修与九孔俗称。
+
+3｜《成都街巷志》｜PDF第127—128页
+记录旧桥维修、1986年新桥、1992年旧桥拆除及2001年异地仿建。
+
+证据边界
+当前证据不足以判断1788年究竟是正式行政改名，还是补修后沿用民间俗称；仿古桥也不能作为明清旧桥原物。`,
+      evidenceIds: [
+        "jiuyanqiao_tonglan_p33_01",
+        "jiuyanqiao_jiexiang_p126_01",
+        "jiuyanqiao_jiexiang_p127_128_01"
+      ]
     },
     {
+      id: "hongpailou-boundary",
       label: "证据边界",
-      question: "红牌楼的名称起源是什么？现有文献能证实吗？"
+      grade: "拒绝定论",
+      pointId: "hongpailou",
+      question: "红牌楼的名称起源是什么？现有文献能证实吗？",
+      answer: `结论
+根据当前知识库，红牌楼得名原因不能确定。现有材料只能证明20世纪40年代“成都外南红牌楼”地名已经使用，以及“红牌楼北街”被目录归入“以昔建筑命名”；不能据此写出一段完整的牌楼起源史。
+
+文献依据
+1｜《成都街巷志》｜PDF第65页
+书中在李家钰将军事迹的括注中使用“成都外南红牌楼”，只能证明当时地名已经明确使用。
+
+2｜《成都街巷志》目录｜PDF第1097页
+目录把“红牌楼北街”归入“以昔建筑命名”，只能作为曾有相关建筑的间接线索。
+
+3｜项目研究缺口记录｜无PDF页码
+本批两部书没有找到足以证明牌楼创建年代、形制、用途与毁坏过程的直接材料。
+
+证据边界
+“明嘉靖年间修建红牌楼”“用于接待藏族朝贡人员”“与茶马互市有关”等流行叙述，本批材料均不能直接支持。AI在证据不足时拒绝下结论，等待补查《华阳县志》原文、地方志与档案。`,
+      evidenceIds: [
+        "hongpailou_jiexiang_p65_01",
+        "hongpailou_jiexiang_outline_01",
+        "hongpailou_project_gap_01"
+      ]
     }
   ];
+
+  const sourceEvidenceQueues = new Map();
 
   let activePointId = "jiuyanqiao";
   let aiApp = null;
@@ -248,6 +319,9 @@
   }
 
   function sourceCardHeader(source) {
+    const evidenceRecord =
+      resolveEvidenceRecord(source);
+
     return `
       <div class="ai-evidence-card-head">
 
@@ -275,8 +349,114 @@
 
       </div>
 
+      <div class="ai-evidence-card-tools">
+        ${
+          evidenceRecord
+            ? `
+              <span class="ai-evidence-grade ai-evidence-grade--${escapeHtml(
+                String(evidenceRecord.grade || "C").toLowerCase()
+              )}">
+                证据 ${escapeHtml(evidenceRecord.grade || "C")}
+              </span>
+
+              <span class="ai-evidence-verification">
+                ${escapeHtml(evidenceRecord.verification || "待复核")}
+              </span>
+
+              <button
+                type="button"
+                data-open-evidence="${escapeHtml(evidenceRecord.id)}"
+              >
+                ${evidenceRecord.pages?.length ? "查看原页" : "查看核验记录"} ↗
+              </button>
+            `
+            : `
+              <span class="ai-evidence-verification">
+                来源信息待进一步匹配
+              </span>
+            `
+        }
+      </div>
+
       <div class="ai-evidence-card-body">
     `;
+  }
+
+  function normalizeSourceTitle(value) {
+    return String(value || "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&[^;]+;/g, "")
+      .replace(/[《》]/g, "")
+      .replace(/目录/g, "")
+      .replace(/馆藏/g, "")
+      .replace(/项目/g, "")
+      .replace(/[\s·]/g, "")
+      .trim();
+  }
+
+  function parsePageRange(value) {
+    const match = String(value || "")
+      .match(/PDF\s*第\s*(\d+)(?:\s*[—-]\s*(\d+))?\s*页/);
+
+    if (!match) return [];
+
+    const start = Number(match[1]);
+    const end = Number(match[2] || match[1]);
+
+    return Array.from(
+      { length: Math.max(1, end - start + 1) },
+      (_, index) => start + index
+    );
+  }
+
+  function resolveEvidenceRecord(source) {
+    const records = window.TUHUI_EVIDENCE?.records || [];
+    const sourceTitle = normalizeSourceTitle(source.title);
+    const pages = parsePageRange(`${source.title} ${source.page}`);
+
+    let candidates = records.filter((record) => {
+      const recordTitle = normalizeSourceTitle(record.title);
+
+      if (
+        sourceTitle.includes("古图") ||
+        sourceTitle.includes("点位记录")
+      ) {
+        return record.id === "jiuyanqiao_map_01";
+      }
+
+      if (
+        sourceTitle.includes("研究缺口") ||
+        sourceTitle.includes("无PDF页码")
+      ) {
+        return record.id === "hongpailou_project_gap_01";
+      }
+
+      if (!recordTitle || !sourceTitle) return false;
+
+      return (
+        recordTitle.includes(sourceTitle) ||
+        sourceTitle.includes(recordTitle)
+      );
+    });
+
+    if (pages.length) {
+      const pageMatched = candidates.filter((record) =>
+        pages.some((page) =>
+          (record.pages || []).some((item) => item.page === page)
+        )
+      );
+
+      if (pageMatched.length) candidates = pageMatched;
+    }
+
+    if (!candidates.length) return null;
+
+    const queueKey = `${activePointId}|${sourceTitle}|${pages.join("-")}`;
+    const used = sourceEvidenceQueues.get(queueKey) || 0;
+    const record = candidates[used % candidates.length];
+    sourceEvidenceQueues.set(queueKey, used + 1);
+
+    return record;
   }
 
   // ========================================================
@@ -284,6 +464,8 @@
   // ========================================================
 
   function renderAnswer(text) {
+    sourceEvidenceQueues.clear();
+
     const safeText = escapeHtml(
       publicFacingText(text)
     );
@@ -698,6 +880,9 @@
             <button
               type="button"
               class="ai-demo-question"
+              data-demo-question="${escapeHtml(
+                item.id
+              )}"
               data-ai-question="${escapeHtml(
                 item.question
               )}"
@@ -712,7 +897,9 @@
 
               ${escapeHtml(
                 item.label
-              )}｜${escapeHtml(
+              )}｜<em>${escapeHtml(
+                item.grade
+              )}</em>｜${escapeHtml(
                 item.question
               )}
 
@@ -797,6 +984,79 @@
   // ========================================================
   // 发送问题
   // ========================================================
+
+  function findDemoQuestion(questionId) {
+    return demoQuestions.find(
+      (item) => item.id === questionId
+    );
+  }
+
+  function appendConversationPair(question, answer) {
+    conversation.push(
+      {
+        id: createId("msg"),
+        role: "user",
+        content: question
+      },
+      {
+        id: createId("msg"),
+        role: "assistant",
+        content: answer
+      }
+    );
+  }
+
+  async function sendDemoQuestion(demo) {
+    if (!demo || busy) return;
+
+    busy = true;
+    activePointId = demo.pointId;
+    selectPoint(demo.pointId, false, true);
+
+    elements.sendButton.disabled = true;
+    elements.input.disabled = true;
+
+    setStatus("快速演示 · 调取已核结果", "working");
+
+    elements.messages
+      .querySelectorAll(".is-latest-question, .is-latest-answer")
+      .forEach((article) => {
+        article.classList.remove("is-latest-question", "is-latest-answer");
+      });
+
+    const userArticle = addMessage("user", demo.question);
+    const assistantArticle = addMessage("assistant", "", {
+      status: "已核结果调取中"
+    });
+
+    userArticle.classList.add("is-latest-question");
+    assistantArticle.classList.add("is-latest-answer", "is-demo-answer");
+    elements.messages.classList.add("has-answer-focus");
+    elements.suggestions.classList.add("is-collapsed");
+    elements.toggleSuggestions?.setAttribute("aria-expanded", "false");
+
+    updateAssistantMessage(assistantArticle, "", "已核结果调取中");
+
+    await new Promise((resolve) => window.setTimeout(resolve, 420));
+
+    updateAssistantMessage(assistantArticle, demo.answer, "快速演示 · 已核对");
+
+    const meta = document.createElement("div");
+    meta.className = "ai-demo-result-note";
+    meta.innerHTML = `
+      <strong>快速演示模式</strong>
+      <span>本答案来自已人工核对的固定示范题，可在 Agent 网络波动时稳定展示；任意自定义问题仍由馆藏 Agent 实时检索。</span>
+    `;
+    assistantArticle.querySelector(".ai-message-body")?.appendChild(meta);
+
+    appendConversationPair(demo.question, demo.answer);
+    setStatus("快速演示完成 · 原页可复核", "ready");
+
+    busy = false;
+    elements.sendButton.disabled = false;
+    elements.input.disabled = false;
+    elements.input.value = "";
+  }
 
   async function sendQuestion(question) {
     const cleanedQuestion =
@@ -1153,10 +1413,18 @@
           );
 
         if (questionButton) {
-          sendQuestion(
-            questionButton.dataset
-              .aiQuestion
+          const demo = findDemoQuestion(
+            questionButton.dataset.demoQuestion
           );
+
+          if (demo) {
+            sendDemoQuestion(demo);
+          } else {
+            sendQuestion(
+              questionButton.dataset
+                .aiQuestion
+            );
+          }
         }
       }
     );

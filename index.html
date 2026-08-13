@@ -19,10 +19,12 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260813-labels03"
+      href="./style.css?v=20260813-evidence01"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
+
+    <script src="./evidence-data.js?v=20260813-evidence01"></script>
 
     <!-- CloudBase Web SDK 3.x：数据库、公众投稿与 Agent 流式问答共用 -->
     <script
@@ -357,6 +359,14 @@
                 <small id="mapAiPointContext">
                   选择六个核心点位，地图与文献证据将同步聚焦。
                 </small>
+
+                <button
+                  type="button"
+                  class="map-ai-workflow-button"
+                  data-open-ai-workflow
+                >
+                  AI 如何工作 →
+                </button>
               </div>
 
               <button
@@ -746,7 +756,7 @@
               class="ai-disclaimer"
               id="aiDisclaimer"
             >
-              AI 只在当前六点位知识库范围内作答；研究使用请回到原书页面复核。
+              AI 只在当前六点位知识库范围内作答；点击回答中的“查看原页”可复核扫描页与证据边界。
             </p>
           </div>
         </div>
@@ -876,6 +886,10 @@
             <p>
               项目以馆藏孤本古地图为视觉入口，以《成都通览》《成都街巷志》等地方文献为知识依据，并通过馆藏证据问答、古今点位释读与公众城市记忆征集，使古地图从静态馆藏文献转化为可查询、可验证、可参与的城市文化知识空间。
             </p>
+
+            <div class="archive-sample-note">
+              已完成首批六点位的可追溯知识样本，后续可按同一标准扩展。
+            </div>
           </div>
 
           <dl class="file-list archive-file-list">
@@ -960,6 +974,32 @@
             </div>
           </dl>
         </div>
+
+        <section class="archive-metrics" aria-labelledby="archiveMetricsTitle">
+          <div class="archive-metrics__head">
+            <div>
+              <p>VERIFIED SAMPLE</p>
+              <h3 id="archiveMetricsTitle">首批知识样本规模</h3>
+            </div>
+            <span>云端公开记忆实时更新</span>
+          </div>
+
+          <dl class="archive-metrics__grid">
+            <div><dt data-archive-map-count>1</dt><dd>馆藏古图</dd></div>
+            <div><dt data-archive-source-count>2</dt><dd>地方文献</dd></div>
+            <div><dt data-archive-fragment-count>25</dt><dd>已核文献片段</dd></div>
+            <div><dt data-archive-profile-count>6</dt><dd>核心点位档案</dd></div>
+            <div><dt data-archive-point-count>50</dt><dd>候选地图点位</dd></div>
+            <div class="is-live"><dt data-archive-public-memory-count>—</dt><dd>已公开城市记忆</dd></div>
+          </dl>
+
+          <div class="archive-evidence-grades">
+            <span>片段证据等级</span>
+            <b>A · <span data-archive-grade="A">20</span></b>
+            <b>B · <span data-archive-grade="B">3</span></b>
+            <b>C · <span data-archive-grade="C">2</span></b>
+          </div>
+        </section>
       </section>
 
 
@@ -1015,6 +1055,90 @@
         </div>
 
         <div id="projectDrawerContent"></div>
+      </div>
+    </aside>
+
+    <aside
+      class="ai-workflow-drawer"
+      id="aiWorkflowDrawer"
+      hidden
+      aria-hidden="true"
+      aria-labelledby="aiWorkflowTitle"
+    >
+      <button
+        type="button"
+        class="ai-workflow-drawer__backdrop"
+        data-close-ai-workflow
+        aria-label="关闭 AI 工作流程"
+      ></button>
+
+      <div class="ai-workflow-drawer__panel" role="dialog" aria-modal="true">
+        <div class="ai-workflow-drawer__head">
+          <div>
+            <p>AI SERVICE BOUNDARY</p>
+            <h2 id="aiWorkflowTitle">AI 如何工作</h2>
+          </div>
+          <button type="button" data-close-ai-workflow aria-label="关闭">×</button>
+        </div>
+
+        <ol class="ai-workflow-chain" aria-label="馆藏证据问答处理流程">
+          <li><span>01</span><strong>馆藏原书</strong><small>保留可回看的扫描页</small></li>
+          <li><span>02</span><strong>文献分片</strong><small>25条首批核验片段</small></li>
+          <li><span>03</span><strong>点位匹配</strong><small>关联六个核心点位</small></li>
+          <li><span>04</span><strong>Agent 检索</strong><small>只调用当前知识范围</small></li>
+          <li><span>05</span><strong>生成结论</strong><small>先结论，再列文献依据</small></li>
+          <li><span>06</span><strong>证据分级</strong><small>A / B / C 与核验状态</small></li>
+          <li><span>07</span><strong>限制回答</strong><small>证据不足时明确拒绝定论</small></li>
+        </ol>
+
+        <div class="ai-service-boundaries">
+          <article>
+            <span>AI AGENT</span>
+            <strong>馆藏问答</strong>
+            <p>检索点位资料与文献片段，组织可追溯回答。</p>
+          </article>
+          <article>
+            <span>LOCAL RULES</span>
+            <strong>表达偏好整理</strong>
+            <p>浏览器本地表层规则，不调用生成式模型，真实原文永久保留。</p>
+          </article>
+          <article>
+            <span>PROCESSING</span>
+            <strong>投稿处理</strong>
+            <p>完成格式、授权与流程检查；当前零模型版本不冒充 AI 审核。</p>
+          </article>
+          <article>
+            <span>LIBRARIAN</span>
+            <strong>内容公开</strong>
+            <p>只有馆员终审通过，才进入城市公共记忆档案。</p>
+          </article>
+        </div>
+      </div>
+    </aside>
+
+    <aside
+      class="evidence-viewer"
+      id="evidenceViewer"
+      hidden
+      aria-hidden="true"
+      aria-labelledby="evidenceViewerTitle"
+    >
+      <button
+        type="button"
+        class="evidence-viewer__backdrop"
+        data-close-evidence-viewer
+        aria-label="关闭文献原页"
+      ></button>
+
+      <div class="evidence-viewer__panel" role="dialog" aria-modal="true">
+        <div class="evidence-viewer__head">
+          <div>
+            <p>PRIMARY SOURCE</p>
+            <h2 id="evidenceViewerTitle">文献原页</h2>
+          </div>
+          <button type="button" data-close-evidence-viewer aria-label="关闭">×</button>
+        </div>
+        <div id="evidenceViewerContent"></div>
       </div>
     </aside>
 
@@ -1078,11 +1202,11 @@
     -->
 
     <script
-      src="./script.js?v=20260813-labels03"
+      src="./script.js?v=20260813-evidence01"
     ></script>
 
     <script
-      src="./ai-guide.js?v=20260813-labels03"
+      src="./ai-guide.js?v=20260813-evidence01"
     ></script>
   </body>
 </html>
