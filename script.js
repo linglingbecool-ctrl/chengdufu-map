@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260813-scenes01";
+const APP_VERSION = "20260813-rewards02";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -51,11 +51,11 @@ const WRITING_STYLES = [
     description: "尽量保留你的原话，只整理语序、错字和重复。"
   },
   {
-    id: "sushi",
-    mark: "苏",
-    name: "苏轼",
-    tagline: "清旷 · 日常 · 有味",
-    description: "适合饮食、出游、朋友与普通生活中的细小滋味。"
+    id: "simaxiangru",
+    mark: "相",
+    name: "司马相如",
+    tagline: "铺陈 · 城阙 · 雅正",
+    description: "强调地点、行程与城市空间的铺陈感；只调整表达，不仿写原作。"
   },
   {
     id: "dufu",
@@ -65,39 +65,39 @@ const WRITING_STYLES = [
     description: "适合老地方、成长、离别与时间变化中的真实感受。"
   },
   {
-    id: "libai",
-    mark: "李",
-    name: "李白",
-    tagline: "明快 · 山水 · 想象",
-    description: "适合江河、夜景、旅行与青春记忆，强调空间与意象。"
+    id: "xuetao",
+    mark: "薛",
+    name: "薛涛",
+    tagline: "清丽 · 细节 · 含蓄",
+    description: "突出人与地点之间细小、清晰的感受；不增添原文没有的景物。"
   },
   {
-    id: "lijieren",
-    mark: "劼",
-    name: "李劼人",
-    tagline: "街巷 · 市井 · 成都",
-    description: "适合老街、商铺、邻里与成都日常生活的细节观察。"
-  },
-  {
-    id: "luxun",
-    mark: "鲁",
-    name: "鲁迅",
-    tagline: "白描 · 观察 · 克制",
-    description: "适合人物、街景与细节观察，减少空泛抒情。"
-  },
-  {
-    id: "alai",
-    mark: "阿",
-    name: "阿来",
-    tagline: "地方 · 自然 · 时间",
-    description: "适合地域、家园与时间痕迹，以地方经验为中心。"
+    id: "sushi",
+    mark: "苏",
+    name: "苏轼",
+    tagline: "清旷 · 日常 · 有味",
+    description: "适合出游、朋友与日常生活中的细小滋味；不仿写原作。"
   },
   {
     id: "guomoruo",
     mark: "郭",
     name: "郭沫若",
     tagline: "历史 · 抒情 · 联想",
-    description: "适合古迹、故乡与历史空间，强调时代与空间联想。"
+    description: "强调个人经历与城市时间的关联；不增加未经提供的历史事实。"
+  },
+  {
+    id: "lijieren",
+    mark: "劼",
+    name: "李劼人",
+    tagline: "街巷 · 市井 · 成都",
+    description: "保留口语与市井节奏，适合老街、商铺、邻里和成都日常。"
+  },
+  {
+    id: "alai",
+    mark: "阿",
+    name: "阿来",
+    tagline: "地方 · 自然 · 时间",
+    description: "让地点和时间成为叙事线索，以平静的地方经验组织记忆。"
   }
 ];
 
@@ -113,6 +113,7 @@ let currentRewriteDraft = "";
 let currentRewriteAccepted = false;
 let currentRewriteMeta = null;
 let rewriteRequestToken = 0;
+let rewriteAutoTimer = 0;
 
 let allPoints = [];
 
@@ -1915,6 +1916,88 @@ function getMemoryTypeLabel(
   );
 }
 
+function toContributionDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime())
+      ? null
+      : value;
+  }
+
+  if (
+    typeof value?.toDate ===
+    "function"
+  ) {
+    return toContributionDate(
+      value.toDate()
+    );
+  }
+
+  const cloudDate =
+    value?.$date ??
+    value?._seconds ??
+    value?.seconds ??
+    value;
+
+  const numericDate =
+    typeof cloudDate === "number" &&
+    cloudDate < 100000000000
+      ? cloudDate * 1000
+      : cloudDate;
+
+  const date = new Date(numericDate);
+
+  return Number.isNaN(date.getTime())
+    ? null
+    : date;
+}
+
+function getFirstPublicMemoryDate(
+  items
+) {
+  const approvedDates = (items || [])
+    .filter(
+      (item) =>
+        item?.status === "approved"
+    )
+    .map(
+      (item) =>
+        toContributionDate(
+          item.publishedAt ||
+          item.approvedAt ||
+          item.reviewedAt ||
+          item.updatedAt ||
+          item.createdAt
+        )
+    )
+    .filter(Boolean)
+    .sort(
+      (first, second) =>
+        first.getTime() -
+        second.getTime()
+    );
+
+  return approvedDates[0] || null;
+}
+
+function formatBadgeUnlockMonth(
+  date
+) {
+  if (!date) {
+    return "首份记忆已公开";
+  }
+
+  const year = date.getFullYear();
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
+
+  return `${year}.${month}`;
+}
+
 function ensureMyMemoryPanel() {
   if (
     document.querySelector(
@@ -2026,8 +2109,28 @@ function renderMyMemoryPanel() {
       ? myContributionData.items
       : [];
 
+  const approvedCount =
+    Number(summary.approved) ||
+    items.filter(
+      (item) =>
+        item?.status === "approved"
+    ).length;
+
   const isContributor =
-    summary.isContributor === true;
+    summary.isContributor === true ||
+    approvedCount > 0;
+
+  const firstLightUnlocked =
+    approvedCount > 0;
+
+  const firstPublicMemoryDate =
+    getFirstPublicMemoryDate(items) ||
+    (firstLightUnlocked
+      ? new Date()
+      : null);
+
+  const litPointCount =
+    getMyLitPointCount();
 
   const identityTitle =
     isContributor
@@ -2044,6 +2147,31 @@ function renderMyMemoryPanel() {
         : "选择一个古图点位，留下照片、地名线索或口述故事，从第一份城市记忆开始。";
 
   const badgeDefinitions = [
+    {
+      key:
+        "chengduLamplighter",
+
+      icon:
+        "✦",
+
+      title:
+        "成都点灯人",
+
+      note:
+        "完成第一次城市记忆公开",
+
+      unlocked:
+        firstLightUnlocked,
+
+      unlockedNote:
+        `已解锁 · ${formatBadgeUnlockMonth(
+          firstPublicMemoryDate
+        )}`,
+
+      foundation:
+        true
+    },
+
     {
       key:
         "imageRecorder",
@@ -2113,9 +2241,12 @@ function renderMyMemoryPanel() {
       .map(
         (badge) => {
           const unlocked =
-            badges[
-              badge.key
-            ] === true;
+            typeof badge.unlocked ===
+            "boolean"
+              ? badge.unlocked
+              : badges[
+                  badge.key
+                ] === true;
 
           return `
             <article
@@ -2123,6 +2254,10 @@ function renderMyMemoryPanel() {
                 unlocked
                   ? "is-unlocked"
                   : "is-locked"
+              }${
+                badge.foundation
+                  ? " is-foundation"
+                  : ""
               }"
             >
               <span
@@ -2142,7 +2277,8 @@ function renderMyMemoryPanel() {
                 <p>
                   ${escapeHtml(
                     unlocked
-                      ? "已获得"
+                      ? badge.unlockedNote ||
+                        "已获得"
                       : badge.note
                   )}
                 </p>
@@ -2395,6 +2531,13 @@ function renderMyMemoryPanel() {
           审核通过后自动解锁
         </span>
       </div>
+
+      <p class="my-badge-progress">
+        <span aria-hidden="true">✦</span>
+        你已点亮
+        <strong>${litPointCount}</strong>
+        处成都记忆
+      </p>
 
       <div
         class="my-badges-grid"
@@ -4007,6 +4150,23 @@ function handleWritingStyleSelection(event) {
     modal,
     "表达偏好已经改变，请重新整理。"
   );
+
+  const originalContent =
+    modal
+      ?.querySelector(
+        "#contributionContent"
+      )
+      ?.value
+      ?.trim() ||
+    "";
+
+  if (
+    selectedWritingStyle !==
+      "original" &&
+    originalContent.length >= 10
+  ) {
+    handleMemoryRewrite();
+  }
 }
 
 function setRewriteChoice(
@@ -4105,6 +4265,11 @@ function renderRewriteState(
       "#memoryRewriteComparison"
     );
 
+  const submitButton =
+    modal.querySelector(
+      "#contributionSubmit"
+    );
+
   if (!panel || !trigger) {
     return;
   }
@@ -4126,6 +4291,11 @@ function renderRewriteState(
 
   trigger.disabled =
     loading;
+
+  if (submitButton) {
+    submitButton.disabled =
+      loading;
+  }
 
   trigger.setAttribute(
     "aria-disabled",
@@ -4224,6 +4394,10 @@ function invalidateRewriteDraft(
   modal,
   message = ""
 ) {
+  window.clearTimeout(
+    rewriteAutoTimer
+  );
+
   rewriteRequestToken += 1;
 
   const hadDraft =
@@ -4387,16 +4561,16 @@ function getWritingStyleAdjustmentNote(
   const notes = {
     original:
       "标点校正 · 重复清理 · 原声优先",
+    simaxiangru:
+      "地点铺陈 · 行程秩序 · 雅正节奏",
     sushi:
       "清简措辞 · 日常语气 · 从容节奏",
     dufu:
       "时间线索 · 沉静措辞 · 深情克制",
-    libai:
-      "明快动词 · 空间感受 · 舒展节奏",
+    xuetao:
+      "细节提炼 · 清丽语气 · 含蓄节奏",
     lijieren:
       "街巷口语 · 市井措辞 · 叙事节奏",
-    luxun:
-      "白描短句 · 删除赘词 · 克制语气",
     alai:
       "地方经验 · 时间递进 · 平静叙述",
     guomoruo:
@@ -4407,13 +4581,110 @@ function getWritingStyleAdjustmentNote(
     notes.original;
 }
 
+function frameMemoryByWritingStyle(
+  text,
+  styleId,
+  pointName
+) {
+  if (styleId === "original") {
+    return normalizeMemoryPunctuation(
+      text
+    );
+  }
+
+  const place =
+    String(pointName || "这里")
+      .trim() ||
+    "这里";
+
+  const sentenceBodies =
+    splitMemorySentences(text)
+      .map(
+        (sentence) =>
+          sentence
+            .replace(
+              /[。！？!?；;]+$/g,
+              ""
+            )
+            .trim()
+      )
+      .filter(Boolean);
+
+  if (!sentenceBodies.length) {
+    return normalizeMemoryPunctuation(
+      text
+    );
+  }
+
+  const profiles = {
+    simaxiangru: {
+      opening:
+        `循着这段行程回望，${place}便从记忆中铺展开来：`,
+      separator:
+        "；"
+    },
+    dufu: {
+      opening:
+        `旧地重提，至今记得${place}。`,
+      separator:
+        "。"
+    },
+    xuetao: {
+      opening:
+        `关于${place}，那些细小的片段至今清楚：`,
+      separator:
+        "；"
+    },
+    sushi: {
+      opening:
+        `回想${place}，寻常日子自有值得记住的滋味：`,
+      separator:
+        "；"
+    },
+    guomoruo: {
+      opening:
+        `个人的行迹，也落在${place}这一处城市坐标上：`,
+      separator:
+        "；"
+    },
+    lijieren: {
+      opening:
+        `说起${place}，先想起的总是当时的光景：`,
+      separator:
+        "。"
+    },
+    alai: {
+      opening:
+        `地点是${place}。时间从这里经过，留下这段记忆：`,
+      separator:
+        "。"
+    }
+  };
+
+  const profile =
+    profiles[styleId];
+
+  if (!profile) {
+    return normalizeMemoryPunctuation(
+      text
+    );
+  }
+
+  return normalizeMemoryPunctuation(
+    `${profile.opening}${sentenceBodies.join(
+      profile.separator
+    )}。`
+  );
+}
+
 /*
  * 零模型表达偏好：仅使用可解释、可复核的表层规则。
  * 不生成比喻，不补写心情、天气、景物或历史事实。
  */
 function applyWritingStylePreference(
   text,
-  styleId
+  styleId,
+  pointName = ""
 ) {
   const source =
     String(text || "");
@@ -4421,6 +4692,33 @@ function applyWritingStylePreference(
   let draft = source;
 
   switch (styleId) {
+    case "simaxiangru":
+      draft = applySurfaceRules(
+        draft,
+        [
+          [/我和/g, "我与"],
+          [/一起来过/g, "一同来到"],
+          [/慢慢走/g, "缓步而行"],
+          [/很多年以后/g, "多年之后"],
+          [/现在重新看到/g, "如今再看到"]
+        ]
+      );
+      break;
+
+    case "xuetao":
+      draft = applySurfaceRules(
+        draft,
+        [
+          [/我只记得/g, "我记得"],
+          [/一直牵着我的手/g, "始终牵着我的手"],
+          [/停了一会儿/g, "停留片刻"],
+          [/很多年以后/g, "多年以后"],
+          [/一直留在我的记忆里/g, "仍留在我的记忆里"],
+          [/现在重新看到/g, "如今再看到"]
+        ]
+      );
+      break;
+
     case "sushi":
       draft = applySurfaceRules(
         draft,
@@ -4601,90 +4899,6 @@ function applyWritingStylePreference(
       );
       break;
 
-    case "libai":
-      draft = applySurfaceRules(
-        draft,
-        [
-          [
-            /我和([^，。！？]{1,20}?)一起来过/g,
-            "我与$1一同来到"
-          ],
-          [
-            /那天下午我们/g,
-            "那天下午，我们"
-          ],
-          [
-            /沿着([^，。！？]{1,20}?)慢慢走/g,
-            "沿$1而行"
-          ],
-          [
-            /桥边有很多来来往往的人/g,
-            "桥边行人往来"
-          ],
-          [
-            /江风很大/g,
-            "江风正劲"
-          ],
-          [
-            /一直牵着我的手/g,
-            "始终牵着我的手"
-          ],
-          [
-            /停了一会儿/g,
-            "停留片刻"
-          ],
-          [
-            /拍了一张照片/g,
-            "留下一张照片"
-          ],
-          [
-            /但是后来搬家时照片找不到了/g,
-            "后来搬家，那张照片也遗失了"
-          ],
-          [
-            /特别特别/g,
-            "格外"
-          ],
-          [
-            /很多年以后我又独自来到这里/g,
-            "多年以后，我又独自来到这里"
-          ],
-          [
-            /很多年以后/g,
-            "多年以后"
-          ],
-          [
-            /我又独自来到这里/g,
-            "我再次独自来到这里"
-          ],
-          [
-            /周围的道路、商店和夜景都发生了变化/g,
-            "道路、商店与夜景都已不同"
-          ],
-          [
-            /一直留在我的记忆里/g,
-            "仍留在我的记忆里"
-          ],
-          [
-            /现在重新看到/g,
-            "如今再看到"
-          ],
-          [
-            /我才意识到/g,
-            "我才明白"
-          ],
-          [
-            /普通出行/g,
-            "寻常出行"
-          ],
-          [
-            /联系在一起/g,
-            "相连"
-          ]
-        ]
-      );
-      break;
-
     case "lijieren":
       draft = applySurfaceRules(
         draft,
@@ -4768,86 +4982,6 @@ function applyWritingStylePreference(
           [
             /联系在一起/g,
             "连在一起"
-          ]
-        ]
-      );
-      break;
-
-    case "luxun":
-      draft = applySurfaceRules(
-        draft,
-        [
-          [
-            /我和([^，。！？]{1,20}?)一起来过/g,
-            "我和$1来过"
-          ],
-          [
-            /那天下午我们/g,
-            "那天下午，我们"
-          ],
-          [
-            /沿着([^，。！？]{1,20}?)慢慢走/g,
-            "沿$1走"
-          ],
-          [
-            /，桥边有很多来来往往的人，/g,
-            "。桥边人来人往。"
-          ],
-          [
-            /我只记得([^，。！？]+)，/g,
-            "$1。"
-          ],
-          [
-            /一直牵着我的手/g,
-            "牵着我的手"
-          ],
-          [
-            /我们在([^，。！？]+?)停了一会儿，还拍了一张照片/g,
-            "我们在$1停下，拍了一张照片"
-          ],
-          [
-            /但是后来搬家时照片找不到了/g,
-            "后来搬家，照片丢了"
-          ],
-          [
-            /我当时年纪还小，对([^，。！？]+?)并不了解，只觉得/g,
-            "那时我还小，不懂$1。只觉得"
-          ],
-          [
-            /非常非常|特别特别/g,
-            "很"
-          ],
-          [
-            /很多年以后我又独自来到这里/g,
-            "多年以后，我独自回到这里"
-          ],
-          [
-            /周围的道路、商店和夜景都发生了变化/g,
-            "道路、商店和夜景都变了"
-          ],
-          [
-            /但“([^”]+)”这个名字一直留在我的记忆里/g,
-            "“$1”这个名字却没有从记忆里消失"
-          ],
-          [
-            /现在重新看到/g,
-            "现在再看到"
-          ],
-          [
-            /我才意识到/g,
-            "我这才明白"
-          ],
-          [
-            /也可能与([^。！？]+?)联系在一起/g,
-            "也可能和$1有关"
-          ],
-          [
-            /(?:其实|说实话|真的)(?=[，。])/g,
-            ""
-          ],
-          [
-            /！/g,
-            "。"
           ]
         ]
       );
@@ -5014,23 +5148,11 @@ function applyWritingStylePreference(
       draft
     );
 
-  if (
-    styleId !== "original" &&
-    normalizedDraft ===
-      normalizeMemoryPunctuation(
-        source
-      )
-  ) {
-    return normalizedDraft
-      .replace(
-        /，/,
-        styleId === "luxun"
-          ? "。"
-          : "；"
-      );
-  }
-
-  return normalizedDraft;
+  return frameMemoryByWritingStyle(
+    normalizedDraft,
+    styleId,
+    pointName
+  );
 }
 
 function buildLocalMemoryDraft({
@@ -5134,7 +5256,8 @@ function buildLocalMemoryDraft({
   draft =
     applyWritingStylePreference(
       draft,
-      styleId
+      styleId,
+      pointName
     );
 
   return normalizeMemoryPunctuation(
@@ -5253,6 +5376,10 @@ async function handleMemoryRewrite() {
     currentRewriteDraft =
       draft;
 
+    currentRewriteAccepted =
+      selectedWritingStyle !==
+      "original";
+
     currentRewriteMeta = {
       engine:
         "rule-based-browser-v2",
@@ -5298,7 +5425,7 @@ async function handleMemoryRewrite() {
 
     setRewriteChoice(
       modal,
-      false
+      currentRewriteAccepted
     );
   }
 
@@ -5331,6 +5458,10 @@ async function handleMemoryRewrite() {
 }
 
 function resetWritingWorkshop(modal) {
+  window.clearTimeout(
+    rewriteAutoTimer
+  );
+
   selectedWritingStyle =
     "original";
 
@@ -5895,11 +6026,36 @@ function ensureContributionModal() {
         )
         ?.addEventListener(
           "input",
-          () =>
+          () => {
             invalidateRewriteDraft(
               modal,
               "原文或整理条件已经改变，请重新整理。"
-            )
+            );
+
+            window.clearTimeout(
+              rewriteAutoTimer
+            );
+
+            if (
+              selector ===
+                "#contributionContent" &&
+              selectedWritingStyle !==
+                "original" &&
+              modal
+                .querySelector(
+                  "#contributionContent"
+                )
+                ?.value
+                ?.trim()
+                .length >= 10
+            ) {
+              rewriteAutoTimer =
+                window.setTimeout(
+                  handleMemoryRewrite,
+                  420
+                );
+            }
+          }
         );
     }
   );

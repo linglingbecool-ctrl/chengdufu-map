@@ -2099,6 +2099,28 @@ span {
   gap: 10px;
 }
 
+.my-badge-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 11px;
+  padding: 9px 11px;
+  border-left: 2px solid var(--gold);
+  background: rgba(196, 154, 69, 0.075);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.my-badge-progress > span {
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+.my-badge-progress strong {
+  color: var(--cinnabar-dark);
+  font-size: 1rem;
+}
+
 .my-badge {
   position: relative;
 
@@ -2149,6 +2171,52 @@ span {
     8px
     22px
     rgba(64, 45, 25, 0.09);
+}
+
+.my-badge.is-foundation {
+  grid-column: 1 / -1;
+}
+
+.my-badge.is-foundation.is-unlocked {
+  overflow: hidden;
+  border-color: rgba(196, 154, 69, 0.72);
+  background:
+    radial-gradient(
+      circle at 88% 18%,
+      rgba(224, 185, 92, 0.26),
+      transparent 25%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 251, 239, 0.98),
+      rgba(196, 154, 69, 0.2)
+    );
+}
+
+.my-badge.is-foundation.is-unlocked::after {
+  content: "FIRST LIGHT";
+  position: absolute;
+  right: 13px;
+  bottom: 9px;
+  color: rgba(126, 53, 40, 0.42);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.my-badge.is-foundation.is-unlocked
+.my-badge__icon {
+  border-color: rgba(196, 154, 69, 0.68);
+  background: var(--gold);
+  color: #fffdf7;
+  box-shadow: 0 0 0 7px rgba(196, 154, 69, 0.1);
+  animation: first-light-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes first-light-breathe {
+  50% {
+    box-shadow: 0 0 0 11px rgba(196, 154, 69, 0.035);
+  }
 }
 
 .my-badge__icon {
