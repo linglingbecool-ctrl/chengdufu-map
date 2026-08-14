@@ -3244,8 +3244,6 @@ function renderDetail(
           </section>
         ` : ""}
 
-        ${renderPointEvidenceCards(point)}
-
         ${knowledge?.caution ? `
           <p class="detail-caution"><strong>证据边界</strong>${escapeHtml(knowledge.caution)}</p>
         ` : ""}
