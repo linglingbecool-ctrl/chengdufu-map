@@ -73,6 +73,9 @@
   const demoQuestions = [
     {
       id: "jiuyanqiao-map",
+      matchPriority: 20,
+      matchAll: [["九眼桥", "九贤桥"]],
+      matchAny: ["古图", "图上", "地图", "名称", "称呼", "叫什么", "得名", "由来"],
       label: "古图核证",
       grade: "证据充分",
       pointId: "jiuyanqiao",
@@ -100,6 +103,9 @@
     },
     {
       id: "jiuyanqiao-compare",
+      matchPriority: 30,
+      matchAll: [["九眼桥", "九贤桥"]],
+      matchAny: ["成都通览", "成都街巷志", "两书", "对读", "差异", "不同", "分别"],
       label: "文献对读",
       grade: "文献有差异",
       pointId: "jiuyanqiao",
@@ -128,6 +134,10 @@
     },
     {
       id: "hongpailou-boundary",
+      matchPriority: 40,
+      matchAll: [["红牌楼"]],
+      matchAny: ["名称", "名字", "得名", "由来", "起源", "为什么叫", "茶马", "朝贡", "嘉靖"],
+      decision: "insufficient-evidence",
       label: "证据边界",
       grade: "拒绝定论",
       pointId: "hongpailou",
@@ -161,6 +171,8 @@
   let aiApp = null;
   let busy = false;
   let conversation = [];
+  const questionQueue = [];
+  const MAX_QUEUED_QUESTIONS = 2;
 
   const elements = {};
 
@@ -367,7 +379,7 @@
                 type="button"
                 data-open-evidence="${escapeHtml(evidenceRecord.id)}"
               >
-                ${evidenceRecord.pages?.length ? "查看原页" : "查看核验记录"} ↗
+                ${evidenceRecord.sourceType === "in-copyright" ? "查看引用式证据卡" : evidenceRecord.pages?.length ? "查看原页" : "查看核验记录"} ↗
               </button>
             `
             : `
@@ -442,7 +454,8 @@
     if (pages.length) {
       const pageMatched = candidates.filter((record) =>
         pages.some((page) =>
-          (record.pages || []).some((item) => item.page === page)
+          Number(record.pageStart) <= page &&
+          Number(record.pageEnd || record.pageStart) >= page
         )
       );
 
@@ -816,12 +829,9 @@
     ).trim();
   }
 
-  function getAiClient() {
-    if (
-      aiApp &&
-      typeof aiApp.ai === "function"
-    ) {
-      return aiApp.ai();
+  function getCloudApp() {
+    if (aiApp) {
+      return aiApp;
     }
 
     if (
@@ -847,21 +857,126 @@
         accessKey;
     }
 
-    aiApp =
-      window.cloudbase.init(
-        initOptions
-      );
+    aiApp = window.cloudbase.init(
+      initOptions
+    );
+
+    return aiApp;
+  }
+
+  function getAiClient() {
+    const app = getCloudApp();
 
     if (
-      !aiApp ||
-      typeof aiApp.ai !== "function"
+      !app ||
+      typeof app.ai !== "function"
     ) {
       throw new Error(
         "当前 CloudBase SDK 不包含 AI 调用模块"
       );
     }
 
-    return aiApp.ai();
+    return app.ai();
+  }
+
+  function normalizeFunctionResult(
+    response
+  ) {
+    let result =
+      response?.result ??
+      response?.data ??
+      response;
+
+    if (typeof result === "string") {
+      try {
+        result = JSON.parse(result);
+      } catch {
+        return null;
+      }
+    }
+
+    if (
+      result &&
+      typeof result === "object" &&
+      "data" in result &&
+      Object.keys(result).length === 1
+    ) {
+      result = result.data;
+    }
+
+    return result || null;
+  }
+
+  async function callEvidenceQuestion(
+    question
+  ) {
+    const app = getCloudApp();
+
+    if (
+      !app ||
+      typeof app.callFunction !==
+        "function"
+    ) {
+      throw Object.assign(
+        new Error("CloudBase 云函数调用模块不可用"),
+        { code: "CLOUDBASE_UNAVAILABLE" }
+      );
+    }
+
+    const request = app.callFunction({
+      name: "askEvidenceQuestion",
+      data: {
+        question,
+        pointId: activePointId,
+        requestId: createId("evidence")
+      },
+      parse: true
+    });
+
+    const clientTimeout = new Promise(
+      (_, reject) => {
+        window.setTimeout(() => {
+          reject(
+            Object.assign(
+              new Error("实时模型等待超过22秒，请重试。"),
+              { code: "CLIENT_TIMEOUT" }
+            )
+          );
+        }, 22000);
+      }
+    );
+
+    const response = await Promise.race([
+      request,
+      clientTimeout
+    ]);
+    const result =
+      normalizeFunctionResult(response);
+
+    if (!result) {
+      throw Object.assign(
+        new Error("馆藏证据服务未返回有效结果"),
+        { code: "INVALID_RESPONSE" }
+      );
+    }
+
+    if (!result.ok) {
+      throw Object.assign(
+        new Error(
+          result.message ||
+            "馆藏证据服务暂时不可用"
+        ),
+        {
+          code:
+            result.code ||
+            "SERVICE_UNAVAILABLE",
+          retryAfterMs:
+            result.retryAfterMs || 0
+        }
+      );
+    }
+
+    return result;
   }
 
   // ========================================================
@@ -991,6 +1106,98 @@
     );
   }
 
+  function normalizeDemoQuestionText(
+    value
+  ) {
+    return String(value || "")
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/[\s\p{P}\p{S}]+/gu, "");
+  }
+
+  function findDemoQuestionByText(
+    question
+  ) {
+    const normalized =
+      normalizeDemoQuestionText(
+        question
+      );
+
+    return demoQuestions
+      .filter((item) => {
+        const allGroups =
+          Array.isArray(item.matchAll)
+            ? item.matchAll
+            : [];
+        const anyTerms =
+          Array.isArray(item.matchAny)
+            ? item.matchAny
+            : [];
+
+        const allMatched =
+          allGroups.every((group) =>
+            (Array.isArray(group) ? group : [group])
+              .some((term) =>
+                normalized.includes(
+                  normalizeDemoQuestionText(term)
+                )
+              )
+          );
+        const anyMatched =
+          anyTerms.some((term) =>
+            normalized.includes(
+              normalizeDemoQuestionText(term)
+            )
+          );
+
+        return allMatched && anyMatched;
+      })
+      .sort(
+        (first, second) =>
+          Number(second.matchPriority || 0) -
+          Number(first.matchPriority || 0)
+      )[0] || null;
+  }
+
+  function queueQuestion(question) {
+    const normalized =
+      normalizeDemoQuestionText(question);
+    const duplicate =
+      questionQueue.some(
+        (item) =>
+          normalizeDemoQuestionText(item) ===
+          normalized
+      );
+
+    if (!duplicate) {
+      if (
+        questionQueue.length >=
+        MAX_QUEUED_QUESTIONS
+      ) {
+        questionQueue.shift();
+      }
+      questionQueue.push(question);
+    }
+
+    elements.input.value = "";
+    setStatus(
+      `问题已排队 · 前方 ${Math.max(1, questionQueue.length)} 条`,
+      "working"
+    );
+  }
+
+  function processNextQueuedQuestion() {
+    if (busy || !questionQueue.length) {
+      return;
+    }
+
+    const next = questionQueue.shift();
+    window.setTimeout(
+      () => sendQuestion(next),
+      120
+    );
+  }
+
   function appendConversationPair(question, answer) {
     conversation.push(
       {
@@ -1037,15 +1244,18 @@
 
     updateAssistantMessage(assistantArticle, "", "已核结果调取中");
 
-    await new Promise((resolve) => window.setTimeout(resolve, 420));
+    // 保留评审演示约 1.1 秒的稳定反馈节奏，避免结果瞬闪。
+    await new Promise((resolve) => window.setTimeout(resolve, 1050));
 
     updateAssistantMessage(assistantArticle, demo.answer, "快速演示 · 已核对");
 
     const meta = document.createElement("div");
     meta.className = "ai-demo-result-note";
+    assistantArticle.dataset.answerRoute =
+      demo.decision || "preset-verified";
     meta.innerHTML = `
-      <strong>快速演示模式</strong>
-      <span>本答案来自已人工核对的固定示范题，可在 Agent 网络波动时稳定展示；任意自定义问题仍由馆藏 Agent 实时检索。</span>
+      <strong>预置核验结果${demo.decision === "insufficient-evidence" ? " · 证据不足" : ""}</strong>
+      <span>本答案为人工预先核对结果，非实时模型生成；未命中演示题的问题由 CloudBase 安全中转后实时检索。</span>
     `;
     assistantArticle.querySelector(".ai-message-body")?.appendChild(meta);
 
@@ -1056,26 +1266,40 @@
     elements.sendButton.disabled = false;
     elements.input.disabled = false;
     elements.input.value = "";
+    processNextQueuedQuestion();
   }
 
   async function sendQuestion(question) {
     const cleanedQuestion =
       String(question || "").trim();
 
-    if (
-      !cleanedQuestion ||
-      busy
-    ) {
+    if (!cleanedQuestion) {
+      return;
+    }
+
+    if (busy) {
+      queueQuestion(cleanedQuestion);
+      return;
+    }
+
+    const matchedDemo =
+      findDemoQuestionByText(
+        cleanedQuestion
+      );
+
+    if (matchedDemo) {
+      await sendDemoQuestion(
+        matchedDemo
+      );
       return;
     }
 
     busy = true;
 
-    elements.sendButton.disabled =
-      true;
-
-    elements.input.disabled =
-      true;
+    // 实时检索期间仍允许输入下一问；再次提交时进入长度为2的本地队列。
+    elements.sendButton.disabled = false;
+    elements.input.disabled = false;
+    elements.input.value = "";
 
     setStatus(
       "正在检索馆藏证据",
@@ -1146,90 +1370,24 @@
       userMessage
     );
 
-    let answer = "";
-
     try {
-      const ai =
-        getAiClient();
+      updateAssistantMessage(
+        assistantArticle,
+        "",
+        "证据排序中"
+      );
 
-      const response =
-        await ai.bot.sendMessage({
-          botId: config.agentId,
-          threadId: getThreadId(),
-          runId: createId("run"),
-          messages: conversation,
-          tools: [],
-          context: [],
-          state: {},
-          forwardedProps: {}
-        });
-
-      if (
-        response.dataStream &&
-        response.dataStream[
-          Symbol.asyncIterator
-        ]
-      ) {
-        for await (
-          const event of
-          response.dataStream
-        ) {
-          if (
-            event.type ===
-            "TEXT_MESSAGE_CONTENT"
-          ) {
-            answer +=
-              event.delta || "";
-
-            updateAssistantMessage(
-              assistantArticle,
-              answer,
-              "证据生成中"
-            );
-          }
-
-          if (
-            event.type ===
-            "RUN_ERROR"
-          ) {
-            throw new Error(
-              event.message ||
-                "Agent 返回错误"
-            );
-          }
-        }
-      }
-
-      else if (
-        response.textStream &&
-        response.textStream[
-          Symbol.asyncIterator
-        ]
-      ) {
-        for await (
-          const delta of
-          response.textStream
-        ) {
-          answer +=
-            String(delta || "");
-
-          updateAssistantMessage(
-            assistantArticle,
-            answer,
-            "证据生成中"
-          );
-        }
-      }
-
-      else {
-        throw new Error(
-          "未获得流式回答"
+      const result =
+        await callEvidenceQuestion(
+          cleanedQuestion
         );
-      }
+      const answer =
+        String(result.answer || "").trim();
 
-      if (!answer.trim()) {
-        throw new Error(
-          "Agent 未返回文字回答"
+      if (!answer) {
+        throw Object.assign(
+          new Error("馆藏证据服务未返回答案"),
+          { code: "EMPTY_ANSWER" }
         );
       }
 
@@ -1242,22 +1400,58 @@
       updateAssistantMessage(
         assistantArticle,
         answer,
-        "已核对知识库"
+        result.route === "verified-cache"
+          ? "馆员已核验"
+          : result.route === "insufficient-evidence"
+            ? "相关证据不足"
+            : result.route === "out-of-scope"
+              ? "证据范围之外"
+              : result.route === "raw-evidence"
+                ? "仅返回馆藏依据"
+                : "实时检索完成"
       );
 
+      assistantArticle.dataset.answerRoute =
+        result.route || "realtime-model";
+
+      const sourceNote =
+        document.createElement("div");
+      sourceNote.className =
+        "ai-result-source-note";
+      sourceNote.innerHTML = `
+        <strong>${escapeHtml(result.sourceLabel || "实时检索生成")}</strong>
+        <span>
+          ${result.model ? `${escapeHtml(result.model)} · ` : ""}
+          ${Number(result.evidenceCount) || 0} 条相关证据
+          ${result.timing?.totalMs ? ` · ${Number(result.timing.totalMs)} ms` : ""}
+        </span>
+      `;
+      assistantArticle
+        .querySelector(".ai-message-body")
+        ?.appendChild(sourceNote);
+
       setStatus(
-        "馆藏知识库已连接",
-        "ready"
+        result.route === "insufficient-evidence"
+          ? "已检索 · 证据不足以定论"
+          : result.route === "out-of-scope"
+            ? "当前知识样本未覆盖"
+            : result.route === "raw-evidence"
+              ? "模型暂不可用 · 已返回馆藏依据"
+              : result.route === "verified-cache"
+                ? "馆员核验结果已返回"
+                : "实时检索生成完成",
+        result.route === "out-of-scope"
+          ? "error"
+          : "ready"
       );
     }
 
     catch (error) {
-      console.error(
+      // 这些错误均已在界面内转成可重试提示，不作为控制台故障上报。
+      console.info(
         "AI_GUIDE_FAILED",
-        {
-          name: error?.name,
-          message: error?.message
-        }
+        String(error?.code || error?.name || "UNKNOWN"),
+        String(error?.message || "未知错误")
       );
 
       const needsKey =
@@ -1266,7 +1460,11 @@
       const friendlyMessage =
         needsKey
           ? "网页尚未配置 CloudBase Publishable Key，请检查网页公开连接配置。"
-          : "馆藏 AI 暂时未能完成检索，请稍后重试。地图与点位资料仍可正常浏览。";
+          : ["MODEL_TIMEOUT", "CLIENT_TIMEOUT"].includes(error?.code)
+            ? "实时检索超过等待时间，请稍后重试；输入框已恢复，可以继续浏览地图或重新提问。"
+            : error?.code === "MODEL_BUSY"
+              ? "免费模型当前请求较多，请稍后重试；输入框仍可继续使用。"
+              : "馆藏 AI 暂时未能完成检索，请稍后重试。地图与点位资料仍可正常浏览。";
 
       updateAssistantMessage(
         assistantArticle,
@@ -1283,7 +1481,11 @@
       }
 
       setStatus(
-        "馆藏 AI 等待连接",
+        ["MODEL_TIMEOUT", "CLIENT_TIMEOUT"].includes(error?.code)
+          ? "实时检索超时 · 可重新提问"
+          : error?.code === "MODEL_BUSY"
+            ? "免费模型繁忙 · 可稍后重试"
+            : "馆藏 AI 等待连接",
         "error"
       );
 
@@ -1303,9 +1505,8 @@
       elements.input.disabled =
         false;
 
-      elements.input.value = "";
-
       elements.input.focus();
+      processNextQueuedQuestion();
     }
   }
 
@@ -1315,6 +1516,7 @@
 
   function clearConversation() {
     conversation = [];
+    questionQueue.length = 0;
 
     sessionStorage.removeItem(
       THREAD_KEY

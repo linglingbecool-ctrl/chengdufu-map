@@ -14,17 +14,28 @@
 
     <meta
       name="description"
-      content="基于四川大学图书馆馆藏《清初四川通省山川形胜全图》中的“四川成都府”图，结合地方文献、古今影像与公众投稿，呈现成都城市空间变迁与城市记忆。"
+      content="图绘成都以四川大学图书馆馆藏古图为入口，提供馆藏证据问答、A/B/C证据分级、馆员终审与公众记忆共建，让清代成都府图在古地图活化中重新进入今天的城市生活。"
     />
+
+    <meta name="keywords" content="图绘成都,馆藏证据问答,证据分级,馆员终审,古地图活化,四川大学图书馆,成都府图" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://tuhuichengdu.cn/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="图绘成都" />
+    <meta property="og:title" content="图绘成都｜馆藏证据问答与古地图活化" />
+    <meta property="og:description" content="从馆藏成都府图进入探古、问图、留忆：25条可追溯证据、A/B/C分级、证据不足拒答、馆员终审与城市公共记忆共建。" />
+    <meta property="og:url" content="https://tuhuichengdu.cn/" />
+    <meta property="og:image" content="https://tuhuichengdu.cn/chengdu-map.png" />
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260813-evidence01"
+      href="./style.css?v=20260814-compliance01"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
 
-    <script src="./evidence-data.js?v=20260813-evidence01"></script>
+    <script src="./evidence-data.js?v=20260814-compliance01"></script>
 
     <!-- CloudBase Web SDK 3.x：数据库、公众投稿与 Agent 流式问答共用 -->
     <script
@@ -133,6 +144,39 @@
         </button>
       </div>
     </header>
+
+    <section class="review-static-summary" aria-labelledby="reviewSummaryTitle">
+      <details>
+        <summary>
+          <span>评审静态摘要</span>
+          <strong id="reviewSummaryTitle">不用运行 JavaScript，也能了解项目核心能力</strong>
+        </summary>
+        <div class="review-static-summary__grid">
+          <article>
+            <h2>地图中枢</h2>
+            <p>探古：查看六个核心点位的古今变化；问图：让地图与馆藏证据联动；留忆：提交真实城市记忆并点亮成都。</p>
+          </article>
+          <article>
+            <h2>馆藏证据</h2>
+            <p>固定项目常量：首批25条文献证据，其中A级20条、B级3条、C级2条。公版《成都通览》可查看扫描原页；当代《成都街巷志》依合理引用原则仅展示出处、页码与要点转述。</p>
+          </article>
+          <article>
+            <h2>证据问答</h2>
+            <p>三道人工核验演示题快速返回；其他问题由CloudBase云函数检索证据并调用模型。检索到相关材料但证据不足时明确拒绝下结论，并同时展示证据卡。</p>
+          </article>
+          <article>
+            <h2>公众共建与行走</h2>
+            <p>投稿先经自动规则初审，再由馆员人工终审；终审通过后进入城市公共记忆档案并点亮地图。Citywalk依次串联九眼桥、武侯祠、青羊宫、文殊院、满城与红牌楼。</p>
+          </article>
+        </div>
+        <p class="review-static-summary__maintenance">以上25条与A/B/C数量为人工维护的项目常量，不替代云端实时公开记忆数量。</p>
+      </details>
+      <noscript>
+        <div class="review-noscript-notice">
+          当前浏览器未启用 JavaScript。你仍可阅读以上项目摘要；地图交互、馆藏证据问答、Citywalk、记忆档案卡与徽章功能需要启用 JavaScript 后体验。
+        </div>
+      </noscript>
+    </section>
 
     <main>
 
@@ -756,7 +800,7 @@
               class="ai-disclaimer"
               id="aiDisclaimer"
             >
-              AI 只在当前六点位知识库范围内作答；点击回答中的“查看原页”可复核扫描页与证据边界。
+              AI 只在当前六点位知识库范围内作答；点击回答中的“查看证据”可复核公版扫描页或当代文献引用卡与证据边界。
             </p>
           </div>
         </div>
@@ -1082,20 +1126,25 @@
         </div>
 
         <ol class="ai-workflow-chain" aria-label="馆藏证据问答处理流程">
-          <li><span>01</span><strong>馆藏原书</strong><small>保留可回看的扫描页</small></li>
+          <li><span>01</span><strong>馆藏原书</strong><small>公版看原页，在版权文献仅作引用</small></li>
           <li><span>02</span><strong>文献分片</strong><small>25条首批核验片段</small></li>
           <li><span>03</span><strong>点位匹配</strong><small>关联六个核心点位</small></li>
-          <li><span>04</span><strong>Agent 检索</strong><small>只调用当前知识范围</small></li>
-          <li><span>05</span><strong>生成结论</strong><small>先结论，再列文献依据</small></li>
+          <li><span>04</span><strong>轻量检索</strong><small>从25条证据中排序相关片段</small></li>
+          <li><span>05</span><strong>模型组织</strong><small>GLM-4.7-Flash 经云函数安全中转</small></li>
           <li><span>06</span><strong>证据分级</strong><small>A / B / C 与核验状态</small></li>
           <li><span>07</span><strong>限制回答</strong><small>证据不足时明确拒绝定论</small></li>
         </ol>
 
         <div class="ai-service-boundaries">
           <article>
-            <span>AI AGENT</span>
-            <strong>馆藏问答</strong>
-            <p>检索点位资料与文献片段，组织可追溯回答。</p>
+            <span>REAL MODEL</span>
+            <strong>馆藏证据问答</strong>
+            <p>GLM-4.7-Flash 由 CloudBase 云函数中转，只依据检索到的馆藏证据组织回答。</p>
+          </article>
+          <article>
+            <span>VERIFIED PRESET</span>
+            <strong>演示题快速返回</strong>
+            <p>三道结果已经人工预先核对，约1.1秒返回，不是实时生成。</p>
           </article>
           <article>
             <span>LOCAL RULES</span>
@@ -1103,14 +1152,9 @@
             <p>浏览器本地表层规则，不调用生成式模型，真实原文永久保留。</p>
           </article>
           <article>
-            <span>PROCESSING</span>
-            <strong>投稿处理</strong>
-            <p>完成格式、授权与流程检查；当前零模型版本不冒充 AI 审核。</p>
-          </article>
-          <article>
-            <span>LIBRARIAN</span>
-            <strong>内容公开</strong>
-            <p>只有人工审核通过，才进入城市公共记忆档案。</p>
+            <span>RULES + LIBRARIAN</span>
+            <strong>投稿处理与内容公开</strong>
+            <p>先做自动规则初审，再由馆员人工终审；只有终审通过才进入公共档案并点亮地图。</p>
           </article>
         </div>
       </div>
@@ -1186,13 +1230,28 @@
          ================================================== -->
 
     <footer class="site-footer">
-      <a href="#top">
-        返回顶部
-      </a>
+      <section class="review-access" aria-labelledby="reviewAccessTitle">
+        <div class="review-access__copy">
+          <p>REVIEW ACCESS</p>
+          <h2 id="reviewAccessTitle">评审测试入口</h2>
+          <p>公开内容无需账号即可只读浏览；匿名访客还可提交一条测试记忆，但不能进入馆员审核端。</p>
+          <dl>
+            <div><dt>站点网址</dt><dd><a href="https://tuhuichengdu.cn/">https://tuhuichengdu.cn/</a></dd></div>
+            <div><dt>访问方式</dt><dd>无需账号 · 公开只读浏览 / 匿名访客投稿</dd></div>
+            <div><dt>完整链路</dt><dd>提交记忆 → 自动规则初审 → 馆员人工终审 → 地图点亮</dd></div>
+          </dl>
+          <small>终审环节由项目组测试馆员在审核端操作；公众端没有馆员管理权限。</small>
+        </div>
+        <a class="review-access__qr" href="https://tuhuichengdu.cn/" aria-label="打开图绘成都评审测试入口">
+          <img src="./review-access-qr.png" alt="图绘成都评审测试入口二维码" width="330" height="330" loading="lazy" />
+          <span>扫码进入评审测试</span>
+        </a>
+      </section>
 
-      <span>
-        图绘成都 · 四川大学图书馆古籍特藏数字导览与城市记忆共创
-      </span>
+      <div class="site-footer__base">
+        <a href="#top">返回顶部</a>
+        <span>图绘成都 · 四川大学图书馆古籍特藏数字导览与城市记忆共创</span>
+      </div>
     </footer>
 
 
@@ -1202,11 +1261,11 @@
     -->
 
     <script
-      src="./script.js?v=20260813-evidence02"
+      src="./script.js?v=20260814-compliance01"
     ></script>
 
     <script
-      src="./ai-guide.js?v=20260813-evidence01"
+      src="./ai-guide.js?v=20260814-model03"
     ></script>
   </body>
 </html>

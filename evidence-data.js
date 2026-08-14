@@ -4,7 +4,12 @@
   const tonglanEdition = {
     title: "《成都通览》",
     author: "傅崇矩",
+    sourceType: "public-domain",
+    publisher: "天地出版社",
+    publicationYear: "2014",
+    editionStatement: "2014年3月第1版第1次印刷",
     edition: "天地出版社，2014年3月第1版第1次印刷",
+    rightsStatement: "公版原著（1909年）",
     verification: "原页目视核验",
     verificationCode: "visually_verified"
   };
@@ -12,7 +17,12 @@
   const jiexiangEdition = {
     title: "《成都街巷志》",
     author: "袁庭栋",
+    sourceType: "in-copyright",
+    publisher: "四川教育出版社",
+    publicationYear: "2010",
+    editionStatement: "2010年4月第1版第1次印刷",
     edition: "四川教育出版社，2010年4月第1版第1次印刷",
+    rightsStatement: "当代出版物，合理引用",
     verification: "PDF文字层与原页复核",
     verificationCode: "text_layer_verified"
   };
@@ -20,7 +30,12 @@
   const projectEdition = {
     title: "项目点位核验记录",
     author: "图绘成都项目组",
+    sourceType: "project-note",
+    publisher: "图绘成都项目组",
+    publicationYear: "2026",
+    editionStatement: "项目内部核验记录",
     edition: "依据馆藏古图方位、水系与点位资料形成的研究记录",
+    rightsStatement: "项目研究记录",
     verification: "项目记录，仍需继续复核",
     verificationCode: "project_note"
   };
@@ -311,7 +326,8 @@
     record.sourceKey = sourceKey(record);
     record.pages = [];
 
-    if (record.pageStart) {
+    // 只有公版文献生成并公开扫描页地址；在版权文献只保留书目信息与页码。
+    if (record.sourceType === "public-domain" && record.pageStart) {
       for (let page = record.pageStart; page <= (record.pageEnd || record.pageStart); page += 1) {
         record.pages.push({
           page,

@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260813-evidence02";
+const APP_VERSION = "20260814-compliance01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -649,8 +649,14 @@ function renderPointEvidenceCards(
     <section class="detail-source-section">
       <p class="detail-section-label">馆藏证据</p>
       <div class="detail-source-list">
-        ${records.map((record, index) => `
-          <article class="detail-source-card">
+        ${records.map((record, index) => {
+          const isInCopyright =
+            record.sourceType === "in-copyright";
+          const isPublicDomain =
+            record.sourceType === "public-domain";
+
+          return `
+          <article class="detail-source-card ${isInCopyright ? "is-citation-evidence" : ""}">
             <div class="detail-source-card__head">
               <span>
                 <small>${String(index + 1).padStart(2, "0")}</small>
@@ -658,15 +664,19 @@ function renderPointEvidenceCards(
               </span>
               <em>${escapeHtml(record.pageLabel)}</em>
             </div>
-            <p>${escapeHtml(record.excerpt)}</p>
+            <p>${escapeHtml(isInCopyright ? record.proves : record.excerpt)}</p>
             <div class="detail-source-card__footer">
-              <span class="source-grade">证据 ${escapeHtml(record.grade)} · ${escapeHtml(record.verification)}</span>
+              <span class="source-grade">
+                证据 ${escapeHtml(record.grade)} · ${escapeHtml(record.verification)}
+                ${isInCopyright ? " · 合理引用" : isPublicDomain ? " · 公版原页" : ""}
+              </span>
               <button type="button" data-open-evidence="${escapeHtml(record.id)}">
-                ${record.pages?.length ? "查看原页" : "查看核验记录"} ↗
+                ${isInCopyright ? "查看引用式证据卡" : record.pages?.length ? "查看原页" : "查看核验记录"} ↗
               </button>
             </div>
           </article>
-        `).join("")}
+        `;
+        }).join("")}
       </div>
     </section>
   `;
@@ -2081,6 +2091,20 @@ function toContributionDate(value) {
     : date;
 }
 
+function formatPublicArchiveDate(value) {
+  const date = toContributionDate(value);
+
+  if (!date) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}年${month}月${day}日`;
+}
+
 function getFirstPublicMemoryDate(
   items
 ) {
@@ -2952,6 +2976,11 @@ function renderMemorySection(
               "collaborativeDraft" &&
             collaborativeDraft;
 
+          const publishedDate =
+            formatPublicArchiveDate(
+              memory.publishedAt
+            );
+
           return `
             <article
               class="memory-card public-archive-card"
@@ -3001,6 +3030,18 @@ function renderMemorySection(
 
               <dl class="public-archive-card__ledger">
                 <div><dt>投稿类型</dt><dd>${escapeHtml(getMaterialTypeLabel(memory.materialType))}</dd></div>
+                <div>
+                  <dt>审核状态</dt>
+                  <dd>
+                    <span class="public-archive-review-seal">
+                      <i aria-hidden="true">馆</i>
+                      ${escapeHtml(memory.reviewStatusLabel || "馆员终审通过")}
+                    </span>
+                  </dd>
+                </div>
+                ${publishedDate ? `
+                  <div><dt>公开时间</dt><dd>${escapeHtml(publishedDate)}</dd></div>
+                ` : ""}
               </dl>
 
               <div class="public-archive-card__mark">
@@ -3705,7 +3746,12 @@ function renderEvidenceViewer(record) {
       ? record.pages
       : [];
 
-  const pageGallery = pages.length
+  const isPublicDomain =
+    record.sourceType === "public-domain";
+  const isInCopyright =
+    record.sourceType === "in-copyright";
+
+  const sourcePresentation = isPublicDomain && pages.length
     ? `
       <section class="evidence-scan-section">
         <div class="evidence-viewer__section-head">
@@ -3727,7 +3773,24 @@ function renderEvidenceViewer(record) {
         </div>
       </section>
     `
-    : `
+    : isInCopyright
+      ? `
+      <section class="evidence-citation-section" aria-label="引用式证据">
+        <div class="evidence-viewer__section-head">
+          <div>
+            <span>CITATION EVIDENCE</span>
+            <h3>引用式证据卡</h3>
+          </div>
+          <small>书目信息 · 页码定位 · 内容转述</small>
+        </div>
+        <div class="evidence-citation-statement">
+          <span>内容转述</span>
+          <p>${escapeHtml(record.proves || "待进一步核验。")}</p>
+        </div>
+        <p class="evidence-copyright-notice">本条依据当代出版物，依合理引用原则仅标注出处与要点转述，不展示原书影像。</p>
+      </section>
+    `
+      : `
       <section class="evidence-note-preview">
         <img src="./chengdu-map.png" alt="馆藏成都府图" loading="eager">
         <div>
@@ -3737,6 +3800,22 @@ function renderEvidenceViewer(record) {
         </div>
       </section>
     `;
+
+  const originalExcerpt = isPublicDomain
+    ? `
+      <section class="evidence-excerpt">
+        <span>对应原文 · 已定位</span>
+        <blockquote><mark>${escapeHtml(record.excerpt || "原文片段待补录")}</mark></blockquote>
+        <p>高亮文本为知识库节录；判断时仍以同屏原页和上下文为准。</p>
+      </section>
+    `
+    : "";
+
+  const sourceTypeLabel = isPublicDomain
+    ? "公版文献 · 可查看原页"
+    : isInCopyright
+      ? "当代出版物 · 合理引用"
+      : "项目研究记录";
 
   content.innerHTML = `
     <article class="evidence-record">
@@ -3752,19 +3831,18 @@ function renderEvidenceViewer(record) {
       <dl class="evidence-bibliography">
         <div><dt>书名</dt><dd>${escapeHtml(record.title)}</dd></div>
         <div><dt>作者</dt><dd>${escapeHtml(record.author || "待补录")}</dd></div>
-        <div><dt>版本</dt><dd>${escapeHtml(record.edition || "待补录")}</dd></div>
+        <div><dt>出版社</dt><dd>${escapeHtml(record.publisher || "项目自建资料")}</dd></div>
+        <div><dt>出版年</dt><dd>${escapeHtml(record.publicationYear || "未标注")}</dd></div>
+        <div><dt>版次</dt><dd>${escapeHtml(record.editionStatement || record.edition || "待补录")}</dd></div>
         <div><dt>页码</dt><dd>${escapeHtml(record.pageLabel || "无PDF页码")}</dd></div>
         <div><dt>证据等级</dt><dd><span class="evidence-grade evidence-grade--${escapeHtml(String(record.grade || "C").toLowerCase())}">${escapeHtml(record.grade || "C")}</span></dd></div>
         <div><dt>核验状态</dt><dd>${escapeHtml(getEvidenceStatusLabel(record))}</dd></div>
+        <div><dt>呈现方式</dt><dd>${escapeHtml(sourceTypeLabel)}</dd></div>
       </dl>
 
-      ${pageGallery}
+      ${sourcePresentation}
 
-      <section class="evidence-excerpt">
-        <span>对应原文 · 已定位</span>
-        <blockquote><mark>${escapeHtml(record.excerpt || "原文片段待补录")}</mark></blockquote>
-        <p>高亮文本为知识库节录；判断时仍以同屏原页和上下文为准。</p>
-      </section>
+      ${originalExcerpt}
 
       <div class="evidence-boundary-grid">
         <section>
@@ -3802,6 +3880,15 @@ function setEvidenceViewer(open, evidenceId = "") {
     }
 
     renderEvidenceViewer(record);
+    const title = viewer.querySelector("#evidenceViewerTitle");
+    if (title) {
+      title.textContent =
+        record.sourceType === "in-copyright"
+          ? "引用式证据卡"
+          : record.sourceType === "public-domain"
+            ? "文献原页"
+            : "核验记录";
+    }
     viewer.hidden = false;
     viewer.setAttribute(
       "aria-hidden",

@@ -2891,6 +2891,33 @@ p {
 .ai-demo-result-note { display: grid; gap: 3px; margin-top: 12px; padding: 9px 11px; border: 1px solid rgba(196,154,69,.28); background: rgba(196,154,69,.08); }
 .ai-demo-result-note strong { color: var(--cinnabar-dark); font-size: .7rem; }
 .ai-demo-result-note span { color: var(--ink-soft); font-size: .68rem; line-height: 1.55; }
+.ai-result-source-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(53,95,87,.24);
+  background: rgba(111,155,139,.08);
+}
+.ai-result-source-note strong {
+  color: var(--qing-deep);
+  font-size: .7rem;
+}
+.ai-result-source-note span {
+  color: var(--ink-soft);
+  font-size: .66rem;
+}
+.ai-message[data-answer-route="insufficient-evidence"] .ai-result-source-note {
+  border-color: rgba(196,154,69,.34);
+  background: rgba(196,154,69,.09);
+}
+.ai-message[data-answer-route="out-of-scope"] .ai-result-source-note {
+  border-color: rgba(168,79,54,.25);
+  background: rgba(168,79,54,.06);
+}
 
 .ai-workflow-drawer,
 .evidence-viewer {
@@ -2949,6 +2976,42 @@ p {
 .evidence-excerpt blockquote { margin: 9px 0; font-size: 1rem; line-height: 1.9; }
 .evidence-excerpt mark { padding: 2px 4px; background: linear-gradient(transparent 18%,rgba(213,170,71,.33) 18%,rgba(213,170,71,.33) 88%,transparent 88%); color: var(--ink); }
 .evidence-excerpt p { margin: 0; color: var(--ink-soft); font-size: .7rem; }
+.evidence-citation-section {
+  padding: 16px;
+  border: 1px solid rgba(53,95,87,.28);
+  background:
+    linear-gradient(135deg,rgba(111,155,139,.1),rgba(255,250,240,.9));
+  box-shadow: inset 4px 0 0 rgba(53,95,87,.72);
+}
+.evidence-citation-statement {
+  padding: 15px 16px;
+  border: 1px solid rgba(75,57,34,.14);
+  background: rgba(255,253,247,.9);
+}
+.evidence-citation-statement > span {
+  color: var(--cinnabar-dark);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.evidence-citation-statement p {
+  margin: 7px 0 0;
+  color: var(--ink);
+  font-size: .88rem;
+  line-height: 1.78;
+}
+.evidence-copyright-notice {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(53,95,87,.25);
+  color: var(--ink-soft);
+  font-size: .68rem;
+  line-height: 1.65;
+}
+.detail-source-card.is-citation-evidence {
+  border-color: rgba(53,95,87,.24);
+  background: linear-gradient(120deg,rgba(111,155,139,.07),rgba(255,252,245,.82));
+}
 .evidence-boundary-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 14px; }
 .evidence-boundary-grid section { padding: 15px; border: 1px solid rgba(53,95,87,.22); background: rgba(111,155,139,.07); }
 .evidence-boundary-grid section:last-child { border-color: rgba(168,79,54,.22); background: rgba(168,79,54,.06); }
@@ -2971,6 +3034,28 @@ p {
 .public-archive-card__ledger > div { display: grid; grid-template-columns: 76px 1fr; padding: 7px 9px; background: rgba(255,250,240,.96); }
 .public-archive-card__ledger dt { color: var(--ink-soft); font-size: .66rem; }
 .public-archive-card__ledger dd { margin: 0; color: var(--ink); font-size: .68rem; }
+.public-archive-review-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cinnabar-dark);
+  font-weight: 800;
+}
+.public-archive-review-seal i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid currentColor;
+  color: var(--cinnabar-dark);
+  font-family: "Songti SC","STSong","Noto Serif SC",serif;
+  font-size: .72rem;
+  font-style: normal;
+  line-height: 1;
+  transform: rotate(-3deg);
+  box-shadow: inset 0 0 0 2px rgba(145,55,43,.07);
+}
 .public-archive-card__mark { display: flex; align-items: center; gap: 7px; margin-top: 12px; padding: 10px 14px; border-top: 1px solid rgba(53,95,87,.2); color: var(--qing-deep); font-size: .7rem; font-weight: 800; }
 
 .map-marker.has-public-memory:hover::after, .map-marker.has-public-memory:focus-visible::after { content: attr(data-public-memory-label); }
@@ -4018,6 +4103,152 @@ p {
 .archive-highlight-row dt { color:#91372c!important; }
 .archive-highlight-row dd { color:#7f342b; font-weight:700; }
 @media (max-width:720px) { .archive-rare-badge { gap:9px; margin-top:5px; margin-bottom:19px; padding:6px 12px 6px 7px; } .archive-rare-seal { width:34px; height:34px; flex-basis:34px; font-size:19px; } .archive-rare-text strong { font-size:14px; } .archive-rare-text small { font-size:10px; } .archive-highlight-row::before { left:-7px; } }
+
+/* =========================================================
+   评审静态摘要与固定测试入口
+   仅增加页面可抓取信息，不参与地图中枢尺寸与布局计算
+   ========================================================= */
+.review-static-summary {
+  position: relative;
+  z-index: 2;
+  width: min(1180px,calc(100% - 36px));
+  margin: 22px auto 0;
+  color: var(--ink-soft);
+}
+.review-static-summary details {
+  border: 1px solid rgba(75,57,34,.14);
+  background: rgba(255,250,240,.62);
+}
+.review-static-summary summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.review-static-summary summary::-webkit-details-marker { display: none; }
+.review-static-summary summary span {
+  color: var(--cinnabar-dark);
+  font-size: .61rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.review-static-summary summary strong {
+  color: var(--ink-soft);
+  font-size: .74rem;
+}
+.review-static-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+.review-static-summary__grid article {
+  padding: 13px 14px;
+  background: rgba(255,253,247,.96);
+}
+.review-static-summary__grid h2 {
+  margin: 0 0 5px;
+  color: var(--qing-deep);
+  font-size: .78rem;
+}
+.review-static-summary__grid p,
+.review-static-summary__maintenance {
+  margin: 0;
+  font-size: .7rem;
+  line-height: 1.65;
+}
+.review-static-summary__maintenance {
+  padding: 9px 14px;
+  border-top: 1px solid var(--line);
+}
+.review-noscript-notice {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--cinnabar);
+  background: rgba(168,79,54,.06);
+  font-size: .75rem;
+}
+.site-footer {
+  display: block;
+  max-width: 1180px;
+}
+.review-access {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 150px;
+  gap: clamp(22px,5vw,70px);
+  align-items: center;
+  margin-bottom: 28px;
+  padding: clamp(20px,3vw,34px);
+  border: 1px solid rgba(53,95,87,.25);
+  background:
+    linear-gradient(135deg,rgba(111,155,139,.1),rgba(255,250,240,.82));
+  box-shadow: inset 4px 0 0 var(--qing-deep);
+}
+.review-access__copy > p:first-child {
+  margin: 0 0 3px;
+  color: var(--cinnabar-dark);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.review-access h2 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 1.35rem;
+}
+.review-access__copy > p:not(:first-child) {
+  margin: 0;
+  line-height: 1.65;
+}
+.review-access dl {
+  display: grid;
+  gap: 1px;
+  margin: 15px 0 10px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+.review-access dl > div {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255,253,247,.95);
+}
+.review-access dt { color: var(--ink-soft); font-size: .7rem; }
+.review-access dd { margin: 0; color: var(--ink); font-size: .74rem; }
+.review-access small { color: var(--ink-soft); font-size: .66rem; }
+.review-access__qr {
+  display: grid;
+  gap: 7px;
+  color: var(--qing-deep);
+  font-size: .68rem;
+  font-weight: 800;
+  text-align: center;
+}
+.review-access__qr img {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 8px;
+  border: 1px solid rgba(53,95,87,.25);
+  background: #fffaf0;
+}
+.site-footer__base {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+@media (max-width:700px) {
+  .review-static-summary__grid { grid-template-columns: 1fr; }
+  .review-static-summary summary { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .review-access { grid-template-columns: 1fr; }
+  .review-access__qr { width: 150px; }
+  .review-access dl > div { grid-template-columns: 1fr; gap: 3px; }
+  .site-footer__base { flex-direction: column; }
+}
 
 /* =========================================================
    2026 比赛演示版 · 三场景叙事
