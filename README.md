@@ -9,10 +9,9 @@
 ├── index.html
 ├── style.css
 ├── script.js
-├── data/
-│   └── points.json
+├── points.json
+├── chengdu-map-original.jpg
 └── images/
-    ├── chengdu-map.png
     ├── jiuyanqiao-old.png
     ├── jiuyanqiao-current.jpg
     ├── wuhouci-old.png
@@ -29,13 +28,13 @@
 
 ## 使用方式
 
-1. 当前 `images/chengdu-map.png` 已按桌面“全图项目”中的 `四川成都府-底图-1226-2.png` 生成网页版。
-2. 将后续点位局部图和今景图放入 `images/`，并在 `data/points.json` 中更新 `oldImage`、`currentImage`。
+1. 当前 `chengdu-map-original.jpg` 直接缩放自馆藏成都府图原始扫描图，不使用建模底图；点位坐标以这张原图为百分比基准。
+2. 将后续点位局部图和今景图放入仓库，并在 `points.json` 中更新 `oldImage`、`currentImage`。
 3. 在 GitHub 仓库中启用 Pages，部署分支选择 `main` 或 `gh-pages` 的根目录即可。
 
 ## 数据维护
 
-点位数据统一写在 `data/points.json`。每个点位包含：
+点位数据统一写在 `points.json`。六个重点点位与其余原图地名点均可从地图进入公众投稿。每个点位包含：
 
 - `nameAncient`：古图名称
 - `nameModern`：今名

@@ -26,11 +26,11 @@
     <meta property="og:title" content="图绘成都｜馆藏证据问答与古地图活化" />
     <meta property="og:description" content="从馆藏成都府图进入探古、问图、留忆：25条可追溯证据、A/B/C分级、证据不足拒答、馆员终审与城市公共记忆共建。" />
     <meta property="og:url" content="https://tuhuichengdu.cn/" />
-    <meta property="og:image" content="https://tuhuichengdu.cn/chengdu-map.png" />
+    <meta property="og:image" content="https://tuhuichengdu.cn/chengdu-map-original.jpg" />
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260814-summary-remove01"
+      href="./style.css?v=20260819-original-map01"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
@@ -282,17 +282,19 @@
               class="map-canvas"
               id="mapCanvas"
             >
-              <img
-                class="map-image"
-                src="./chengdu-map.png"
-                alt="四川成都府古图底图"
-              />
+              <div class="map-sheet">
+                <img
+                  class="map-image"
+                  src="./chengdu-map-original.jpg"
+                  alt="四川大学图书馆馆藏成都府图原图"
+                />
 
-              <div
-                class="map-markers"
-                id="mapMarkers"
-                aria-label="地图点位"
-              ></div>
+                <div
+                  class="map-markers"
+                  id="mapMarkers"
+                  aria-label="地图点位"
+                ></div>
+              </div>
             </div>
 
             <p
@@ -1171,12 +1173,14 @@
 
       <div class="walk-scene__layout">
         <div class="walk-map" id="walkMap">
-          <img src="./chengdu-map.png" alt="成都府古图路线底图" />
-          <svg class="walk-route-svg" id="walkRouteSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polyline id="walkRouteBase" points=""></polyline>
-            <polyline id="walkRouteProgress" points=""></polyline>
-          </svg>
-          <div class="walk-route-markers" id="walkRouteMarkers"></div>
+          <div class="walk-map-sheet">
+            <img src="./chengdu-map-original.jpg" alt="成都府古图路线底图" />
+            <svg class="walk-route-svg" id="walkRouteSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <polyline id="walkRouteBase" points=""></polyline>
+              <polyline id="walkRouteProgress" points=""></polyline>
+            </svg>
+            <div class="walk-route-markers" id="walkRouteMarkers"></div>
+          </div>
         </div>
 
         <article class="walk-stop-card" id="walkStopCard">
@@ -1228,7 +1232,7 @@
     -->
 
     <script
-      src="./script.js?v=20260814-hide-detail-evidence01"
+      src="./script.js?v=20260819-original-map01"
     ></script>
 
     <script

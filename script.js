@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260814-compliance01";
+const APP_VERSION = "20260819-original-map01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -3790,7 +3790,7 @@ function renderEvidenceViewer(record) {
     `
       : `
       <section class="evidence-note-preview">
-        <img src="./chengdu-map.png" alt="馆藏成都府图" loading="eager">
+        <img src="./chengdu-map-original.jpg" alt="馆藏成都府图" loading="eager">
         <div>
           <span>RESEARCH NOTE</span>
           <strong>此条为项目核验记录</strong>
