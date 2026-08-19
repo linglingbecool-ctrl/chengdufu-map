@@ -499,9 +499,10 @@ section {
 
 .map-sheet {
   position: relative;
+  width: 100%;
   height: 100%;
-  max-width: 100%;
-  aspect-ratio: 11811 / 10086;
+  max-width: none;
+  aspect-ratio: auto;
   overflow: hidden;
   transform-origin: var(--map-focus-x) var(--map-focus-y);
   transition:
@@ -4684,10 +4685,11 @@ body.scene-overlay-open {
 
 .walk-map-sheet {
   position: relative;
+  width: 100%;
   height: 100%;
-  max-width: 100%;
-  aspect-ratio: 11811 / 10086;
-  transform: scale(1.03);
+  max-width: none;
+  aspect-ratio: auto;
+  transform: none;
   transform-origin: var(--walk-focus-x) var(--walk-focus-y);
   transition: transform 720ms cubic-bezier(.18,.72,.2,1);
 }
@@ -4760,14 +4762,10 @@ body.scene-overlay-open {
 .walk-stop-card__actions button:disabled { opacity: .35; cursor: not-allowed; }
 
 @media (max-width: 900px) {
-  .map-hub .map-panel {
-    aspect-ratio: 11811 / 10086;
-  }
-
   .map-hub .map-sheet,
   .walk-map-sheet {
     width: 100%;
-    height: auto;
+    height: 100%;
   }
 
   .walk-scene__layout { grid-template-columns: 1fr; overflow-y: auto; }
