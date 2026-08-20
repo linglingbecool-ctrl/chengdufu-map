@@ -3328,10 +3328,21 @@ p {
 }
 
 .map-hub .legend {
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
+  position: static;
+  left: auto;
+  bottom: auto;
+  flex: 0 0 auto;
   margin: 0;
+  padding: 6px 10px;
+  border-color: rgba(75, 57, 34, 0.12);
+  background: rgba(255, 250, 240, 0.56);
+  box-shadow: none;
+  backdrop-filter: none;
+  font-size: 0.72rem;
+}
+
+.map-hub .map-marker.is-core-point {
+  z-index: 4;
 }
 
 .map-canvas {
@@ -3875,6 +3886,11 @@ p {
     align-items: stretch;
     flex-direction: column;
     padding-inline: 4px;
+  }
+
+  .map-hub-toolbar .legend {
+    justify-content: center;
+    width: 100%;
   }
 
   .map-memory-toggle {
