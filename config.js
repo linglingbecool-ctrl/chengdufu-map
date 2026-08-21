@@ -1,5 +1,5 @@
 /*
- * 图绘成都比赛演示版公开配置。
+ * “舆上蜀”系列之“舆上·成都”公开配置。
  *
  * publishableKey 只能填写 CloudBase 的 Publishable Key（网页公开密钥），
  * 绝不能填写管理员 API Key、SecretId 或 SecretKey。

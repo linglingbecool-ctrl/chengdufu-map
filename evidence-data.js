@@ -29,9 +29,9 @@
 
   const projectEdition = {
     title: "项目点位核验记录",
-    author: "图绘成都项目组",
+    author: "“舆上蜀”项目组",
     sourceType: "project-note",
-    publisher: "图绘成都项目组",
+    publisher: "“舆上蜀”项目组",
     publicationYear: "2026",
     editionStatement: "项目内部核验记录",
     edition: "依据馆藏古图方位、水系与点位资料形成的研究记录",

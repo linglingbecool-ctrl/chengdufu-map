@@ -1,4 +1,4 @@
-// 图绘成都：馆藏证据问答前端
+// 舆上·成都：馆藏证据问答前端
 // 功能：六点位切换、三道固定示范问题、CloudBase Agent 流式回答。
 // 公众界面只渲染 Agent 最终文字，不展示工具调用 JSON。
 
@@ -698,7 +698,7 @@
 
     const title =
       role === "assistant"
-        ? "图绘成都 · 馆藏 AI"
+        ? "舆上·成都 · 馆藏 AI"
         : "访客提问";
 
     article.innerHTML = `
@@ -1528,7 +1528,7 @@
         <div class="ai-message-meta">
 
           <span>
-            图绘成都 · 馆藏 AI
+            舆上·成都 · 馆藏 AI
           </span>
 
           <time>

@@ -4307,8 +4307,10 @@ body.scene-overlay-open {
 }
 
 .site-hero h1 {
-  font-size: clamp(5.4rem, 14vw, 11.5rem);
+  font-size: clamp(4.8rem, 11vw, 9.25rem);
   letter-spacing: .04em;
+  line-height: .95;
+  white-space: nowrap;
   text-shadow: 0 20px 52px rgba(18, 15, 12, .38);
 }
 
@@ -4799,7 +4801,8 @@ body.scene-overlay-open {
 
 @media (max-width: 680px) {
   .site-hero h1 {
-    font-size: clamp(3.2rem, 20vw, 5.5rem);
+    font-size: clamp(2.75rem, 13vw, 3.7rem);
+    letter-spacing: .02em;
     white-space: nowrap;
   }
   .site-hero .topbar { align-items: center; }
