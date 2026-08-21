@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260820-point-labels01";
+const APP_VERSION = "20260821-mancheng01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
