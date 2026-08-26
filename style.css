@@ -1795,6 +1795,13 @@ button:disabled {
   inset: 0;
 
   z-index: 10020;
+
+  display: grid;
+
+  place-items: center;
+
+  padding:
+    clamp(18px, 4vw, 52px);
 }
 
 .my-memory-panel__backdrop {
@@ -1810,26 +1817,28 @@ button:disabled {
 }
 
 .my-memory-panel__dialog {
-  position: absolute;
+  position: relative;
 
-  top: 0;
-  right: 0;
+  z-index: 1;
 
   width:
-    min(520px, 92vw);
+    min(980px, 100%);
 
-  height: 100%;
+  max-height:
+    calc(100svh - clamp(36px, 8vw, 104px));
 
   overflow-y: auto;
 
   padding:
-    34px
-    28px
-    48px;
+    clamp(30px, 4vw, 48px)
+    clamp(24px, 4vw, 46px)
+    clamp(38px, 5vw, 58px);
 
-  border-left:
+  border:
     1px solid
     rgba(123, 88, 57, 0.28);
+
+  border-radius: 12px;
 
   background:
     linear-gradient(
@@ -1839,8 +1848,26 @@ button:disabled {
     );
 
   box-shadow:
-    -24px 0 60px
-    rgba(44, 31, 20, 0.22);
+    0 30px 86px
+    rgba(44, 31, 20, 0.3);
+
+  animation:
+    myMemoryWindowIn
+    220ms
+    cubic-bezier(.2, .78, .2, 1)
+    both;
+}
+
+@keyframes myMemoryWindowIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .my-memory-panel__close {
@@ -2665,13 +2692,27 @@ p {
     flex-direction: column;
   }
 
+  .my-memory-panel {
+    align-items: end;
+
+    padding: 0;
+  }
+
   .my-memory-panel__dialog {
     width: 100%;
+
+    max-height: 92svh;
 
     padding:
       28px
       18px
       42px;
+
+    border-radius:
+      18px
+      18px
+      0
+      0;
   }
 
   .my-identity-card {
@@ -4191,6 +4232,12 @@ body.scene-overlay-open {
 .site-hero::after {
   height: 22%;
   background: linear-gradient(0deg, var(--paper), transparent);
+}
+
+@media (min-width: 901px) {
+  .site-hero::after {
+    height: 11%;
+  }
 }
 
 @keyframes heroMapDevelop {
