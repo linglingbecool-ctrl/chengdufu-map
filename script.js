@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260821-mancheng01";
+const APP_VERSION = "20260902-publicarchive01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -2836,6 +2836,328 @@ function bindMyMemoryButtons() {
    城市记忆展示
    =============================================== */
 
+let publicArchiveReturnFocus = null;
+
+function renderPublicArchiveCards(
+  point,
+  memories
+) {
+  return memories
+    .map(
+      (memory) => {
+        const images =
+          Array.isArray(
+            memory.imageUrls
+          )
+            ? memory.imageUrls
+            : [];
+
+        const imageHtml =
+          images.length
+            ? `
+              <div
+                class="memory-card__images"
+              >
+                ${
+                  images
+                    .slice(
+                      0,
+                      3
+                    )
+                    .map(
+                      (url) => `
+                        <img
+                          src="${escapeHtml(
+                            url
+                          )}"
+                          alt="${escapeHtml(
+                            point.nameModern
+                          )}城市记忆照片"
+                          loading="lazy"
+                        >
+                      `
+                    )
+                    .join("")
+                }
+              </div>
+            `
+            : "";
+
+        const originalContent =
+          String(
+            memory.originalContent ||
+            memory.publicContent ||
+            ""
+          ).trim();
+
+        const collaborativeDraft =
+          String(
+            memory.collaborativeDraft ||
+            ""
+          ).trim();
+
+        const hasAcceptedDraft =
+          memory.contentSource ===
+            "collaborativeDraft" &&
+          collaborativeDraft;
+
+        const publishedDate =
+          formatPublicArchiveDate(
+            memory.publishedAt
+          );
+
+        return `
+          <article
+            class="memory-card public-archive-card"
+          >
+            <header class="public-archive-card__head">
+              <div>
+                <span>城市公共记忆档案</span>
+                <strong>${escapeHtml(memory.pointName || point.nameModern)}</strong>
+              </div>
+              <span class="public-archive-card__seal">已入档</span>
+            </header>
+
+            <div
+              class="memory-card__meta"
+            >
+              <span
+                class="memory-card__time"
+              >
+                ${escapeHtml(
+                  memory.approximateTime ||
+                  "时间未注明"
+                )}
+              </span>
+
+              <span
+                class="memory-card__label"
+              >
+                ${escapeHtml(getMemoryTypeLabel(memory.memoryType))}
+              </span>
+            </div>
+
+            ${originalContent ? `
+              <section class="public-archive-card__text">
+                <small>原始记忆 · 用户真实材料</small>
+                <p>${escapeHtml(originalContent)}</p>
+              </section>
+            ` : ""}
+
+            ${hasAcceptedDraft ? `
+              <section class="public-archive-card__text is-collaborative">
+                <small>协作整理稿 · ${escapeHtml(memory.writingStyleName || "表达偏好整理")}</small>
+                <p>${escapeHtml(collaborativeDraft)}</p>
+              </section>
+            ` : ""}
+
+            ${imageHtml}
+
+            <dl class="public-archive-card__ledger">
+              <div><dt>投稿类型</dt><dd>${escapeHtml(getMaterialTypeLabel(memory.materialType))}</dd></div>
+              <div>
+                <dt>审核状态</dt>
+                <dd>
+                  <span class="public-archive-review-seal">
+                    <i aria-hidden="true">馆</i>
+                    ${escapeHtml(memory.reviewStatusLabel || "馆员终审通过")}
+                  </span>
+                </dd>
+              </div>
+              ${publishedDate ? `
+                <div><dt>公开时间</dt><dd>${escapeHtml(publishedDate)}</dd></div>
+              ` : ""}
+            </dl>
+          </article>
+        `;
+      }
+    )
+    .join("");
+}
+
+function ensurePublicMemoryPanel() {
+  if (
+    document.querySelector(
+      "#publicMemoryPanel"
+    )
+  ) {
+    return;
+  }
+
+  const panel =
+    document.createElement(
+      "div"
+    );
+
+  panel.id =
+    "publicMemoryPanel";
+
+  panel.className =
+    "public-memory-panel";
+
+  panel.hidden =
+    true;
+
+  panel.innerHTML = `
+    <button
+      type="button"
+      class="public-memory-panel__backdrop"
+      data-close-public-memory
+      aria-label="关闭城市公共记忆档案"
+    ></button>
+
+    <aside
+      class="public-memory-panel__dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="publicMemoryPanelTitle"
+      aria-describedby="publicMemoryPanelSummary"
+    >
+      <header class="public-memory-panel__head">
+        <div>
+          <p>PUBLIC MEMORY ARCHIVE</p>
+          <h2 id="publicMemoryPanelTitle">城市公共记忆档案</h2>
+          <span id="publicMemoryPanelSummary">仅展示馆员终审通过并公开的内容</span>
+        </div>
+
+        <button
+          type="button"
+          class="public-memory-panel__close"
+          data-close-public-memory
+          aria-label="关闭城市公共记忆档案"
+        >
+          ×
+        </button>
+      </header>
+
+      <div
+        class="public-memory-panel__content"
+        id="publicMemoryPanelContent"
+      ></div>
+    </aside>
+  `;
+
+  document.body
+    .appendChild(
+      panel
+    );
+
+  panel
+    .querySelectorAll(
+      "[data-close-public-memory]"
+    )
+    .forEach(
+      (element) => {
+        element
+          .addEventListener(
+            "click",
+            closePublicMemoryPanel
+          );
+      }
+    );
+}
+
+function openPublicMemoryPanel(
+  point,
+  trigger
+) {
+  const memories =
+    getPointMemories(
+      point.id
+    );
+
+  if (!memories.length) {
+    return;
+  }
+
+  ensurePublicMemoryPanel();
+
+  const panel =
+    document.querySelector(
+      "#publicMemoryPanel"
+    );
+
+  const title =
+    panel.querySelector(
+      "#publicMemoryPanelTitle"
+    );
+
+  const summary =
+    panel.querySelector(
+      "#publicMemoryPanelSummary"
+    );
+
+  const content =
+    panel.querySelector(
+      "#publicMemoryPanelContent"
+    );
+
+  publicArchiveReturnFocus =
+    trigger || null;
+
+  title.textContent =
+    `${point.nameModern} · 城市公共记忆档案`;
+
+  summary.textContent =
+    `共 ${memories.length} 份 · 仅展示馆员终审通过并公开的内容`;
+
+  content.innerHTML =
+    renderPublicArchiveCards(
+      point,
+      memories
+    );
+
+  content.scrollTop =
+    0;
+
+  panel.hidden =
+    false;
+
+  document.body
+    .classList
+    .add(
+      "modal-open"
+    );
+
+  requestAnimationFrame(
+    () =>
+      panel
+        .querySelector(
+          ".public-memory-panel__close"
+        )
+        ?.focus()
+  );
+}
+
+function closePublicMemoryPanel() {
+  const panel =
+    document.querySelector(
+      "#publicMemoryPanel"
+    );
+
+  if (
+    !panel ||
+    panel.hidden
+  ) {
+    return;
+  }
+
+  panel.hidden =
+    true;
+
+  document.body
+    .classList
+    .remove(
+      "modal-open"
+    );
+
+  publicArchiveReturnFocus
+    ?.focus();
+
+  publicArchiveReturnFocus =
+    null;
+}
+
 function renderMemorySection(
   point
 ) {
@@ -2910,150 +3232,6 @@ function renderMemorySection(
     `;
   }
 
-  const visible =
-    memories.slice(
-      0,
-      6
-    );
-
-  const cards =
-    visible
-      .map(
-        (memory) => {
-          const images =
-            Array.isArray(
-              memory.imageUrls
-            )
-              ? memory.imageUrls
-              : [];
-
-          const imageHtml =
-            images.length
-              ? `
-                <div
-                  class="memory-card__images"
-                >
-                  ${
-                    images
-                      .slice(
-                        0,
-                        3
-                      )
-                      .map(
-                        (url) => `
-                          <img
-                            src="${escapeHtml(
-                              url
-                            )}"
-                            alt="${escapeHtml(
-                              point.nameModern
-                            )}城市记忆照片"
-                            loading="lazy"
-                          >
-                        `
-                      )
-                      .join("")
-                  }
-                </div>
-              `
-              : "";
-
-          const originalContent =
-            String(
-              memory.originalContent ||
-              memory.publicContent ||
-              ""
-            ).trim();
-
-          const collaborativeDraft =
-            String(
-              memory.collaborativeDraft ||
-              ""
-            ).trim();
-
-          const hasAcceptedDraft =
-            memory.contentSource ===
-              "collaborativeDraft" &&
-            collaborativeDraft;
-
-          const publishedDate =
-            formatPublicArchiveDate(
-              memory.publishedAt
-            );
-
-          return `
-            <article
-              class="memory-card public-archive-card"
-            >
-              <header class="public-archive-card__head">
-                <div>
-                  <span>城市公共记忆档案</span>
-                  <strong>${escapeHtml(memory.pointName || point.nameModern)}</strong>
-                </div>
-                <span class="public-archive-card__seal">已入档</span>
-              </header>
-
-              <div
-                class="memory-card__meta"
-              >
-                <span
-                  class="memory-card__time"
-                >
-                  ${escapeHtml(
-                    memory.approximateTime ||
-                    "时间未注明"
-                  )}
-                </span>
-
-                <span
-                  class="memory-card__label"
-                >
-                  ${escapeHtml(getMemoryTypeLabel(memory.memoryType))}
-                </span>
-              </div>
-
-              ${originalContent ? `
-                <section class="public-archive-card__text">
-                  <small>原始记忆 · 用户真实材料</small>
-                  <p>${escapeHtml(originalContent)}</p>
-                </section>
-              ` : ""}
-
-              ${hasAcceptedDraft ? `
-                <section class="public-archive-card__text is-collaborative">
-                  <small>协作整理稿 · ${escapeHtml(memory.writingStyleName || "表达偏好整理")}</small>
-                  <p>${escapeHtml(collaborativeDraft)}</p>
-                </section>
-              ` : ""}
-
-              ${imageHtml}
-
-              <dl class="public-archive-card__ledger">
-                <div><dt>投稿类型</dt><dd>${escapeHtml(getMaterialTypeLabel(memory.materialType))}</dd></div>
-                <div>
-                  <dt>审核状态</dt>
-                  <dd>
-                    <span class="public-archive-review-seal">
-                      <i aria-hidden="true">馆</i>
-                      ${escapeHtml(memory.reviewStatusLabel || "馆员终审通过")}
-                    </span>
-                  </dd>
-                </div>
-                ${publishedDate ? `
-                  <div><dt>公开时间</dt><dd>${escapeHtml(publishedDate)}</dd></div>
-                ` : ""}
-              </dl>
-
-              <div class="public-archive-card__mark">
-                <span>✦</span>
-                进入城市公共记忆档案
-              </div>
-            </article>
-          `;
-        }
-      )
-      .join("");
-
   return `
     ${statusHtml}
 
@@ -3075,23 +3253,36 @@ function renderMemorySection(
       </div>
 
       <div
-        class="memory-list"
+        class="public-archive-entry"
       >
-        ${cards}
-      </div>
+        <button
+          type="button"
+          class="public-archive-entry__button"
+          data-open-public-archive
+          aria-haspopup="dialog"
+          aria-controls="publicMemoryPanel"
+        >
+          <span
+            class="public-archive-entry__seal"
+            aria-hidden="true"
+          >
+            馆
+          </span>
 
-      ${
-        count >
-        visible.length
-          ? `
-            <p
-              class="memory-more"
-            >
-              当前展示最近 ${visible.length} 份，共 ${count} 份。
-            </p>
-          `
-          : ""
-      }
+          <span class="public-archive-entry__copy">
+            <small>城市公共记忆档案</small>
+            <strong>进入档案查看 ${count} 份公开记忆</strong>
+            <span>仅收录馆员终审通过的内容</span>
+          </span>
+
+          <span
+            class="public-archive-entry__arrow"
+            aria-hidden="true"
+          >
+            →
+          </span>
+        </button>
+      </div>
     </section>
   `;
 }
@@ -3334,6 +3525,22 @@ function renderDetail(
       () =>
         openContributionModal(
           point
+        )
+    );
+
+  const publicArchiveButton =
+    detailEl
+      .querySelector(
+        "[data-open-public-archive]"
+      );
+
+  publicArchiveButton
+    ?.addEventListener(
+      "click",
+      () =>
+        openPublicMemoryPanel(
+          point,
+          publicArchiveButton
         )
     );
 
@@ -4509,6 +4716,14 @@ function bindSceneExperience() {
       }
 
       if (
+        !document
+          .querySelector(
+            "#publicMemoryPanel"
+          )
+          ?.hidden
+      ) {
+        closePublicMemoryPanel();
+      } else if (
         !document
           .querySelector(
             "#evidenceViewer"
@@ -7577,6 +7792,8 @@ async function init() {
   bindSceneExperience();
 
   ensureContributionModal();
+
+  ensurePublicMemoryPanel();
 
   ensureMyMemoryPanel();
 
