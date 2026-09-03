@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260903-campusphoto01";
+const APP_VERSION = "20260903-campusphoto02";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -2822,7 +2822,7 @@ function renderMyMemoryPanel() {
         </div>
 
         <span>
-          审核通过后自动解锁
+          达到对应条件后自动解锁
         </span>
       </div>
 
