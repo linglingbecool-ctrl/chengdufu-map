@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260902-publicarchive01";
+const APP_VERSION = "20260903-scucontact01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -137,6 +137,7 @@ const statusClass = {
   "存续点": "status-existing",
   "变迁点": "status-changed",
   "不确定点": "status-uncertain",
+  "今地点位": "status-campus",
 
   existing: "status-existing",
   changed: "status-changed",
@@ -147,6 +148,7 @@ const statusLabel = {
   "存续点": "存续点",
   "变迁点": "变迁点",
   "不确定点": "待考点",
+  "今地点位": "今地点位",
 
   existing: "存续点",
   changed: "变迁点",
@@ -2279,6 +2281,23 @@ function renderMyMemoryPanel() {
       ? new Date()
       : null);
 
+  const sichuanUniversityItems =
+    items.filter(
+      (item) =>
+        item?.pointId ===
+          "sichuandaxue" &&
+        item?.status ===
+          "approved"
+    );
+
+  const sichuanUniversityUnlocked =
+    sichuanUniversityItems.length > 0;
+
+  const sichuanUniversityUnlockDate =
+    getFirstPublicMemoryDate(
+      sichuanUniversityItems
+    );
+
   const litPointCount =
     getMyLitPointCount();
 
@@ -2319,6 +2338,31 @@ function renderMyMemoryPanel() {
         )}`,
 
       foundation:
+        true
+    },
+
+    {
+      key:
+        "scuMemoryKeeper",
+
+      icon:
+        "川",
+
+      title:
+        "川大拾光者",
+
+      note:
+        "在川大点位留下一份公开记忆",
+
+      unlocked:
+        sichuanUniversityUnlocked,
+
+      unlockedNote:
+        `已解锁 · ${formatBadgeUnlockMonth(
+          sichuanUniversityUnlockDate
+        )}`,
+
+      campus:
         true
     },
 
@@ -2407,6 +2451,10 @@ function renderMyMemoryPanel() {
               }${
                 badge.foundation
                   ? " is-foundation"
+                  : ""
+              }${
+                badge.campus
+                  ? " is-campus"
                   : ""
               }"
             >
@@ -3303,6 +3351,10 @@ function renderDetail(
     point.detailLevel
       === "basic";
 
+  const isCampus =
+    point.detailLevel
+      === "campus";
+
   const knowledge =
     CORE_POINT_KNOWLEDGE[
       point.id
@@ -3355,6 +3407,34 @@ function renderDetail(
           )}
         </div>
       `
+      : isCampus
+        ? `
+          <div
+            class="meta-grid"
+          >
+            ${renderOptionalRow(
+              "点位类型",
+              point.type
+            )}
+
+            ${renderOptionalRow(
+              "点位性质",
+              getStatusLabel(
+                point
+              )
+            )}
+
+            ${renderOptionalRow(
+              "古图说明",
+              point.nameAncient
+            )}
+
+            ${renderOptionalRow(
+              "今日地点",
+              point.nameModern
+            )}
+          </div>
+        `
       : `
         <div
           class="meta-grid"
@@ -3403,6 +3483,25 @@ function renderDetail(
           </p>
         </section>
       `
+      : isCampus
+        ? `
+          <section class="official-summary detail-summary-card campus-memory-intro">
+            <p class="detail-section-label">校园记忆征集</p>
+            ${renderParagraphs(point.quick)}
+          </section>
+
+          ${point.extended ? `
+            <section class="official-intro campus-memory-guide">
+              <h4>在川大留下你的记忆</h4>
+              ${renderParagraphs(point.extended)}
+            </section>
+          ` : ""}
+
+          <p class="detail-caution">
+            <strong>地图说明</strong>
+            ${escapeHtml(point.note || "该点位为今地点位，不作为古图历史地名对应结论。")}
+          </p>
+        `
       : `
         <section class="detail-glance">
           <p class="detail-section-label">第一眼</p>
@@ -3457,6 +3556,8 @@ function renderDetail(
         ${
           isBasic
             ? "资料整理中"
+            : isCampus
+              ? "校园记忆点"
             : "官方点位介绍"
         }
       </span>
@@ -3468,6 +3569,8 @@ function renderDetail(
           ${
             isBasic
               ? "Candidate Point"
+              : isCampus
+                ? "Campus Memory Point"
               : "Point Detail"
           }
         </p>
@@ -6396,6 +6499,26 @@ function ensureContributionModal() {
           </div>
 
           <label
+            class="contribution-field contribution-contact-field"
+          >
+            <span>
+              联系方式（选填）
+            </span>
+
+            <input
+              id="contributionContact"
+              type="text"
+              maxlength="120"
+              autocomplete="email"
+              placeholder="填写手机号码或常用邮箱"
+            >
+
+            <small>
+              仅供馆员在需要核实投稿信息时联系，不会在网站公开展示。
+            </small>
+          </label>
+
+          <label
             class="contribution-field"
           >
             <span>
@@ -7300,6 +7423,34 @@ async function triggerContributionProcessing(
   return result;
 }
 
+function isValidContributionContact(
+  value
+) {
+  const contact =
+    String(value || "")
+      .trim();
+
+  if (!contact) {
+    return true;
+  }
+
+  const isEmail =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      .test(contact);
+
+  const phone =
+    contact.replace(
+      /[\s()（）-]/g,
+      ""
+    );
+
+  const isPhone =
+    /^\+?\d{7,20}$/
+      .test(phone);
+
+  return isEmail || isPhone;
+}
+
 /* ===============================================
    提交城市记忆
    =============================================== */
@@ -7334,6 +7485,15 @@ async function handleContributionSubmit(
       )
       .value
       .trim();
+
+  const contactInfo =
+    document
+      .querySelector(
+        "#contributionContact"
+      )
+      ?.value
+      ?.trim() ||
+    "";
 
   const writingIntent =
     document
@@ -7449,6 +7609,24 @@ async function handleContributionSubmit(
     return;
   }
 
+  if (
+    contactInfo &&
+    !isValidContributionContact(
+      contactInfo
+    )
+  ) {
+    statusElement.textContent =
+      "联系方式格式不正确，请填写有效的手机号码或邮箱。";
+
+    statusElement
+      .classList
+      .add(
+        "is-error"
+      );
+
+    return;
+  }
+
   try {
     validateImages(
       files
@@ -7538,6 +7716,8 @@ async function handleContributionSubmit(
             "",
 
           approximateTime,
+
+          contactInfo,
 
           materialType,
 

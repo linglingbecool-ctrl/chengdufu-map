@@ -630,6 +630,14 @@ section {
   background: var(--gold);
 }
 
+.map-marker.status-campus {
+  background: var(--qing-deep);
+  box-shadow:
+    0 0 0 4px rgba(255, 248, 231, 0.94),
+    0 0 0 8px rgba(196, 154, 69, 0.28),
+    0 12px 24px rgba(36, 33, 28, 0.3);
+}
+
 .map-marker-basic {
   transform:
     translate(-50%, -50%)
@@ -1595,6 +1603,16 @@ span {
   color: #796c5c;
 }
 
+.contribution-contact-field {
+  padding: 14px;
+  border-left: 3px solid rgba(53, 95, 87, 0.48);
+  background: rgba(111, 155, 139, 0.055);
+}
+
+.contribution-contact-field small {
+  color: var(--qing-deep, #355f57);
+}
+
 .contribution-consent {
   display: flex;
 
@@ -2218,6 +2236,50 @@ span {
 
 .my-badge.is-foundation {
   grid-column: 1 / -1;
+}
+
+.my-badge.is-campus {
+  grid-column: 1 / -1;
+}
+
+.my-badge.is-campus.is-unlocked {
+  overflow: hidden;
+  border-color: rgba(53, 95, 87, 0.5);
+  background:
+    radial-gradient(
+      circle at 88% 18%,
+      rgba(196, 154, 69, 0.18),
+      transparent 27%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(242, 248, 242, 0.96),
+      rgba(111, 155, 139, 0.18)
+    );
+}
+
+.my-badge.is-campus.is-unlocked::after {
+  content: "SCU MEMORY";
+  position: absolute;
+  right: 13px;
+  bottom: 9px;
+  color: rgba(53, 95, 87, 0.42);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.my-badge.is-campus.is-unlocked
+.my-badge__icon {
+  border-color: rgba(53, 95, 87, 0.62);
+  background: var(--qing-deep);
+  color: #fffdf7;
+  font-family:
+    "Songti SC",
+    "STSong",
+    serif;
+  font-weight: 900;
+  box-shadow: 0 0 0 7px rgba(53, 95, 87, 0.08);
 }
 
 .my-badge.is-foundation.is-unlocked {

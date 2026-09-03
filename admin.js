@@ -343,6 +343,10 @@ function createReviewCard(item) {
       <dd>${escapeHtml(item.materialType || "-")}</dd>
     </div>
     <div>
+      <dt>联系方式</dt>
+      <dd>${escapeHtml(item.contactInfo || "未填写")}</dd>
+    </div>
+    <div>
       <dt>图片数量</dt>
       <dd>${Number(item.imageCount) || 0}</dd>
     </div>
