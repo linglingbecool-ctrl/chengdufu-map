@@ -920,6 +920,15 @@ section {
   gap: 12px;
 }
 
+.point-media--single {
+  grid-template-columns: 1fr;
+}
+
+.point-media--campus img {
+  aspect-ratio: 3 / 2;
+  object-position: center;
+}
+
 .point-media figure {
   margin: 0;
 
@@ -4878,10 +4887,37 @@ body.scene-overlay-open {
     letter-spacing: .02em;
     white-space: nowrap;
   }
-  .site-hero .topbar { align-items: center; }
-  .site-hero .navlinks { display: flex; }
-  .site-hero .navlinks > a:not(:first-child),
-  .site-hero .navlinks > button:not([data-open-project]) { display: none; }
+  .site-hero .topbar {
+    align-items: center;
+    gap: 12px;
+  }
+  .site-hero .navlinks {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+  .site-hero .navlinks > a,
+  .site-hero .navlinks > .nav-scene-button {
+    display: none;
+  }
+  .site-hero .memory-nav-button {
+    min-height: 34px;
+    padding: 5px 9px;
+    border: 1px solid rgba(255, 250, 240, 0.45);
+    border-radius: 999px;
+    background: rgba(34, 30, 25, 0.34);
+    color: #fffaf0;
+    font-size: 0.76rem;
+    line-height: 1;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+  }
+  .site-hero .memory-nav-count {
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    font-size: 0.62rem;
+  }
   .map-scene-head { align-items: start; flex-direction: column; }
   .detail-glance dl { grid-template-columns: 1fr 1fr; }
   .detail-timeline li { grid-template-columns: 72px minmax(0, 1fr); }

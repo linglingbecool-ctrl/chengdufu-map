@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260903-family01";
+const APP_VERSION = "20260903-campusphoto01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -535,6 +535,8 @@ function renderParagraphs(text) {
 
 function renderPointMedia(point) {
   const figures = [];
+  const isCampusPoint =
+    point.detailLevel === "campus";
 
   if (point.oldImage) {
     figures.push(`
@@ -569,9 +571,13 @@ function renderPointMedia(point) {
           loading="lazy"
         >
 
-        <figcaption>
-          今日影像
-        </figcaption>
+        ${
+          isCampusPoint
+            ? ""
+            : `<figcaption>
+                今日影像
+              </figcaption>`
+        }
       </figure>
     `);
   }
@@ -587,7 +593,15 @@ function renderPointMedia(point) {
   }
 
   return `
-    <div class="point-media">
+    <div class="point-media${
+      figures.length === 1
+        ? " point-media--single"
+        : ""
+    }${
+      isCampusPoint
+        ? " point-media--campus"
+        : ""
+    }">
       ${figures.join("")}
     </div>
   `;
@@ -2142,6 +2156,28 @@ function getFirstPublicMemoryDate(
   return approvedDates[0] || null;
 }
 
+function getFirstContributionDate(
+  items
+) {
+  const contributionDates =
+    (items || [])
+      .map(
+        (item) =>
+          toContributionDate(
+            item.createdAt ||
+            item.updatedAt
+          )
+      )
+      .filter(Boolean)
+      .sort(
+        (first, second) =>
+          first.getTime() -
+          second.getTime()
+      );
+
+  return contributionDates[0] || null;
+}
+
 function formatBadgeUnlockMonth(
   date
 ) {
@@ -2293,15 +2329,18 @@ function renderMyMemoryPanel() {
       (item) =>
         item?.pointId ===
           "sichuandaxue" &&
-        item?.status ===
+        [
+          "pending",
+          "processing",
           "approved"
+        ].includes(item?.status)
     );
 
   const sichuanUniversityUnlocked =
     sichuanUniversityItems.length > 0;
 
   const sichuanUniversityUnlockDate =
-    getFirstPublicMemoryDate(
+    getFirstContributionDate(
       sichuanUniversityItems
     );
 
@@ -2380,7 +2419,7 @@ function renderMyMemoryPanel() {
         "川大拾光者",
 
       note:
-        "在川大点位留下一份公开记忆",
+        "在川大点位提交一份城市记忆",
 
       unlocked:
         sichuanUniversityUnlocked,
