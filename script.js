@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260903-scucontact01";
+const APP_VERSION = "20260903-family01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -49,6 +49,13 @@ const WRITING_STYLES = [
     name: "保持原声",
     tagline: "我的记忆，我来说",
     description: "尽量保留你的原话，只整理语序、错字和重复。"
+  },
+  {
+    id: "childvoice",
+    mark: "童",
+    name: "童言童语",
+    tagline: "好奇 · 直白 · 小发现",
+    description: "用孩子般清楚、短句的口吻整理真实经历；不添加原文没有的想象和事实。"
   },
   {
     id: "simaxiangru",
@@ -2298,6 +2305,27 @@ function renderMyMemoryPanel() {
       sichuanUniversityItems
     );
 
+  const familyMemoryItems =
+    items.filter(
+      (item) =>
+        item?.status ===
+          "approved" &&
+        (
+          item?.writingStyleId ===
+            "childvoice" ||
+          item?.writingStyleName ===
+            "童言童语"
+        )
+    );
+
+  const familyMemoryUnlocked =
+    familyMemoryItems.length > 0;
+
+  const familyMemoryUnlockDate =
+    getFirstPublicMemoryDate(
+      familyMemoryItems
+    );
+
   const litPointCount =
     getMyLitPointCount();
 
@@ -2363,6 +2391,31 @@ function renderMyMemoryPanel() {
         )}`,
 
       campus:
+        true
+    },
+
+    {
+      key:
+        "familyMemoryKeeper",
+
+      icon:
+        "童",
+
+      title:
+        "亲子拾光者",
+
+      note:
+        "一份童言童语记忆经馆员审核公开",
+
+      unlocked:
+        familyMemoryUnlocked,
+
+      unlockedNote:
+        `已解锁 · ${formatBadgeUnlockMonth(
+          familyMemoryUnlockDate
+        )}`,
+
+      family:
         true
     },
 
@@ -2455,6 +2508,10 @@ function renderMyMemoryPanel() {
               }${
                 badge.campus
                   ? " is-campus"
+                  : ""
+              }${
+                badge.family
+                  ? " is-family"
                   : ""
               }"
             >
@@ -5411,6 +5468,8 @@ function getWritingStyleAdjustmentNote(
       "时间线索 · 沉静措辞 · 深情克制",
     xuetao:
       "细节提炼 · 清丽语气 · 含蓄节奏",
+    childvoice:
+      "短句整理 · 直白口吻 · 小小发现",
     lijieren:
       "街巷口语 · 市井措辞 · 叙事节奏",
     alai:
@@ -5500,6 +5559,12 @@ function frameMemoryByWritingStyle(
         `地点是${place}。时间从这里经过，留下这段记忆：`,
       separator:
         "。"
+    },
+    childvoice: {
+      opening:
+        `我想讲讲${place}。`,
+      separator:
+        "。"
     }
   };
 
@@ -5534,6 +5599,25 @@ function applyWritingStylePreference(
   let draft = source;
 
   switch (styleId) {
+    case "childvoice":
+      draft = applySurfaceRules(
+        draft,
+        [
+          [/我与/g, "我跟"],
+          [/一同/g, "一起"],
+          [/我只记得/g, "我记得最清楚的是"],
+          [/我当时年纪还小/g, "那时候我还小"],
+          [/并不了解|尚不了解/g, "还不懂"],
+          [/很多年以后|多年以后/g, "过了好多年"],
+          [/如今再看到|现在重新看到/g, "现在再看到"],
+          [/我才意识到|我才明白/g, "我才发现"],
+          [/停留片刻|稍作停留/g, "停了一会儿"],
+          [/缓步而行|缓缓前行|缓缓走着/g, "慢慢走"],
+          [/格外/g, "特别"]
+        ]
+      );
+      break;
+
     case "simaxiangru":
       draft = applySurfaceRules(
         draft,

@@ -2282,6 +2282,50 @@ span {
   box-shadow: 0 0 0 7px rgba(53, 95, 87, 0.08);
 }
 
+.my-badge.is-family {
+  grid-column: 1 / -1;
+}
+
+.my-badge.is-family.is-unlocked {
+  overflow: hidden;
+  border-color: rgba(153, 62, 44, 0.48);
+  background:
+    radial-gradient(
+      circle at 88% 18%,
+      rgba(196, 154, 69, 0.2),
+      transparent 27%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 248, 235, 0.96),
+      rgba(178, 76, 52, 0.13)
+    );
+}
+
+.my-badge.is-family.is-unlocked::after {
+  content: "FAMILY MEMORY";
+  position: absolute;
+  right: 13px;
+  bottom: 9px;
+  color: rgba(153, 62, 44, 0.38);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.my-badge.is-family.is-unlocked
+.my-badge__icon {
+  border-color: rgba(153, 62, 44, 0.6);
+  background: var(--cinnabar-dark);
+  color: #fffdf7;
+  font-family:
+    "Songti SC",
+    "STSong",
+    serif;
+  font-weight: 900;
+  box-shadow: 0 0 0 7px rgba(153, 62, 44, 0.08);
+}
+
 .my-badge.is-foundation.is-unlocked {
   overflow: hidden;
   border-color: rgba(196, 154, 69, 0.72);
