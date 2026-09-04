@@ -7,6 +7,7 @@
   --cinnabar-dark: #7e3528;
   --qing: #6f9b8b;
   --qing-deep: #355f57;
+  --dai-blue: #536f80;
   --gold: #c49a45;
   --line: rgba(75, 57, 34, 0.2);
   --shadow: 0 24px 60px rgba(64, 45, 25, 0.16);
@@ -630,8 +631,13 @@ section {
   background: var(--gold);
 }
 
+.map-marker.status-added,
+.dot.status-added {
+  background: var(--dai-blue);
+}
+
 .map-marker.status-campus {
-  background: var(--qing-deep);
+  background: var(--dai-blue);
   box-shadow:
     0 0 0 4px rgba(255, 248, 231, 0.94),
     0 0 0 8px rgba(196, 154, 69, 0.28),

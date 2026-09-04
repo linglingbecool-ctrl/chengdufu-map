@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260903-campusphoto02";
+const APP_VERSION = "20260904-huaxiba01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -144,6 +144,7 @@ const statusClass = {
   "存续点": "status-existing",
   "变迁点": "status-changed",
   "不确定点": "status-uncertain",
+  "新增点": "status-added",
   "今地点位": "status-campus",
 
   existing: "status-existing",
@@ -155,6 +156,7 @@ const statusLabel = {
   "存续点": "存续点",
   "变迁点": "变迁点",
   "不确定点": "待考点",
+  "新增点": "新增点",
   "今地点位": "今地点位",
 
   existing: "存续点",
@@ -2327,8 +2329,10 @@ function renderMyMemoryPanel() {
   const sichuanUniversityItems =
     items.filter(
       (item) =>
-        item?.pointId ===
-          "sichuandaxue" &&
+        [
+          "sichuandaxue",
+          "huaxiba"
+        ].includes(item?.pointId) &&
         [
           "pending",
           "processing",
@@ -2419,7 +2423,7 @@ function renderMyMemoryPanel() {
         "川大拾光者",
 
       note:
-        "在川大点位提交一份城市记忆",
+        "在川大或华西坝点位提交一份城市记忆",
 
       unlocked:
         sichuanUniversityUnlocked,
@@ -3588,7 +3592,11 @@ function renderDetail(
 
           ${point.extended ? `
             <section class="official-intro campus-memory-guide">
-              <h4>在川大留下你的记忆</h4>
+              <h4>${
+                point.id === "huaxiba"
+                  ? "在华西坝留下你的记忆"
+                  : "在川大留下你的记忆"
+              }</h4>
               ${renderParagraphs(point.extended)}
             </section>
           ` : ""}
