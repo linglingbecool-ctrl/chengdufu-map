@@ -6884,7 +6884,7 @@ function ensureContributionModal() {
             >
 
             <span>
-              我同意该投稿经审核后在本项目中公开展示
+              我已阅读并同意<a href="./copyright-20260908.html" target="_blank" rel="noopener" title="在新标签页阅读版权与使用授权声明">《版权与使用授权声明》</a>，同意本投稿经审核后公开展示，并按声明约定使用。
             </span>
           </label>
 
@@ -6897,7 +6897,7 @@ function ensureContributionModal() {
             >
 
             <span>
-              我确认上传的文字、照片由本人提供，或已获得相关权利人的授权
+              我确认有权按声明授权使用所提交内容；涉及他人著作权、肖像、隐私或个人信息的，已取得依法所需的授权或同意。
             </span>
           </label>
         </section>
@@ -7714,7 +7714,7 @@ async function handleContributionSubmit(
     !consentToPublish
   ) {
     statusElement.textContent =
-      "请勾选“同意该投稿经审核后公开展示”。";
+      "请阅读并同意《版权与使用授权声明》，确认投稿经审核后公开展示，并按声明约定使用。";
 
     statusElement
       .classList
@@ -7729,7 +7729,7 @@ async function handleContributionSubmit(
     !rightsConfirmed
   ) {
     statusElement.textContent =
-      "请确认投稿材料由本人提供，或已获得相关权利人的授权。";
+      "请确认有权按声明授权使用所提交内容，并已取得依法所需的授权或同意。";
 
     statusElement
       .classList
@@ -7864,6 +7864,8 @@ async function handleContributionSubmit(
           consentToPublish,
 
           rightsConfirmed,
+
+          copyrightStatementVersion: "20260908",
 
           status:
             "pending",

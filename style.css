@@ -1646,6 +1646,17 @@ span {
   cursor: pointer;
 }
 
+.contribution-consent a {
+  color: var(--qing-deep);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.contribution-consent a:focus-visible {
+  outline: 2px solid var(--qing-deep);
+  outline-offset: 3px;
+}
+
 .contribution-consent input {
   width: 18px;
   height: 18px;
