@@ -15,6 +15,8 @@ let checkingStats = false;
 let queueGeneration = 0;
 let hasMore = false;
 let queueOffset = 0;
+let recordScope = "all";
+const scopeLabels = { all: "全部投稿", awaiting: "待审核", published: "已公开", rejected: "不予公开" };
 let observedTotal = null;
 let unseenCount = 0;
 let pollingTimer = null;
@@ -36,6 +38,8 @@ const notificationButton = document.querySelector("#notificationButton");
 const notificationStatus = document.querySelector("#notificationStatus");
 const newSubmissions = document.querySelector("#newSubmissions");
 const viewNewButton = document.querySelector("#viewNewButton");
+const scopeButtons = Array.from(document.querySelectorAll("[data-scope]"));
+const reviewOutcome = document.querySelector("#reviewOutcome");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -261,21 +265,28 @@ function saveReviewNotes() {
   });
 }
 
-async function loadReviewQueue({ append = false } = {}) {
+async function loadReviewQueue({ append = false, scope = recordScope } = {}) {
   if (!cloudReady || loadingQueue) return;
   loadingQueue = true;
   queueGeneration += 1;
   refreshButton.disabled = true;
   loadMoreButton.disabled = true;
+  scopeButtons.forEach(button => { button.disabled = true; });
   refreshButton.textContent = "正在刷新…";
   const offset = append ? queueOffset : 0;
   try {
     const result = requireResult(await cloudApp.callFunction({
-      name: "getReviewQueue", data: { limit: 100, offset }, parse: true
+      name: "getReviewQueue", data: { limit: 100, offset, scope }, parse: true
     }));
     const incoming = await resolveImageUrls(Array.isArray(result.items) ? result.items : []);
     saveReviewNotes();
     queue = append ? Array.from(new Map([...queue, ...incoming].map(item => [item.id, item])).values()) : incoming;
+    recordScope = scope;
+    scopeButtons.forEach(button => {
+      const selected = button.dataset.scope === recordScope;
+      button.setAttribute("aria-pressed", String(selected));
+      button.className = `btn ${selected ? "primary" : "ghost"}`;
+    });
     queueOffset = offset + incoming.length;
     hasMore = result.hasMore === true;
     adminVerified = true;
@@ -286,8 +297,8 @@ async function loadReviewQueue({ append = false } = {}) {
       newSubmissions.hidden = true;
       document.title = baseTitle;
     }
-    setConnectionState("ok", "CloudBase 已连接 · 馆员身份验证通过", `待审核 ${stats?.awaiting ?? queue.length} 条，当前已加载 ${queue.length} 条。`);
-    document.querySelector("#queueCount").textContent = `已加载 ${queue.length} 条${hasMore ? "，可继续加载更多" : ""}；累计数字不受队列分页和筛选影响。`;
+    setConnectionState("ok", "CloudBase 已连接 · 馆员身份验证通过", `待审核 ${stats?.awaiting ?? "—"} 条，当前查看${scopeLabels[recordScope]}。`);
+    document.querySelector("#queueCount").textContent = `当前分类共 ${result.matchingCount ?? queue.length} 条，已加载 ${queue.length} 条${hasMore ? "，可继续加载更多" : ""}。审核后的原文、照片和审核结果继续保留。`;
     renderCards();
     loadMoreButton.hidden = !hasMore;
     // 当前小规模审核台使用30秒轮询；浏览器休眠会暂停。
@@ -304,7 +315,8 @@ async function loadReviewQueue({ append = false } = {}) {
     loadingQueue = false;
     refreshButton.disabled = false;
     loadMoreButton.disabled = false;
-    refreshButton.textContent = "刷新数据与队列";
+    refreshButton.textContent = "刷新投稿记录";
+    scopeButtons.forEach(button => { button.disabled = false; });
   }
 }
 
@@ -325,8 +337,8 @@ function renderCards() {
     queueMessage.hidden = false;
     queueMessage.textContent =
       filter === "all"
-        ? "当前没有待人工审核的投稿。"
-        : "当前筛选条件下没有待审投稿。";
+        ? `“${scopeLabels[recordScope]}”分类暂时没有投稿记录。`
+        : "已加载的记录中没有符合此初筛条件的投稿。";
     return;
   }
 
@@ -335,6 +347,21 @@ function renderCards() {
   items.forEach((item) => {
     reviewList.appendChild(createReviewCard(item));
   });
+}
+
+function formatRecordTime(value) {
+  if (!value) return "未记录";
+  const date = new Date(value?.$date ?? value);
+  return Number.isNaN(date.getTime()) ? "未记录" : date.toLocaleString("zh-CN", { hour12: false });
+}
+
+function recordStatus(item) {
+  if (item.status === "approved") {
+    return item.consentToPublish && item.rightsConfirmed ? "已公开" : "已通过 · 未公开";
+  }
+  if (item.status === "rejected") return "不予公开";
+  if (["pending", "processing", "needs_review"].includes(item.status)) return "待审核";
+  return "其他状态";
 }
 
 function createReviewCard(item) {
@@ -362,6 +389,7 @@ function createReviewCard(item) {
     item.approximateTime || "时间未注明";
 
   fragment.querySelector(".review-badges").innerHTML = `
+    <span class="badge ${item.status === "approved" ? "pass" : item.status === "rejected" ? "reject" : "review"}">${recordStatus(item)}</span>
     <span class="badge ${suggestion}">
       ${suggestion.toUpperCase()}
     </span>
@@ -431,6 +459,7 @@ function createReviewCard(item) {
   }
 
   fragment.querySelector(".submission-meta").innerHTML = `
+    <div><dt>投稿时间</dt><dd>${escapeHtml(formatRecordTime(item.createdAt))}</dd></div>
     <div>
       <dt>点位</dt>
       <dd>${escapeHtml(item.pointName || "-")}</dd>
@@ -523,13 +552,27 @@ function createReviewCard(item) {
     )
     .join("");
 
-  fragment
-    .querySelectorAll("[data-decision]")
-    .forEach((button) => {
-      button.addEventListener("click", () =>
-        handleReviewAction(card, item, button.dataset.decision)
-      );
+  const completed = ["approved", "rejected"].includes(item.status);
+  const humanReview = item.humanReview || {};
+  if (completed || humanReview.decision || humanReview.note || humanReview.reviewedAt) {
+    const record = fragment.querySelector(".review-record");
+    const decisionLabel = completed ? recordStatus(item) :
+      ({ needs_review: "继续核验", approved: "批准公开", rejected: "不予公开" }[humanReview.decision] || "待审核");
+    record.hidden = false;
+    record.innerHTML = `
+      <div><dt>审核结果</dt><dd>${escapeHtml(decisionLabel)}</dd></div>
+      <div><dt>审核时间</dt><dd>${escapeHtml(formatRecordTime(humanReview.reviewedAt))}</dd></div>
+      <div><dt>审核备注</dt><dd>${escapeHtml(humanReview.note || "未填写")}</dd></div>`;
+  }
+  if (completed) {
+    fragment.querySelector(".review-note").remove();
+    fragment.querySelector(".review-actions").remove();
+    fragment.querySelector(".human-review__help").textContent = "本条投稿已完成终审，原始材料和审核结果保留在此处供查阅。";
+  } else {
+    fragment.querySelectorAll("[data-decision]").forEach(button => {
+      button.addEventListener("click", () => handleReviewAction(card, item, button.dataset.decision));
     });
+  }
 
   return fragment;
 }
@@ -592,6 +635,12 @@ async function handleReviewAction(card, item, decision) {
     statusEl.textContent =
       result.message || "审核操作成功。";
 
+    reviewOutcome.hidden = false;
+    reviewOutcome.textContent = decision === "approved"
+      ? "已批准公开。记录继续保存在“全部投稿”和“已公开”中。"
+      : decision === "rejected"
+        ? "已标记为不予公开。记录继续保存在“全部投稿”和“不予公开”中。"
+        : "已标记为继续核验。记录继续保存在“全部投稿”和“待审核”中。";
     window.setTimeout(loadReviewQueue, 450);
   } catch (error) {
     statusEl.classList.add("error");
@@ -609,6 +658,11 @@ viewNewButton.addEventListener("click", () => loadReviewQueue());
 loadMoreButton.addEventListener("click", () => loadReviewQueue({ append: true }));
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkSubmissionStats(); });
 suggestionFilter.addEventListener("change", renderCards);
+scopeButtons.forEach(button => button.addEventListener("click", async () => {
+  if (loadingQueue) return;
+  suggestionFilter.value = "all";
+  await loadReviewQueue({ scope: button.dataset.scope });
+}));
 
 async function init() {
   try {
@@ -617,7 +671,7 @@ async function init() {
     setConnectionState(
       "",
       "CloudBase 已连接",
-      "正在验证馆员身份并读取待审队列。"
+      "正在验证馆员身份并读取投稿记录。"
     );
 
     await loadReviewQueue();
