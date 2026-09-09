@@ -7222,3 +7222,20 @@ body.scene-overlay-open {
 .my-footprint-text.is-collaborative{border-left-color:#315c53;background:rgba(111,155,139,.09)}
 .my-footprint-text h4{margin:0 0 8px;font-size:.8rem;color:var(--ink-soft)}
 .my-footprint-text p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.88rem;line-height:1.8}
+
+/* 公众记忆先按地点成排展示，再进入单个地点的档案。 */
+.public-memory-back[hidden]{display:none}
+.public-memory-back{display:block;min-height:40px;margin:0 0 8px;padding:4px 0;border:0;background:transparent;color:var(--qing-deep);font:inherit;font-size:.86rem;cursor:pointer}
+.public-place-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.public-place-card{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:156px;padding:20px;text-align:left;border:1px solid rgba(53,95,87,.26);border-top:3px solid #52766a;border-radius:8px;background:linear-gradient(135deg,#fffaf0,#f3ead9);color:var(--ink);font:inherit;cursor:pointer}
+.public-place-card:hover{border-color:#315c53;background:#f1f5eb}
+.public-place-card>strong{font-family:"Songti SC","STSong",serif;font-size:1.15rem;line-height:1.45;overflow-wrap:anywhere}
+.public-place-card__count{margin:12px 0 16px;color:var(--ink-soft);font-size:.78rem}
+.public-place-card__count b{margin-right:3px;color:var(--qing-deep);font-size:1.2rem;font-weight:600}
+.public-place-card__action{display:flex;justify-content:space-between;width:100%;margin-top:auto;color:var(--qing-deep);font-size:.78rem}
+.public-place-card:focus-visible,.public-memory-back:focus-visible{outline:3px solid #c4973d;outline-offset:2px}
+@media(max-width:700px){
+ .public-place-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .public-place-card{min-height:142px;padding:14px 12px}
+ .public-place-card>strong{font-size:1rem}
+}

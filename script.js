@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260909-dropdown04";
+const APP_VERSION = "20260909-placegrid05";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -1481,6 +1481,13 @@ function bindPointPicker() {
   document.addEventListener("click", closeOutside);
   document.addEventListener("focusin", closeOutside);
   window.addEventListener("resize", positionPointPicker);
+  // 浏览器“返回”可能直接恢复旧页面；重新进入时恢复全部点位。
+  window.addEventListener("pageshow", event => {
+    if (!event.persisted) return;
+    pointTypeFilter = "all";
+    closePointPicker();
+    applyPointTypeFilter();
+  });
   document.querySelector("#pointPickerList").addEventListener("click", event => {
     const button = event.target.closest("[data-find-point]");
     const point = allPoints.find(item => item.id === button?.dataset.findPoint);
@@ -3043,6 +3050,9 @@ function bindMyMemoryButtons() {
 
 let publicArchiveReturnFocus = null;
 let publicArchiveViewToken = 0;
+let publicArchivePlaces = new Map();
+let publicArchivePlaceScroll = 0;
+let publicArchiveSelectedPlace = "";
 
 function renderPublicArchiveCards(
   point,
@@ -3222,6 +3232,7 @@ function ensurePublicMemoryPanel() {
     >
       <header class="public-memory-panel__head">
         <div>
+          <button type="button" class="public-memory-back" data-public-back hidden>← 全部点位</button>
           <p>PUBLIC MEMORY ARCHIVE</p>
           <h2 id="publicMemoryPanelTitle">城市公共记忆档案</h2>
           <span id="publicMemoryPanelSummary">仅展示馆员终审通过并公开的内容</span>
@@ -3250,6 +3261,16 @@ function ensurePublicMemoryPanel() {
     );
 
   panel.addEventListener("click", event => {
+    const placeButton = event.target.closest("[data-public-place]");
+    if (placeButton) {
+      publicArchivePlaceScroll = panel.querySelector("#publicMemoryPanelContent").scrollTop;
+      showPublicMemoryPlace(placeButton.dataset.publicPlace);
+      return;
+    }
+    if (event.target.closest("[data-public-back]")) {
+      renderPublicMemoryPlaces(true);
+      return;
+    }
     const button = event.target.closest("[data-public-map-point]");
     const point = allPoints.find(item => item.id === button?.dataset.publicMapPoint);
     if (!point) return;
@@ -3263,7 +3284,7 @@ function ensurePublicMemoryPanel() {
   });
   panel.addEventListener("keydown", event => {
     if (event.key !== "Tab") return;
-    const items = Array.from(panel.querySelectorAll(".public-memory-panel__dialog button:not([disabled]), .public-memory-panel__dialog a[href]"));
+    const items = Array.from(panel.querySelectorAll(".public-memory-panel__dialog button:not([disabled]), .public-memory-panel__dialog a[href]")).filter(item => item.getClientRects().length);
     const first = items[0], last = items[items.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -3283,16 +3304,70 @@ function ensurePublicMemoryPanel() {
     );
 }
 
+function collectPublicMemoryPlaces() {
+  const places = new Map();
+  Array.from(approvedMemoriesByPoint.values()).flat().forEach(memory => {
+    const key = memory.pointId ? `id:${memory.pointId}` : `name:${memory.pointName || "地点未注明"}`;
+    if (!places.has(key)) {
+      const point = allPoints.find(item => item.id === memory.pointId) || { nameModern: memory.pointName || "地点未注明" };
+      places.set(key, { key, point, name: pointPickerName(point), memories: [] });
+    }
+    places.get(key).memories.push(memory);
+  });
+  return places;
+}
+
+function publicMemoryWarning() {
+  return publicMemoriesError ? `<p role="status">${escapeHtml(publicMemoriesError)}${publicMemoriesLoaded ? " 以下为上次成功读取的内容。" : ""}</p>` : "";
+}
+
+function renderPublicMemoryPlaces(restorePosition = false) {
+  const panel = document.querySelector("#publicMemoryPanel");
+  const content = panel.querySelector("#publicMemoryPanelContent");
+  panel.querySelector("#publicMemoryPanelTitle").textContent = "公众记忆";
+  panel.querySelector("[data-public-back]").hidden = true;
+  panel.querySelector("#publicMemoryPanelSummary").textContent = publicMemoriesLoaded
+    ? `共 ${getPublicMemoryCount()} 份公开记忆 · ${publicArchivePlaces.size} 个点位 · 选择点位查看记忆`
+    : "选择点位，查看馆员终审通过并公开的记忆";
+  content.innerHTML = publicMemoryWarning() + (publicArchivePlaces.size ? `<div class="public-place-grid">${Array.from(publicArchivePlaces.values()).map(place => `
+    <button type="button" class="public-place-card" data-public-place="${escapeHtml(place.key)}">
+      <strong>${escapeHtml(place.name)}</strong>
+      <span class="public-place-card__count"><b>${place.memories.length}</b> 份公开记忆</span>
+      <span class="public-place-card__action">查看记忆 <span aria-hidden="true">→</span></span>
+    </button>`).join("")}</div>` : (publicMemoriesError ? "" : "<p>暂时没有已公开的记忆。</p>"));
+  content.scrollTop = restorePosition ? publicArchivePlaceScroll : 0;
+  if (restorePosition) {
+    const previous = Array.from(content.querySelectorAll("[data-public-place]")).find(button => button.dataset.publicPlace === publicArchiveSelectedPlace);
+    (previous || panel.querySelector(".public-memory-panel__close")).focus({ preventScroll: true });
+  }
+}
+
+function showPublicMemoryPlace(key) {
+  const place = publicArchivePlaces.get(key);
+  if (!place) return;
+  const panel = document.querySelector("#publicMemoryPanel");
+  const content = panel.querySelector("#publicMemoryPanelContent");
+  publicArchiveSelectedPlace = key;
+  panel.querySelector("#publicMemoryPanelTitle").textContent = `${place.name} · 公众记忆`;
+  panel.querySelector("#publicMemoryPanelSummary").textContent = `共 ${place.memories.length} 份 · 仅展示馆员终审通过并公开的内容`;
+  const back = panel.querySelector("[data-public-back]");
+  back.hidden = false;
+  content.innerHTML = publicMemoryWarning() + renderPublicArchiveCards(place.point, place.memories);
+  content.scrollTop = 0;
+  back.focus();
+}
+
 async function openPublicMemoryPanel(point, trigger) {
   ensurePublicMemoryPanel();
   const token = ++publicArchiveViewToken;
   const panel = document.querySelector("#publicMemoryPanel");
-  const title = panel.querySelector("#publicMemoryPanelTitle");
-  const summary = panel.querySelector("#publicMemoryPanelSummary");
   const content = panel.querySelector("#publicMemoryPanelContent");
   publicArchiveReturnFocus = trigger || null;
-  title.textContent = point ? `${point.nameModern} · 城市公共记忆档案` : "公众记忆";
-  summary.textContent = "仅展示馆员终审通过并公开的内容";
+  publicArchivePlaceScroll = 0;
+  publicArchiveSelectedPlace = "";
+  panel.querySelector("#publicMemoryPanelTitle").textContent = "公众记忆";
+  panel.querySelector("#publicMemoryPanelSummary").textContent = "仅展示馆员终审通过并公开的内容";
+  panel.querySelector("[data-public-back]").hidden = true;
   content.innerHTML = "<p>正在读取公开记忆…</p>";
   content.scrollTop = 0;
   panel.hidden = false;
@@ -3300,14 +3375,9 @@ async function openPublicMemoryPanel(point, trigger) {
   panel.querySelector(".public-memory-panel__close").focus();
   if (!point && await loadApprovedMemories() && allPoints.length) renderMarkers(allPoints);
   if (token !== publicArchiveViewToken || panel.hidden) return;
-  const memories = point ? getPointMemories(point.id) : Array.from(approvedMemoriesByPoint.values()).flat();
-  const locations = new Set(memories.map(item => item.pointId || item.pointName || "__unmapped__"));
-  summary.textContent = `${publicMemoriesLoaded ? `共 ${memories.length} 份 · ${locations.size} 个地点 · ` : ""}仅展示馆员终审通过并公开的内容`;
-  const warning = publicMemoriesError ? `<p role="status">${escapeHtml(publicMemoriesError)}${publicMemoriesLoaded ? " 以下为上次成功读取的内容。" : ""}</p>` : "";
-  content.innerHTML = warning + (memories.length ? memories.map(memory => {
-    const location = point || allPoints.find(item => item.id === memory.pointId) || { nameModern: memory.pointName || "地点未注明" };
-    return renderPublicArchiveCards(location, [memory]);
-  }).join("") : (publicMemoriesError ? "" : "<p>暂时没有已公开的记忆。</p>"));
+  publicArchivePlaces = collectPublicMemoryPlaces();
+  if (point && publicArchivePlaces.has(`id:${point.id}`)) showPublicMemoryPlace(`id:${point.id}`);
+  else renderPublicMemoryPlaces();
 }
 
 function closePublicMemoryPanel() {
