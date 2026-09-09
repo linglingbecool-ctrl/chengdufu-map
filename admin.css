@@ -164,3 +164,32 @@ h1{margin:0 0 6px;font-size:clamp(2.6rem,7vw,5.4rem);line-height:.95}
   .review-badges{justify-content:start}
   .filter-control,.filter-control select{width:100%}
 }
+
+/* 累计统计独立于分页队列；沿用纸色、黛绿与朱红。 */
+[hidden]{display:none!important}
+.overview-heading{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:18px}
+.overview-heading h2{margin:0;font-size:1.7rem}
+.overview-heading p:last-child,.queue-count{margin:4px 0 0;color:var(--ink-soft);font-size:.85rem}
+.stats-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:14px}
+.stat-total{background:var(--ink);color:var(--panel);border-top-color:var(--gold)}
+.stat-total span,.stat-total small{color:#e4d5bc}
+.stat-card strong{display:block;font-variant-numeric:tabular-nums;font-size:clamp(2rem,5vw,3.3rem);overflow-wrap:anywhere}
+.stat-card small{display:block;margin-top:12px;color:var(--ink-soft);font-size:.77rem;line-height:1.5}
+.stat-total small{color:#e4d5bc}
+.status-breakdown{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0 0 26px;color:var(--ink-soft);font-size:.88rem}
+.status-breakdown b{margin-left:5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.notification-panel,.new-submissions{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;margin-bottom:24px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,250,241,.8)}
+.notification-panel h2{font-size:1.15rem;margin:0 0 4px}
+.notification-panel p{margin:0;color:var(--ink-soft);font-size:.85rem}
+.notification-panel .notification-help{font-size:.77rem;margin-top:4px}
+.notification-panel .btn,.new-submissions .btn{flex-shrink:0}
+.new-submissions{border-color:var(--qing-dark);background:#e5eee8;color:var(--qing-dark)}
+.load-more{display:block;margin:24px auto 0}
+.btn:disabled{opacity:.6;cursor:wait}
+button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.submission-meta dd,.submission-version p{overflow-wrap:anywhere}
+@media(max-width:560px){
+ .overview-heading,.notification-panel,.new-submissions{align-items:flex-start;flex-direction:column}
+ .stats-grid{gap:8px}.stat-card{padding:14px 10px}.stat-card span{font-size:.8rem}
+ .stat-card small{font-size:.7rem}.status-breakdown{gap:6px 14px}
+}

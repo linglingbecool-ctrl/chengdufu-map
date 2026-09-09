@@ -9,6 +9,19 @@ const CLOUDBASE_REGION = "ap-shanghai";
 let cloudApp = null;
 let cloudReady = false;
 let queue = [];
+let stats = null;
+let loadingQueue = false;
+let checkingStats = false;
+let queueGeneration = 0;
+let hasMore = false;
+let queueOffset = 0;
+let observedTotal = null;
+let unseenCount = 0;
+let pollingTimer = null;
+let adminVerified = false;
+let notificationsEnabled = false;
+const reviewNotes = new Map();
+const baseTitle = document.title;
 
 const dashboard = document.querySelector("#dashboard");
 const reviewList = document.querySelector("#reviewList");
@@ -18,6 +31,11 @@ const suggestionFilter = document.querySelector("#suggestionFilter");
 const connectionDot = document.querySelector("#connectionDot");
 const connectionText = document.querySelector("#connectionText");
 const authMessage = document.querySelector("#authMessage");
+const loadMoreButton = document.querySelector("#loadMoreButton");
+const notificationButton = document.querySelector("#notificationButton");
+const notificationStatus = document.querySelector("#notificationStatus");
+const newSubmissions = document.querySelector("#newSubmissions");
+const viewNewButton = document.querySelector("#viewNewButton");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -130,90 +148,168 @@ async function resolveImageUrls(items) {
   }
 }
 
-async function loadReviewQueue() {
-  if (!cloudReady) return;
+function revokeAdminAccess(message) {
+  adminVerified = false;
+  window.clearInterval(pollingTimer);
+  pollingTimer = null;
+  queue = [];
+  reviewNotes.clear();
+  stats = null;
+  observedTotal = null;
+  unseenCount = 0;
+  reviewList.replaceChildren();
+  newSubmissions.hidden = true;
+  dashboard.hidden = true;
+  document.title = baseTitle;
+  setConnectionState("error", "当前身份不是馆员管理员", message || "请使用已授权的馆员身份访问。");
+}
 
-  refreshButton.disabled = true;
-  refreshButton.textContent = "正在刷新…";
+function requireResult(response) {
+  const result = normalizeFunctionResult(response);
+  if (!result?.ok) {
+    if (["NO_ADMIN_PERMISSION", "NOT_LOGIN"].includes(result?.code)) revokeAdminAccess(result.message);
+    throw new Error(result?.message || "读取审核数据失败");
+  }
+  return result;
+}
 
+function renderStats(nextStats, notify = false) {
+  const fields = { statTotal: "total", statPublished: "published", statNotPublished: "notPublished", statAwaiting: "awaiting", statRejected: "rejected", statOther: "other" };
+  if (!nextStats || Object.values(fields).some(key => !Number.isSafeInteger(nextStats[key]) || nextStats[key] < 0) ||
+      nextStats.total !== nextStats.published + nextStats.notPublished ||
+      nextStats.notPublished !== nextStats.awaiting + nextStats.rejected + nextStats.other) {
+    document.querySelector("#statsUpdated").textContent = "累计统计暂不可用，请稍后刷新。";
+    return;
+  }
+  stats = nextStats;
+  for (const [id, key] of Object.entries(fields)) document.getElementById(id).textContent = stats[key].toLocaleString("zh-CN");
+  const updated = new Date(stats.updatedAt);
+  document.querySelector("#statsUpdated").textContent = Number.isNaN(updated.getTime()) ? "累计数据已更新" :
+    `截至 ${updated.toLocaleString("zh-CN", { hour12: false })}`;
+  if (notify && observedTotal !== null && stats.total > observedTotal) announceNewSubmissions(stats.total - observedTotal);
+  observedTotal = stats.total;
+}
+
+function announceNewSubmissions(count) {
+  unseenCount += count;
+  document.title = `（${unseenCount}条新投稿）${baseTitle}`;
+  document.querySelector("#newSubmissionsText").textContent = `新收到 ${unseenCount} 条投稿，累计 ${stats.total} 条。点击刷新查看，已填写的审核备注会保留。`;
+  newSubmissions.hidden = false;
+  if (!notificationsEnabled || !("Notification" in window) || Notification.permission !== "granted") return;
   try {
-    const response = await cloudApp.callFunction({
-      name: "getReviewQueue",
-      data: { limit: 100 },
-      parse: true
+    const notice = new Notification("舆上·成都 · 新投稿", {
+      body: `新收到 ${count} 条投稿，请进入馆员审核台查看。`,
+      tag: "tuhui-new-submissions"
     });
-
-    const result = normalizeFunctionResult(response);
-
-    if (!result?.ok) {
-      if (
-        result?.code === "NO_ADMIN_PERMISSION" ||
-        result?.code === "NOT_LOGIN"
-      ) {
-        dashboard.hidden = true;
-
-        setConnectionState(
-          "error",
-          "已连接，但当前身份不是馆员管理员",
-          result.message ||
-            "请确认 users 集合中已配置当前 OPENID 的 admin 角色。"
-        );
-
-        return;
-      }
-
-      throw new Error(result?.message || "读取审核队列失败");
-    }
-
-    queue = await resolveImageUrls(
-      Array.isArray(result.items) ? result.items : []
-    );
-
-    dashboard.hidden = false;
-
-    setConnectionState(
-      "ok",
-      "CloudBase 已连接 · 馆员身份验证通过",
-      `当前有 ${queue.length} 条投稿等待人工终审。`
-    );
-
-    renderDashboard();
-  } catch (error) {
-    dashboard.hidden = true;
-
-    setConnectionState(
-      "error",
-      "审核台加载失败",
-      error.message || "请检查云函数与权限规则。"
-    );
-
-    console.error("loadReviewQueue failed:", error);
-  } finally {
-    refreshButton.disabled = false;
-    refreshButton.textContent = "刷新待审队列";
+    notice.onclick = () => { window.focus(); newSubmissions.scrollIntoView({ block: "center" }); notice.close(); };
+    notice.onerror = () => { notificationStatus.textContent = "系统通知发送失败，页面内仍会提醒；请检查浏览器和系统通知设置。"; };
+  } catch {
+    notificationStatus.textContent = "此浏览器暂不能显示系统通知，页面内仍会提醒。";
   }
 }
 
-function renderDashboard() {
-  const suggestions = queue.map(
-    (item) => item?.aiReview?.suggestion || "review"
-  );
+function updateNotificationButton() {
+  if (!("Notification" in window) || !window.isSecureContext) {
+    notificationButton.disabled = true;
+    notificationButton.textContent = "当前浏览器不支持系统通知";
+    return;
+  }
+  notificationButton.textContent = notificationsEnabled ? "关闭电脑通知" : "开启电脑通知";
+}
 
-  document.querySelector("#statTotal").textContent = String(queue.length);
-  document.querySelector("#statPass").textContent = String(
-    suggestions.filter((value) => value === "pass").length
-  );
-  document.querySelector("#statReview").textContent = String(
-    suggestions.filter((value) => value === "review").length
-  );
-  document.querySelector("#statReject").textContent = String(
-    suggestions.filter((value) => value === "reject").length
-  );
+notificationButton.addEventListener("click", async () => {
+  if (!adminVerified || !("Notification" in window)) return;
+  if (notificationsEnabled) {
+    notificationsEnabled = false;
+    notificationStatus.textContent = "电脑通知已关闭；页面仍约每30秒检查新投稿。";
+    updateNotificationButton();
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    notificationsEnabled = permission === "granted";
+    notificationStatus.textContent = notificationsEnabled
+      ? "电脑通知已开启；保持此页面打开，约每30秒检查新投稿。"
+      : "尚未获准发送系统通知；可在浏览器的网站设置中允许通知，页面内仍会提醒。";
+  } catch {
+    notificationStatus.textContent = "无法开启系统通知；页面内仍会提醒。";
+  }
+  updateNotificationButton();
+});
 
-  renderCards();
+async function checkSubmissionStats() {
+  if (!cloudReady || !adminVerified || loadingQueue || checkingStats) return;
+  checkingStats = true;
+  const generation = queueGeneration;
+  try {
+    const result = requireResult(await cloudApp.callFunction({ name: "getReviewQueue", data: { summaryOnly: true }, parse: true }));
+    // 手动刷新开始后，丢弃此前发出的自动检查结果，避免旧计数引发重复提醒。
+    if (loadingQueue || generation !== queueGeneration || !adminVerified) return;
+    renderStats(result.stats, true);
+    setConnectionState("ok", "CloudBase 已连接 · 馆员身份验证通过", `待审核 ${stats?.awaiting ?? "—"} 条；页面自动检查新投稿。`);
+  } catch {
+    if (adminVerified) document.querySelector("#statsUpdated").textContent = "自动更新失败，显示上次成功统计；稍后自动重试。";
+  } finally {
+    checkingStats = false;
+  }
+}
+
+function saveReviewNotes() {
+  reviewList.querySelectorAll(".review-card").forEach(card => {
+    const textarea = card.querySelector(".review-note textarea");
+    if (textarea) reviewNotes.set(card.dataset.id, textarea.value);
+  });
+}
+
+async function loadReviewQueue({ append = false } = {}) {
+  if (!cloudReady || loadingQueue) return;
+  loadingQueue = true;
+  queueGeneration += 1;
+  refreshButton.disabled = true;
+  loadMoreButton.disabled = true;
+  refreshButton.textContent = "正在刷新…";
+  const offset = append ? queueOffset : 0;
+  try {
+    const result = requireResult(await cloudApp.callFunction({
+      name: "getReviewQueue", data: { limit: 100, offset }, parse: true
+    }));
+    const incoming = await resolveImageUrls(Array.isArray(result.items) ? result.items : []);
+    saveReviewNotes();
+    queue = append ? Array.from(new Map([...queue, ...incoming].map(item => [item.id, item])).values()) : incoming;
+    queueOffset = offset + incoming.length;
+    hasMore = result.hasMore === true;
+    adminVerified = true;
+    dashboard.hidden = false;
+    renderStats(result.stats, append);
+    if (!append) {
+      unseenCount = 0;
+      newSubmissions.hidden = true;
+      document.title = baseTitle;
+    }
+    setConnectionState("ok", "CloudBase 已连接 · 馆员身份验证通过", `待审核 ${stats?.awaiting ?? queue.length} 条，当前已加载 ${queue.length} 条。`);
+    document.querySelector("#queueCount").textContent = `已加载 ${queue.length} 条${hasMore ? "，可继续加载更多" : ""}；累计数字不受队列分页和筛选影响。`;
+    renderCards();
+    loadMoreButton.hidden = !hasMore;
+    // 当前小规模审核台使用30秒轮询；浏览器休眠会暂停。
+    // 需要关闭页面后必达或多人高频使用时，升级为服务端通知，不提高轮询频率。
+    if (!pollingTimer) pollingTimer = window.setInterval(checkSubmissionStats, 30000);
+    updateNotificationButton();
+  } catch (error) {
+    if (adminVerified) {
+      setConnectionState("error", "本次刷新失败，保留上次数据", "请稍后重试；正在填写的审核备注已保留。");
+    } else if (!connectionText.textContent.includes("当前身份不是")) {
+      setConnectionState("error", "审核台加载失败", error.message || "请检查云函数与权限规则。");
+    }
+  } finally {
+    loadingQueue = false;
+    refreshButton.disabled = false;
+    loadMoreButton.disabled = false;
+    refreshButton.textContent = "刷新数据与队列";
+  }
 }
 
 function renderCards() {
+  saveReviewNotes();
   const filter = suggestionFilter.value;
 
   const items =
@@ -247,6 +343,7 @@ function createReviewCard(item) {
   const card = fragment.querySelector(".review-card");
 
   card.dataset.id = item.id;
+  fragment.querySelector(".review-note textarea").value = reviewNotes.get(item.id) || "";
 
   const ai = item.aiReview || {};
 
@@ -490,6 +587,8 @@ async function handleReviewAction(card, item, decision) {
       throw new Error(result?.message || "人工审核操作失败");
     }
 
+    reviewNotes.delete(item.id);
+    card.querySelector(".review-note textarea").value = "";
     statusEl.textContent =
       result.message || "审核操作成功。";
 
@@ -505,7 +604,10 @@ async function handleReviewAction(card, item, decision) {
   }
 }
 
-refreshButton.addEventListener("click", loadReviewQueue);
+refreshButton.addEventListener("click", () => loadReviewQueue());
+viewNewButton.addEventListener("click", () => loadReviewQueue());
+loadMoreButton.addEventListener("click", () => loadReviewQueue({ append: true }));
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkSubmissionStats(); });
 suggestionFilter.addEventListener("change", renderCards);
 
 async function init() {

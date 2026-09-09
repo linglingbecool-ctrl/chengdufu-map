@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>馆员审核台｜舆上·成都</title>
   <meta name="description" content="“舆上蜀”系列之“舆上·成都”公众城市记忆馆员审核台：查看自动登记结果并进行馆员人工审核。">
-  <link rel="stylesheet" href="./admin.css?v=20260812-rewrite01">
+  <link rel="stylesheet" href="./admin.css?v=20260909-stats01">
   <script
     src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"
     onload="console.log('CloudBase SDK 2.27.1 加载成功')"
@@ -22,7 +22,7 @@
       </div>
       <div class="header-actions">
         <a class="btn ghost" href="./index.html" target="_blank" rel="noopener">查看公众端</a>
-        <button class="btn primary" id="refreshButton" type="button">刷新待审队列</button>
+        <button class="btn primary" id="refreshButton" type="button">刷新数据与队列</button>
       </div>
     </div>
   </header>
@@ -37,29 +37,37 @@
     </section>
 
     <section class="dashboard" id="dashboard" hidden>
-      <div class="stats-grid">
-        <article class="stat-card">
-          <span>待人工审核</span>
-          <strong id="statTotal">0</strong>
-        </article>
-        <article class="stat-card stat-pass">
-          <span>自动初筛通过</span>
-          <strong id="statPass">0</strong>
-        </article>
-        <article class="stat-card stat-review">
-          <span>等待人工复核</span>
-          <strong id="statReview">0</strong>
-        </article>
-        <article class="stat-card stat-reject">
-          <span>自动初筛拦截</span>
-          <strong id="statReject">0</strong>
-        </article>
+      <section class="submission-overview" aria-labelledby="overviewTitle">
+        <div class="overview-heading">
+          <div><p class="section-label">Submission Overview</p><h2 id="overviewTitle">投稿总览</h2></div>
+          <p id="statsUpdated" role="status">正在读取累计数据…</p>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card stat-total"><span>累计投稿</span><strong id="statTotal">—</strong><small>迄今为止全部已保存投稿</small></article>
+          <article class="stat-card stat-pass"><span>已公开</span><strong id="statPublished">—</strong><small>馆员批准且公开授权完整</small></article>
+          <article class="stat-card stat-review"><span>未公开</span><strong id="statNotPublished">—</strong><small>包含待审核、不予公开等状态</small></article>
+        </div>
+        <p class="status-breakdown">未公开中：<span>待审核 <b id="statAwaiting">—</b></span><span>不予公开 <b id="statRejected">—</b></span><span>其他状态 <b id="statOther">—</b></span></p>
+      </section>
+
+      <section class="notification-panel" aria-labelledby="notificationTitle">
+        <div>
+          <h2 id="notificationTitle">新投稿提醒</h2>
+          <p id="notificationStatus">页面打开时约每30秒检查新投稿；电脑系统通知需手动开启。</p>
+          <p class="notification-help">关闭网页或设备休眠后，浏览器提醒会暂停。</p>
+        </div>
+        <button class="btn ghost" id="notificationButton" type="button">开启电脑通知</button>
+      </section>
+      <div class="new-submissions" id="newSubmissions" role="status" hidden>
+        <span id="newSubmissionsText"></span>
+        <button class="btn primary" id="viewNewButton" type="button">刷新查看</button>
       </div>
 
       <div class="toolbar">
         <div>
           <p class="section-label">Review Queue</p>
           <h2>待审投稿</h2>
+          <p id="queueCount" class="queue-count"></p>
         </div>
         <label class="filter-control">
           <span>筛选初筛状态</span>
@@ -74,6 +82,7 @@
 
       <div class="queue-message" id="queueMessage" hidden></div>
       <div class="review-list" id="reviewList"></div>
+      <button class="btn ghost load-more" id="loadMoreButton" type="button" hidden>加载更多待审投稿</button>
     </section>
   </main>
 
@@ -147,6 +156,6 @@
     </article>
   </template>
 
-  <script src="./admin.js?v=20260903-scucontact01"></script>
+  <script src="./admin.js?v=20260909-stats01"></script>
 </body>
 </html>
