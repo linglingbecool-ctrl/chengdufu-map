@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260909-placegrid05";
+const APP_VERSION = "20260909-placewindow06";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -1169,17 +1169,12 @@ function updateMapPointContext(
 }
 
 function focusMapPoint(
-  point,
-  preserveFilter = false
+  point
 ) {
   if (!point) {
     return;
   }
 
-  if (!preserveFilter && pointTypeFilter !== "all" && getStatusClass(point) !== pointTypeFilter) {
-    pointTypeFilter = "all";
-    applyPointTypeFilter();
-  }
   activeMapPointId =
     point.id;
   const selectedLabel = document.querySelector("#pointPickerCurrent");
@@ -1331,7 +1326,7 @@ function setMapHubMode(
 
   if (activePoint) {
     focusMapPoint(
-      activePoint, true
+      activePoint
     );
 
     if (
@@ -1398,7 +1393,7 @@ function handleMapPointInteraction(
   }
 }
 
-let pointTypeFilter = "all";
+let pointPickerStatus = "";
 
 function pointPickerName(point) {
   if (point.id === "sichuandaxue") return "四川大学（望江校区）";
@@ -1406,19 +1401,11 @@ function pointPickerName(point) {
   return point.nameModern || point.nameAncient || "未命名地点";
 }
 
-function applyPointTypeFilter() {
-  document.querySelectorAll("[data-point-status]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.pointStatus === pointTypeFilter)));
-  document.querySelectorAll(".map-marker").forEach(marker => {
-    marker.hidden = pointTypeFilter !== "all" && !marker.classList.contains(pointTypeFilter);
-  });
-  renderPointPicker();
-}
-
 function renderPointPicker() {
   const list = document.querySelector("#pointPickerList");
   if (!list) return;
-  const matches = allPoints.filter(point => getStatusClass(point) === pointTypeFilter);
-  const label = document.querySelector(`[data-point-status="${pointTypeFilter}"]`)?.textContent.replace("⌄", "").trim() || "地点";
+  const matches = allPoints.filter(point => getStatusClass(point) === pointPickerStatus);
+  const label = document.querySelector(`[data-point-status="${pointPickerStatus}"]`)?.textContent.replace("⌄", "").trim() || "地点";
   document.querySelector("#pointPickerCount").textContent = allPoints.length ? `${label} · ${matches.length} 处` : "点位正在加载，请稍候。";
   list.innerHTML = matches.map(point => `<button type="button" data-find-point="${escapeHtml(point.id)}" aria-pressed="${point.id === activeMapPointId}">${escapeHtml(pointPickerName(point))}</button>`).join("");
 }
@@ -1446,11 +1433,11 @@ function bindPointPicker() {
       const wasOpen = button.getAttribute("aria-expanded") === "true";
       closePointPicker();
       if (wasOpen) return;
-      pointTypeFilter = button.dataset.pointStatus;
+      pointPickerStatus = button.dataset.pointStatus;
       button.parentElement.appendChild(panel);
       panel.hidden = false;
       button.setAttribute("aria-expanded", "true");
-      applyPointTypeFilter();
+      renderPointPicker();
       positionPointPicker();
     });
     button.addEventListener("keydown", event => {
@@ -1465,7 +1452,7 @@ function bindPointPicker() {
   panel.addEventListener("keydown", event => {
     if (event.key === "Escape") {
       closePointPicker();
-      document.querySelector(`[data-point-status="${pointTypeFilter}"]`)?.focus();
+      document.querySelector(`[data-point-status="${pointPickerStatus}"]`)?.focus();
     }
     const items = Array.from(panel.querySelectorAll("[data-find-point]"));
     const index = items.indexOf(document.activeElement);
@@ -1481,19 +1468,19 @@ function bindPointPicker() {
   document.addEventListener("click", closeOutside);
   document.addEventListener("focusin", closeOutside);
   window.addEventListener("resize", positionPointPicker);
-  // 浏览器“返回”可能直接恢复旧页面；重新进入时恢复全部点位。
+  // 从浏览器缓存返回时收起旧菜单，地点列表不会控制地图显隐。
   window.addEventListener("pageshow", event => {
     if (!event.persisted) return;
-    pointTypeFilter = "all";
+    pointPickerStatus = "";
     closePointPicker();
-    applyPointTypeFilter();
+    renderPointPicker();
   });
   document.querySelector("#pointPickerList").addEventListener("click", event => {
     const button = event.target.closest("[data-find-point]");
     const point = allPoints.find(item => item.id === button?.dataset.findPoint);
     if (!point) return;
     closePointPicker();
-    document.querySelector(`[data-point-status="${pointTypeFilter}"]`).focus({ preventScroll: true });
+    document.querySelector(`[data-point-status="${pointPickerStatus}"]`).focus({ preventScroll: true });
     // 馆藏问图只支持六个核心点位，其他地点选中后进入其可用的探古档案。
     if (mapHubMode === "ask" && !citywalkOrder.includes(point.id)) setMapHubMode("explore");
     handleMapPointInteraction(point);
@@ -3244,7 +3231,8 @@ function ensurePublicMemoryPanel() {
           data-close-public-memory
           aria-label="关闭城市公共记忆档案"
         >
-          ×
+          <span class="public-memory-close-icon" aria-hidden="true">×</span>
+          <span class="public-memory-close-label">关闭</span>
         </button>
       </header>
 
@@ -4105,11 +4093,11 @@ function renderMarkers(points) {
 
   if (activePoint) {
     focusMapPoint(
-      activePoint, true
+      activePoint
     );
   }
 
-  applyPointTypeFilter();
+  renderPointPicker();
   updateMapMemoryLayerCounts();
 }
 
