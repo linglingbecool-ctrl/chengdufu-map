@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260909-discovery01";
+const APP_VERSION = "20260909-dropdown03";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -1417,40 +1417,75 @@ function applyPointTypeFilter() {
 function renderPointPicker() {
   const list = document.querySelector("#pointPickerList");
   if (!list) return;
-  const query = (document.querySelector("#pointSearch").value || "").normalize("NFKC").replace(/\s/g, "").toLowerCase();
-  const aliases = { sichuandaxue: "川大望江望江校区四川大学", huaxiba: "川大华西华西校区华西坝" };
-  const pinned = ["sichuandaxue", "huaxiba"];
-  const matches = allPoints.filter(point => {
-    const names = `${pointPickerName(point)} ${point.nameAncient || ""} ${aliases[point.id] || ""}`.normalize("NFKC").replace(/\s/g, "").toLowerCase();
-    return (pointTypeFilter === "all" || getStatusClass(point) === pointTypeFilter) && names.includes(query);
-  }).sort((a,b) => (pinned.includes(a.id) ? pinned.indexOf(a.id) : 2) - (pinned.includes(b.id) ? pinned.indexOf(b.id) : 2));
-  document.querySelector("#pointPickerCount").textContent = allPoints.length
-    ? (matches.length ? `共 ${matches.length} 处，点击名称选择；留忆模式下可直接投稿。` : "此分类中没有匹配地点，可换个名称或选择“全部地点”。")
-    : "点位正在加载，请稍候。";
-  list.innerHTML = matches.map(point => `<button type="button" data-find-point="${escapeHtml(point.id)}" aria-pressed="${point.id === activeMapPointId}"><strong>${escapeHtml(pointPickerName(point))}</strong><small>${escapeHtml(pinned.includes(point.id) ? "校庆记忆征集" : (point.nameAncient && point.nameAncient !== point.nameModern ? `古图：${point.nameAncient}` : getStatusLabel(point)))}</small></button>`).join("");
+  const matches = allPoints.filter(point => getStatusClass(point) === pointTypeFilter);
+  const label = document.querySelector(`[data-point-status="${pointTypeFilter}"]`)?.textContent.replace("⌄", "").trim() || "地点";
+  document.querySelector("#pointPickerCount").textContent = allPoints.length ? `${label} · ${matches.length} 处` : "点位正在加载，请稍候。";
+  list.innerHTML = matches.map(point => `<button type="button" data-find-point="${escapeHtml(point.id)}" aria-pressed="${point.id === activeMapPointId}">${escapeHtml(pointPickerName(point))}</button>`).join("");
+}
+
+function closePointPicker() {
+  document.querySelector("#pointPicker").hidden = true;
+  document.querySelectorAll("[data-point-status]").forEach(button => button.setAttribute("aria-expanded", "false"));
+}
+
+function positionPointPicker() {
+  const panel = document.querySelector("#pointPicker");
+  if (panel.hidden) return;
+  panel.style.left = "0px";
+  // 下拉框贴近当前按钮，同时保持在地图容器与窄屏内。
+  const bounds = document.querySelector("#mapHub").getBoundingClientRect();
+  const rect = panel.getBoundingClientRect();
+  const shift = Math.min(0, Math.min(window.innerWidth - 12, bounds.right - 12) - rect.right);
+  panel.style.left = `${Math.max(shift, Math.max(12, bounds.left + 12) - rect.left)}px`;
 }
 
 function bindPointPicker() {
   const panel = document.querySelector("#pointPicker");
-  document.querySelectorAll("[data-point-status]").forEach(button => button.addEventListener("click", () => {
-    pointTypeFilter = button.dataset.pointStatus;
-    document.querySelector("#pointSearch").value = "";
-    panel.hidden = false;
-    applyPointTypeFilter();
-  }));
-  document.querySelector("#pointSearch").addEventListener("input", renderPointPicker);
-  document.querySelector("#closePointPicker").addEventListener("click", () => {
-    panel.hidden = true;
-    document.querySelector(`[data-point-status="${pointTypeFilter}"]`).focus();
+  document.querySelectorAll("[data-point-status]").forEach(button => {
+    button.addEventListener("click", () => {
+      const wasOpen = button.getAttribute("aria-expanded") === "true";
+      closePointPicker();
+      if (wasOpen) return;
+      pointTypeFilter = button.dataset.pointStatus;
+      button.parentElement.appendChild(panel);
+      panel.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      applyPointTypeFilter();
+      positionPointPicker();
+    });
+    button.addEventListener("keydown", event => {
+      if (event.key === "Escape") closePointPicker();
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (button.getAttribute("aria-expanded") !== "true") button.click();
+        panel.querySelector("[data-find-point]")?.focus();
+      }
+    });
   });
   panel.addEventListener("keydown", event => {
-    if (event.key === "Escape") document.querySelector("#closePointPicker").click();
+    if (event.key === "Escape") {
+      closePointPicker();
+      document.querySelector(`[data-point-status="${pointTypeFilter}"]`)?.focus();
+    }
+    const items = Array.from(panel.querySelectorAll("[data-find-point]"));
+    const index = items.indexOf(document.activeElement);
+    if (index >= 0 && ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    }
   });
+  const closeOutside = event => {
+    if (!panel.hidden && !panel.parentElement.contains(event.target)) closePointPicker();
+  };
+  document.addEventListener("click", closeOutside);
+  document.addEventListener("focusin", closeOutside);
+  window.addEventListener("resize", positionPointPicker);
   document.querySelector("#pointPickerList").addEventListener("click", event => {
     const button = event.target.closest("[data-find-point]");
     const point = allPoints.find(item => item.id === button?.dataset.findPoint);
     if (!point) return;
-    panel.hidden = true;
+    closePointPicker();
     document.querySelector(`[data-point-status="${pointTypeFilter}"]`).focus({ preventScroll: true });
     // 馆藏问图只支持六个核心点位，其他地点选中后进入其可用的探古档案。
     if (mapHubMode === "ask" && !citywalkOrder.includes(point.id)) setMapHubMode("explore");
@@ -2629,16 +2664,8 @@ function renderMyMemoryPanel() {
       ? items
           .map(
             (item) => {
-              const excerpt =
-                String(
-                  item.originalContent ||
-                  "本次投稿以影像材料为主。"
-                )
-                  .trim()
-                  .slice(
-                    0,
-                    88
-                  );
+              const original = String(item.originalContent || "").trim();
+              const draft = typeof item.collaborativeDraft === "string" ? item.collaborativeDraft.trim() : "";
 
               return `
                 <article
@@ -2679,11 +2706,14 @@ function renderMyMemoryPanel() {
                     </span>
                   </div>
 
-                  <p>
-                    ${escapeHtml(
-                      excerpt
-                    )}
-                  </p>
+                  <section class="my-footprint-text">
+                    <h4>原始记忆</h4>
+                    <p>${escapeHtml(original || "本次投稿以影像材料为主。")}</p>
+                  </section>
+                  ${draft ? `<section class="my-footprint-text is-collaborative">
+                    <h4>协作整理稿 · ${item.collaborativeDraftAccepted === true ? "已采纳" : "未采纳"}</h4>
+                    <p>${escapeHtml(draft)}</p>
+                  </section>` : ""}
 
                   <div
                     class="my-footprint-card__meta"

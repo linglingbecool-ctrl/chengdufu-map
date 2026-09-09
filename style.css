@@ -7194,32 +7194,31 @@ body.scene-overlay-open {
   }
 }
 
-/* 按类型与名称选择古图点位，复用原图位置。 */
+/* 四类按钮分别下拉选择地点，复用原图位置。 */
+.map-hub-toolbar{z-index:3}
 .map-hub .point-type-filters{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.point-type-filters button{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:7px 10px;border:1px solid rgba(75,57,34,.22);border-radius:7px;background:#fffaf0;color:var(--ink);font:inherit;font-size:.8rem;cursor:pointer;white-space:nowrap}
-.point-type-filters button[aria-pressed="true"]{background:#315c53;color:#fffaf0;border-color:#315c53}
+.point-type-dropdown{position:relative}
+.point-type-dropdown>button{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:7px 10px;border:1px solid rgba(75,57,34,.22);border-radius:7px;background:#fffaf0;color:var(--ink);font:inherit;font-size:.8rem;cursor:pointer;white-space:nowrap}
+.point-type-dropdown>button[aria-pressed="true"]{background:#315c53;color:#fffaf0;border-color:#315c53}
 .point-type-filters .dot{flex:none}
-.point-picker{position:relative;z-index:1;margin:0 0 12px;padding:15px;border:1px solid rgba(75,57,34,.22);border-radius:10px;background:#fffaf0}
+.point-picker{margin:0;position:absolute;top:calc(100% + 6px);left:0;z-index:5;width:250px;max-width:calc(100vw - 56px);padding:8px;border:1px solid rgba(75,57,34,.25);border-radius:8px;background:#fffaf0;box-shadow:0 10px 24px rgba(44,31,20,.2)}
 .point-picker[hidden],.map-marker[hidden]{display:none!important}
-.point-picker__head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
-.point-picker__head label{font-weight:800;color:#315c53}
-.point-picker__head button{min-height:40px;background:none;border:0;text-decoration:underline;color:#665b49;cursor:pointer;font:inherit;font-size:.85rem}
-.point-picker input{width:100%;min-height:44px;padding:10px 12px;border:1px solid #a49b89;border-radius:6px;background:white;color:var(--ink);font:inherit;font-size:16px}
-.point-picker p,.point-picker-current{margin:8px 0;color:var(--ink-soft);font-size:.8rem}
-.point-picker-current{position:relative;z-index:1}
-.point-picker__list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:270px;overflow:auto;overscroll-behavior:contain}
-.point-picker__list button{min-width:0;min-height:54px;padding:10px 12px;text-align:left;border:1px solid rgba(75,57,34,.2);border-radius:6px;background:#f4ead7;color:var(--ink);font:inherit;cursor:pointer}
-.point-picker__list button strong,.point-picker__list button small{display:block;overflow-wrap:anywhere}
-.point-picker__list button small{font-size:.75rem;color:var(--ink-soft);margin-top:3px}
-.point-picker__list button[aria-pressed="true"]{border-color:#315c53;box-shadow:inset 3px 0 #315c53}
-.point-type-filters button:focus-visible,.point-picker button:focus-visible,.point-picker input:focus-visible,.public-archive-map-link:focus-visible{outline:3px solid #c4973d;outline-offset:2px}
+.point-picker p,.point-picker-current{margin:6px 4px;color:var(--ink-soft);font-size:.8rem}
+.point-picker-current{position:relative;z-index:1;margin-bottom:10px}
+.point-picker__list{display:grid;grid-template-columns:1fr;gap:2px;max-height:min(300px,45vh);overflow:auto;overscroll-behavior:contain}
+.point-picker__list button{display:block;width:100%;min-height:44px;padding:10px;text-align:left;border:0;border-radius:4px;background:transparent;color:var(--ink);font:inherit;font-size:.88rem;white-space:normal;cursor:pointer}
+.point-picker__list button:hover,.point-picker__list button[aria-pressed="true"]{background:#e6eedf;color:#254c43}
+.point-type-filters button:focus-visible,.public-archive-map-link:focus-visible{outline:3px solid #c4973d;outline-offset:1px}
 .public-archive-map-link{display:inline-block;margin:0 14px 14px;padding:9px 14px;min-height:44px;border:1px solid #315c53;border-radius:6px;background:#fffaf0;color:#315c53;cursor:pointer;font:inherit}
 @media(max-width:1100px){.site-hero .navlinks{flex-wrap:wrap}.map-hub-toolbar{flex-wrap:wrap}.map-hub .point-type-filters{flex:1 0 100%;order:3;justify-content:flex-start}}
 @media(max-width:680px){
  .site-hero .topbar{flex-wrap:wrap;gap:8px}
  .site-hero .navlinks{gap:6px;flex-wrap:wrap;margin-left:auto}
  .site-hero .memory-nav-button{min-height:40px;padding:6px 8px}
- .point-picker__list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:250px}
- .point-type-filters button{min-height:44px;padding:7px 9px}
- .point-picker{padding:12px}
+ .point-type-dropdown>button{min-height:44px;padding:7px 9px}
 }
+
+.my-footprint-text{margin:12px 0;padding:12px;background:rgba(255,250,240,.65);border-left:2px solid #a88a65}
+.my-footprint-text.is-collaborative{border-left-color:#315c53;background:rgba(111,155,139,.09)}
+.my-footprint-text h4{margin:0 0 8px;font-size:.8rem;color:var(--ink-soft)}
+.my-footprint-text p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.88rem;line-height:1.8}
