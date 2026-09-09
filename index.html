@@ -30,7 +30,7 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260908-copyright01"
+      href="./style.css?v=20260909-discovery01"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
@@ -114,6 +114,9 @@
             </span>
           </button>
 
+          <button type="button" class="memory-nav-button" id="publicMemoryButton" aria-haspopup="dialog" aria-controls="publicMemoryPanel">
+            公众记忆 <span class="memory-nav-count" id="publicMemoryCount">—</span>
+          </button>
         </div>
       </nav>
 
@@ -239,41 +242,12 @@
               </small>
             </div>
 
-            <div
-              class="legend"
-              aria-label="点位图例"
-            >
-              <span>
-                <i
-                  class="dot status-existing"
-                ></i>
-
-                存续点
-              </span>
-
-              <span>
-                <i
-                  class="dot status-changed"
-                ></i>
-
-                变迁点
-              </span>
-
-              <span>
-                <i
-                  class="dot status-uncertain"
-                ></i>
-
-                待考点
-              </span>
-
-              <span>
-                <i
-                  class="dot status-added"
-                ></i>
-
-                新增点
-              </span>
+            <div class="legend point-type-filters" aria-label="按点位类型筛选">
+              <button type="button" data-point-status="all" aria-pressed="true" aria-controls="pointPicker">全部地点</button>
+              <button type="button" data-point-status="status-existing" aria-pressed="false" aria-controls="pointPicker"><i class="dot status-existing" aria-hidden="true"></i>存续点</button>
+              <button type="button" data-point-status="status-changed" aria-pressed="false" aria-controls="pointPicker"><i class="dot status-changed" aria-hidden="true"></i>变迁点</button>
+              <button type="button" data-point-status="status-uncertain" aria-pressed="false" aria-controls="pointPicker"><i class="dot status-uncertain" aria-hidden="true"></i>待考点</button>
+              <button type="button" data-point-status="status-added" aria-pressed="false" aria-controls="pointPicker"><i class="dot status-added" aria-hidden="true"></i>新增点</button>
             </div>
 
             <div
@@ -308,6 +282,16 @@
             </div>
           </div>
 
+          <section class="point-picker" id="pointPicker" aria-label="选择地点" hidden>
+            <div class="point-picker__head">
+              <label for="pointSearch">按名称找地点</label>
+              <button type="button" id="closePointPicker">收起列表</button>
+            </div>
+            <input type="search" id="pointSearch" placeholder="输入地名，例如：川大、华西、九眼桥" autocomplete="off" maxlength="60">
+            <p id="pointPickerCount" role="status"></p>
+            <div class="point-picker__list" id="pointPickerList"></div>
+          </section>
+          <p class="point-picker-current" id="pointPickerCurrent" role="status">点击上方类型，按地点名称选择</p>
           <div class="map-workbench">
           <div
             class="map-panel"
@@ -1219,7 +1203,7 @@
     -->
 
     <script
-      src="./script.js?v=20260908-copyright01"
+      src="./script.js?v=20260909-discovery01"
     ></script>
 
     <script

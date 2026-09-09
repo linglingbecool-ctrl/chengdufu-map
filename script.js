@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260904-huaxiba01";
+const APP_VERSION = "20260909-discovery01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -818,93 +818,50 @@ async function resolveMemoryImageUrls(
  * consentToPublish = true
  * rightsConfirmed = true
  */
+let publicMemoriesLoad = null;
+let publicMemoriesLoaded = false;
+let publicMemoriesError = "";
+
 async function loadApprovedMemories() {
-  approvedMemoriesByPoint =
-    new Map();
-
-  if (
-    !cloudReady ||
-    !cloudApp ||
-    typeof cloudApp.callFunction
-      !== "function"
-  ) {
-    return;
+  if (publicMemoriesLoad) return publicMemoriesLoad;
+  if (!cloudReady || !cloudApp) {
+    publicMemoriesError = "公开记忆暂未连接，请稍后重试。";
+    return false;
   }
-
-  try {
-    const response =
-      await cloudApp
-        .callFunction({
-          name:
-            "getPublicMemories",
-
-          data: {
-            limit: 100
-          },
-
-          parse: true
+  publicMemoriesLoad = (async () => {
+    try {
+      const collected = new Map();
+      const seenCursors = new Set();
+      let cursor = "";
+      do {
+        const result = normalizeFunctionResult(await cloudApp.callFunction({ name: "getPublicMemories", data: { limit: 100, cursor }, parse: true }));
+        if (!result?.ok || !Array.isArray(result.memories)) throw new Error("公开记忆读取失败，请稍后重试。");
+        const page = await resolveMemoryImageUrls(result.memories);
+        page.forEach(memory => {
+          if (memory.status === "approved" && memory.id) collected.set(memory.id, memory);
         });
-
-    const result =
-      normalizeFunctionResult(
-        response
-      );
-
-    if (
-      !result?.ok ||
-      !Array.isArray(
-        result.memories
-      )
-    ) {
-      throw new Error(
-        result?.message ||
-        "公开城市记忆返回格式不正确"
-      );
+        cursor = result.nextCursor || "";
+        if (cursor && (typeof cursor !== "string" || seenCursors.has(cursor))) throw new Error("公开记忆读取未完成，请稍后重试。");
+        if (cursor) seenCursors.add(cursor);
+      } while (cursor);
+      const grouped = new Map();
+      collected.forEach(memory => {
+        const pointId = memory.pointId || "__unmapped__";
+        const items = grouped.get(pointId) || [];
+        items.push(memory);
+        grouped.set(pointId, items);
+      });
+      approvedMemoriesByPoint = grouped;
+      publicMemoriesLoaded = true;
+      publicMemoriesError = "";
+      updateMapMemoryLayerCounts();
+      return true;
+    } catch (error) {
+      publicMemoriesError = error.message || "公开记忆读取失败，请稍后重试。";
+      return false;
     }
-
-    const memories =
-      await resolveMemoryImageUrls(
-        result.memories
-      );
-
-    memories.forEach(
-      (memory) => {
-        if (
-          !memory?.pointId
-        ) {
-          return;
-        }
-
-        const current =
-          approvedMemoriesByPoint
-            .get(
-              memory.pointId
-            ) ||
-          [];
-
-        current.push(
-          memory
-        );
-
-        approvedMemoriesByPoint
-          .set(
-            memory.pointId,
-            current
-          );
-      }
-    );
-
-    console.log(
-      `已加载 ${memories.length} 条审核通过的城市记忆`
-    );
-  }
-
-  catch (error) {
-    console.warn(
-      "公开城市记忆暂未加载。若尚未部署 getPublicMemories 云函数，这是正常现象：",
-      error
-    );
-  }
+  })();
+  try { return await publicMemoriesLoad; } finally { publicMemoriesLoad = null; }
 }
 
 
@@ -1034,6 +991,8 @@ function getPublicMemoryCount() {
 }
 
 function updateMapMemoryLayerCounts() {
+  const publicCount = document.querySelector("#publicMemoryCount");
+  if (publicCount) publicCount.textContent = publicMemoriesLoaded ? String(getPublicMemoryCount()) : "—";
   const mineCount =
     document.querySelector(
       "#mapMineCount"
@@ -1210,14 +1169,22 @@ function updateMapPointContext(
 }
 
 function focusMapPoint(
-  point
+  point,
+  preserveFilter = false
 ) {
   if (!point) {
     return;
   }
 
+  if (!preserveFilter && pointTypeFilter !== "all" && getStatusClass(point) !== pointTypeFilter) {
+    pointTypeFilter = "all";
+    applyPointTypeFilter();
+  }
   activeMapPointId =
     point.id;
+  const selectedLabel = document.querySelector("#pointPickerCurrent");
+  if (selectedLabel) selectedLabel.textContent = `当前地点：${pointPickerName(point)}`;
+  document.querySelectorAll("[data-find-point]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.findPoint === point.id)));
 
   document
     .querySelectorAll(
@@ -1364,7 +1331,7 @@ function setMapHubMode(
 
   if (activePoint) {
     focusMapPoint(
-      activePoint
+      activePoint, true
     );
 
     if (
@@ -1429,6 +1396,66 @@ function handleMapPointInteraction(
       point
     );
   }
+}
+
+let pointTypeFilter = "all";
+
+function pointPickerName(point) {
+  if (point.id === "sichuandaxue") return "四川大学（望江校区）";
+  if (point.id === "huaxiba") return "华西坝（华西校区）";
+  return point.nameModern || point.nameAncient || "未命名地点";
+}
+
+function applyPointTypeFilter() {
+  document.querySelectorAll("[data-point-status]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.pointStatus === pointTypeFilter)));
+  document.querySelectorAll(".map-marker").forEach(marker => {
+    marker.hidden = pointTypeFilter !== "all" && !marker.classList.contains(pointTypeFilter);
+  });
+  renderPointPicker();
+}
+
+function renderPointPicker() {
+  const list = document.querySelector("#pointPickerList");
+  if (!list) return;
+  const query = (document.querySelector("#pointSearch").value || "").normalize("NFKC").replace(/\s/g, "").toLowerCase();
+  const aliases = { sichuandaxue: "川大望江望江校区四川大学", huaxiba: "川大华西华西校区华西坝" };
+  const pinned = ["sichuandaxue", "huaxiba"];
+  const matches = allPoints.filter(point => {
+    const names = `${pointPickerName(point)} ${point.nameAncient || ""} ${aliases[point.id] || ""}`.normalize("NFKC").replace(/\s/g, "").toLowerCase();
+    return (pointTypeFilter === "all" || getStatusClass(point) === pointTypeFilter) && names.includes(query);
+  }).sort((a,b) => (pinned.includes(a.id) ? pinned.indexOf(a.id) : 2) - (pinned.includes(b.id) ? pinned.indexOf(b.id) : 2));
+  document.querySelector("#pointPickerCount").textContent = allPoints.length
+    ? (matches.length ? `共 ${matches.length} 处，点击名称选择；留忆模式下可直接投稿。` : "此分类中没有匹配地点，可换个名称或选择“全部地点”。")
+    : "点位正在加载，请稍候。";
+  list.innerHTML = matches.map(point => `<button type="button" data-find-point="${escapeHtml(point.id)}" aria-pressed="${point.id === activeMapPointId}"><strong>${escapeHtml(pointPickerName(point))}</strong><small>${escapeHtml(pinned.includes(point.id) ? "校庆记忆征集" : (point.nameAncient && point.nameAncient !== point.nameModern ? `古图：${point.nameAncient}` : getStatusLabel(point)))}</small></button>`).join("");
+}
+
+function bindPointPicker() {
+  const panel = document.querySelector("#pointPicker");
+  document.querySelectorAll("[data-point-status]").forEach(button => button.addEventListener("click", () => {
+    pointTypeFilter = button.dataset.pointStatus;
+    document.querySelector("#pointSearch").value = "";
+    panel.hidden = false;
+    applyPointTypeFilter();
+  }));
+  document.querySelector("#pointSearch").addEventListener("input", renderPointPicker);
+  document.querySelector("#closePointPicker").addEventListener("click", () => {
+    panel.hidden = true;
+    document.querySelector(`[data-point-status="${pointTypeFilter}"]`).focus();
+  });
+  panel.addEventListener("keydown", event => {
+    if (event.key === "Escape") document.querySelector("#closePointPicker").click();
+  });
+  document.querySelector("#pointPickerList").addEventListener("click", event => {
+    const button = event.target.closest("[data-find-point]");
+    const point = allPoints.find(item => item.id === button?.dataset.findPoint);
+    if (!point) return;
+    panel.hidden = true;
+    document.querySelector(`[data-point-status="${pointTypeFilter}"]`).focus({ preventScroll: true });
+    // 馆藏问图只支持六个核心点位，其他地点选中后进入其可用的探古档案。
+    if (mapHubMode === "ask" && !citywalkOrder.includes(point.id)) setMapHubMode("explore");
+    handleMapPointInteraction(point);
+  });
 }
 
 function initMapHubShell() {
@@ -2985,6 +3012,7 @@ function bindMyMemoryButtons() {
    =============================================== */
 
 let publicArchiveReturnFocus = null;
+let publicArchiveViewToken = 0;
 
 function renderPublicArchiveCards(
   point,
@@ -3116,6 +3144,7 @@ function renderPublicArchiveCards(
                 <div><dt>公开时间</dt><dd>${escapeHtml(publishedDate)}</dd></div>
               ` : ""}
             </dl>
+            ${allPoints.some(item => item.id === memory.pointId) ? `<button type="button" class="public-archive-map-link" data-public-map-point="${escapeHtml(memory.pointId)}">在地图查看此地点 →</button>` : ""}
           </article>
         `;
       }
@@ -3190,6 +3219,25 @@ function ensurePublicMemoryPanel() {
       panel
     );
 
+  panel.addEventListener("click", event => {
+    const button = event.target.closest("[data-public-map-point]");
+    const point = allPoints.find(item => item.id === button?.dataset.publicMapPoint);
+    if (!point) return;
+    closePublicMemoryPanel();
+    setMapHubMode("explore");
+    focusMapPoint(point);
+    renderDetail(point);
+    const marker = Array.from(document.querySelectorAll(".map-marker")).find(item => item.dataset.pointId === point.id);
+    document.querySelector("#mapCanvas").scrollIntoView({ block: "center", behavior: "smooth" });
+    marker?.focus({ preventScroll: true });
+  });
+  panel.addEventListener("keydown", event => {
+    if (event.key !== "Tab") return;
+    const items = Array.from(panel.querySelectorAll(".public-memory-panel__dialog button:not([disabled]), .public-memory-panel__dialog a[href]"));
+    const first = items[0], last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  });
   panel
     .querySelectorAll(
       "[data-close-public-memory]"
@@ -3205,79 +3253,35 @@ function ensurePublicMemoryPanel() {
     );
 }
 
-function openPublicMemoryPanel(
-  point,
-  trigger
-) {
-  const memories =
-    getPointMemories(
-      point.id
-    );
-
-  if (!memories.length) {
-    return;
-  }
-
+async function openPublicMemoryPanel(point, trigger) {
   ensurePublicMemoryPanel();
-
-  const panel =
-    document.querySelector(
-      "#publicMemoryPanel"
-    );
-
-  const title =
-    panel.querySelector(
-      "#publicMemoryPanelTitle"
-    );
-
-  const summary =
-    panel.querySelector(
-      "#publicMemoryPanelSummary"
-    );
-
-  const content =
-    panel.querySelector(
-      "#publicMemoryPanelContent"
-    );
-
-  publicArchiveReturnFocus =
-    trigger || null;
-
-  title.textContent =
-    `${point.nameModern} · 城市公共记忆档案`;
-
-  summary.textContent =
-    `共 ${memories.length} 份 · 仅展示馆员终审通过并公开的内容`;
-
-  content.innerHTML =
-    renderPublicArchiveCards(
-      point,
-      memories
-    );
-
-  content.scrollTop =
-    0;
-
-  panel.hidden =
-    false;
-
-  document.body
-    .classList
-    .add(
-      "modal-open"
-    );
-
-  requestAnimationFrame(
-    () =>
-      panel
-        .querySelector(
-          ".public-memory-panel__close"
-        )
-        ?.focus()
-  );
+  const token = ++publicArchiveViewToken;
+  const panel = document.querySelector("#publicMemoryPanel");
+  const title = panel.querySelector("#publicMemoryPanelTitle");
+  const summary = panel.querySelector("#publicMemoryPanelSummary");
+  const content = panel.querySelector("#publicMemoryPanelContent");
+  publicArchiveReturnFocus = trigger || null;
+  title.textContent = point ? `${point.nameModern} · 城市公共记忆档案` : "公众记忆";
+  summary.textContent = "仅展示馆员终审通过并公开的内容";
+  content.innerHTML = "<p>正在读取公开记忆…</p>";
+  content.scrollTop = 0;
+  panel.hidden = false;
+  document.body.classList.add("modal-open");
+  panel.querySelector(".public-memory-panel__close").focus();
+  if (!point && await loadApprovedMemories() && allPoints.length) renderMarkers(allPoints);
+  if (token !== publicArchiveViewToken || panel.hidden) return;
+  const memories = point ? getPointMemories(point.id) : Array.from(approvedMemoriesByPoint.values()).flat();
+  const locations = new Set(memories.map(item => item.pointId || item.pointName || "__unmapped__"));
+  summary.textContent = `${publicMemoriesLoaded ? `共 ${memories.length} 份 · ${locations.size} 个地点 · ` : ""}仅展示馆员终审通过并公开的内容`;
+  const warning = publicMemoriesError ? `<p role="status">${escapeHtml(publicMemoriesError)}${publicMemoriesLoaded ? " 以下为上次成功读取的内容。" : ""}</p>` : "";
+  content.innerHTML = warning + (memories.length ? memories.map(memory => {
+    const location = point || allPoints.find(item => item.id === memory.pointId) || { nameModern: memory.pointName || "地点未注明" };
+    return renderPublicArchiveCards(location, [memory]);
+  }).join("") : (publicMemoriesError ? "" : "<p>暂时没有已公开的记忆。</p>"));
 }
 
 function closePublicMemoryPanel() {
+  publicArchiveViewToken += 1;
   const panel =
     document.querySelector(
       "#publicMemoryPanel"
@@ -4001,10 +4005,11 @@ function renderMarkers(points) {
 
   if (activePoint) {
     focusMapPoint(
-      activePoint
+      activePoint, true
     );
   }
 
+  applyPointTypeFilter();
   updateMapMemoryLayerCounts();
 }
 
@@ -8111,6 +8116,8 @@ async function init() {
   ensureMyMemoryPanel();
 
   bindMyMemoryButtons();
+  bindPointPicker();
+  document.querySelector("#publicMemoryButton").addEventListener("click", event => openPublicMemoryPanel(null, event.currentTarget));
 
   try {
     allPoints =
