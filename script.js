@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260909-placewindow06";
+const APP_VERSION = "20260910-memorytypes07";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -3234,6 +3234,10 @@ function ensurePublicMemoryPanel() {
           <span class="public-memory-close-icon" aria-hidden="true">×</span>
           <span class="public-memory-close-label">关闭</span>
         </button>
+        <div class="public-memory-types" role="group" aria-label="记忆类型" hidden>
+          <button type="button" data-public-memory-type="text" aria-pressed="true" aria-controls="publicMemoryPanelContent">文字记忆 <span data-memory-type-count="text">0</span></button>
+          <button type="button" data-public-memory-type="image" aria-pressed="false" aria-controls="publicMemoryPanelContent">图文记忆 <span data-memory-type-count="image">0</span></button>
+        </div>
       </header>
 
       <div
@@ -3249,6 +3253,11 @@ function ensurePublicMemoryPanel() {
     );
 
   panel.addEventListener("click", event => {
+    const typeButton = event.target.closest("[data-public-memory-type]");
+    if (typeButton) {
+      showPublicMemoryPlace(publicArchiveSelectedPlace, typeButton.dataset.publicMemoryType);
+      return;
+    }
     const placeButton = event.target.closest("[data-public-place]");
     if (placeButton) {
       publicArchivePlaceScroll = panel.querySelector("#publicMemoryPanelContent").scrollTop;
@@ -3305,6 +3314,11 @@ function collectPublicMemoryPlaces() {
   return places;
 }
 
+function getPublicMemoryMediaType(memory) {
+  // 依据已保存的投稿信息分类，图片临时地址加载失败也不改变类别。
+  return Number(memory.imageCount) > 0 || memory.imageFileIds?.length > 0 || memory.imageUrls?.length > 0 || ["image", "text_image"].includes(memory.materialType) ? "image" : "text";
+}
+
 function publicMemoryWarning() {
   return publicMemoriesError ? `<p role="status">${escapeHtml(publicMemoriesError)}${publicMemoriesLoaded ? " 以下为上次成功读取的内容。" : ""}</p>` : "";
 }
@@ -3314,6 +3328,7 @@ function renderPublicMemoryPlaces(restorePosition = false) {
   const content = panel.querySelector("#publicMemoryPanelContent");
   panel.querySelector("#publicMemoryPanelTitle").textContent = "公众记忆";
   panel.querySelector("[data-public-back]").hidden = true;
+  panel.querySelector(".public-memory-types").hidden = true;
   panel.querySelector("#publicMemoryPanelSummary").textContent = publicMemoriesLoaded
     ? `共 ${getPublicMemoryCount()} 份公开记忆 · ${publicArchivePlaces.size} 个点位 · 选择点位查看记忆`
     : "选择点位，查看馆员终审通过并公开的记忆";
@@ -3321,6 +3336,7 @@ function renderPublicMemoryPlaces(restorePosition = false) {
     <button type="button" class="public-place-card" data-public-place="${escapeHtml(place.key)}">
       <strong>${escapeHtml(place.name)}</strong>
       <span class="public-place-card__count"><b>${place.memories.length}</b> 份公开记忆</span>
+      <span class="public-place-card__types">文字 ${place.memories.filter(memory => getPublicMemoryMediaType(memory) === "text").length} · 图文 ${place.memories.filter(memory => getPublicMemoryMediaType(memory) === "image").length}</span>
       <span class="public-place-card__action">查看记忆 <span aria-hidden="true">→</span></span>
     </button>`).join("")}</div>` : (publicMemoriesError ? "" : "<p>暂时没有已公开的记忆。</p>"));
   content.scrollTop = restorePosition ? publicArchivePlaceScroll : 0;
@@ -3330,7 +3346,7 @@ function renderPublicMemoryPlaces(restorePosition = false) {
   }
 }
 
-function showPublicMemoryPlace(key) {
+function showPublicMemoryPlace(key, memoryType) {
   const place = publicArchivePlaces.get(key);
   if (!place) return;
   const panel = document.querySelector("#publicMemoryPanel");
@@ -3340,9 +3356,20 @@ function showPublicMemoryPlace(key) {
   panel.querySelector("#publicMemoryPanelSummary").textContent = `共 ${place.memories.length} 份 · 仅展示馆员终审通过并公开的内容`;
   const back = panel.querySelector("[data-public-back]");
   back.hidden = false;
-  content.innerHTML = publicMemoryWarning() + renderPublicArchiveCards(place.point, place.memories);
+  const textCount = place.memories.filter(memory => getPublicMemoryMediaType(memory) === "text").length;
+  const imageCount = place.memories.length - textCount;
+  const selectedType = ["text", "image"].includes(memoryType) ? memoryType : (textCount ? "text" : "image");
+  const types = panel.querySelector(".public-memory-types");
+  types.hidden = false;
+  types.querySelector('[data-memory-type-count="text"]').textContent = textCount;
+  types.querySelector('[data-memory-type-count="image"]').textContent = imageCount;
+  types.querySelectorAll("[data-public-memory-type]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.publicMemoryType === selectedType)));
+  const memories = place.memories.filter(memory => getPublicMemoryMediaType(memory) === selectedType);
+  const empty = `<p class="public-memory-empty" role="status">这个点位暂时没有${selectedType === "text" ? "文字" : "图文"}记忆，可切换另一类查看。</p>`;
+  content.innerHTML = publicMemoryWarning() + (memories.length ? renderPublicArchiveCards(place.point, memories) : empty);
   content.scrollTop = 0;
-  back.focus();
+  if (memoryType) types.querySelector(`[data-public-memory-type="${selectedType}"]`).focus();
+  else back.focus();
 }
 
 async function openPublicMemoryPanel(point, trigger) {
@@ -3356,6 +3383,7 @@ async function openPublicMemoryPanel(point, trigger) {
   panel.querySelector("#publicMemoryPanelTitle").textContent = "公众记忆";
   panel.querySelector("#publicMemoryPanelSummary").textContent = "仅展示馆员终审通过并公开的内容";
   panel.querySelector("[data-public-back]").hidden = true;
+  panel.querySelector(".public-memory-types").hidden = true;
   content.innerHTML = "<p>正在读取公开记忆…</p>";
   content.scrollTop = 0;
   panel.hidden = false;

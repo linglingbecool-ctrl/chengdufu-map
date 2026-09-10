@@ -3214,7 +3214,7 @@ p {
 .public-archive-card__seal { padding: 4px 7px; border: 1px solid currentColor; }
 .public-archive-card .memory-card__meta, .public-archive-card__text, .public-archive-card .memory-card__images, .public-archive-card__ledger { margin-inline: 14px; }
 .public-archive-card .memory-card__meta { margin-top: 11px; }
-.public-archive-card__text { margin-top: 10px; padding: 10px 11px; border-left: 2px solid var(--cinnabar); background: rgba(168,79,54,.045); }
+.public-archive-card__text { margin: 10px 0; padding: 10px 11px; border-left: 2px solid var(--cinnabar); background: rgba(168,79,54,.045); }
 .public-archive-card__text.is-collaborative { border-left-color: var(--qing); background: rgba(111,155,139,.06); }
 .public-archive-card__text small { color: var(--cinnabar-dark); font-size: .64rem; font-weight: 800; }
 .public-archive-card__text.is-collaborative small { color: var(--qing-deep); }
@@ -7264,3 +7264,16 @@ body.scene-overlay-open {
  .public-place-card{min-height:142px;padding:14px 12px}
  .public-place-card>strong{font-size:1rem}
 }
+
+/* 点位内按文字、图文分开阅读，切换入口留在窗口顶部。 */
+.public-memory-panel__head{flex-wrap:wrap;row-gap:12px}
+.public-memory-panel__head>div:first-child{flex:1;min-width:0}
+.public-memory-types[hidden]{display:none}
+.public-memory-types{display:flex;flex:1 0 100%;gap:8px}
+.public-memory-types button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:9px 18px;border:1px solid rgba(53,95,87,.3);border-radius:6px;background:#fffaf0;color:var(--qing-deep);font:inherit;font-size:.9rem;cursor:pointer}
+.public-memory-types button[aria-pressed="true"]{background:#315c53;border-color:#315c53;color:#fffaf0}
+.public-memory-types button span{color:inherit;font-size:.78rem;min-width:22px;padding:2px 6px;border-radius:12px;background:rgba(111,155,139,.18)}
+.public-memory-types button:focus-visible{outline:3px solid #c4973d;outline-offset:2px}
+.public-place-card__types{margin:-5px 0 14px;color:var(--ink-soft);font-size:.75rem}
+.public-memory-empty{margin:0;padding:18px 0;color:var(--ink-soft);line-height:1.8}
+@media(max-width:700px){.public-memory-types button{flex:1;padding:9px 6px;font-size:.85rem}}
