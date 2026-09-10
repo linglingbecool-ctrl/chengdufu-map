@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260910-phone08";
+const APP_VERSION = "20260910-phone09";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -2340,6 +2340,16 @@ function renderMyMemoryPanel() {
     );
 
   if (!contentElement) {
+    return;
+  }
+
+  if (!myContributionData) {
+    contentElement.innerHTML = `<h2 id="myMemoryPanelTitle">我的城市记忆</h2>
+      ${window.tuhuiAccount?.markup() || ""}
+      <div class="my-memory-empty" role="status"><strong>暂时无法读取你的记忆</strong>
+      <p>旧投稿仍然保留，不需要重新投稿。请稍后重试读取。</p>
+      <button type="button" class="btn ghost" data-retry-my-memory>重试读取</button></div>`;
+    contentElement.querySelector("[data-retry-my-memory]").onclick = openMyMemoryPanel;
     return;
   }
 
@@ -8337,7 +8347,7 @@ window.addEventListener("tuhui:account-changed", async () => {
   rebuildMyContributionPointState([]);
   updateMyMemoryNav();
   const panel = document.querySelector("#myMemoryPanel");
-  if (panel && !panel.hidden) renderMyMemoryPanel();
+  if (panel && !panel.hidden) document.querySelector("#myMemoryPanelContent").innerHTML = '<p role="status">正在读取账号中的城市记忆…</p>';
   renderMarkers(allPoints);
   await loadMyContributions();
   renderMarkers(allPoints);
