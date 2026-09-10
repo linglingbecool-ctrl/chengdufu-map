@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260910-memorytypes07";
+const APP_VERSION = "20260910-phone08";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -136,6 +136,7 @@ let approvedMemoriesByPoint =
  * - 公共 approved 记忆仍可展示数量，但不替当前用户点亮地图。
  */
 let myContributionData = null;
+let personalReadEpoch = 0;
 
 let myContributionPointState =
   new Map();
@@ -332,9 +333,11 @@ async function initCloudBase() {
       typeof cloudApp.auth.signInAnonymously
         === "function"
     ) {
-      const result =
-        await cloudApp.auth
-          .signInAnonymously();
+      const existing = typeof cloudApp.auth.getSession === "function"
+        ? await cloudApp.auth.getSession() : null;
+      if (existing?.error) throw existing.error;
+      const result = existing?.data?.session
+        ? existing : await cloudApp.auth.signInAnonymously();
 
       if (result?.error) {
         throw result.error;
@@ -2007,6 +2010,7 @@ function updateMyMemoryNav() {
  * 与当前 Web 用户 uid 关联。
  */
 async function loadMyContributions() {
+  const epoch = personalReadEpoch;
   if (
     !cloudReady ||
     !cloudApp ||
@@ -2040,6 +2044,7 @@ async function loadMyContributions() {
       );
     }
 
+    if (epoch !== personalReadEpoch) return null;
     myContributionData =
       result;
 
@@ -2764,6 +2769,8 @@ function renderMyMemoryPanel() {
     >
       我的城市记忆
     </h2>
+
+    ${window.tuhuiAccount?.markup() || ""}
 
     <section
       class="my-identity-card ${
@@ -6662,6 +6669,7 @@ function ensureContributionModal() {
       <form
         id="contributionForm"
       >
+        ${window.tuhuiAccount?.markup() || ""}
         <section
           class="contribution-workshop-step"
           aria-labelledby="memoryStepOneTitle"
@@ -8322,3 +8330,18 @@ if (
 else {
   init();
 }
+
+window.addEventListener("tuhui:account-changed", async () => {
+  personalReadEpoch += 1;
+  myContributionData = null;
+  rebuildMyContributionPointState([]);
+  updateMyMemoryNav();
+  const panel = document.querySelector("#myMemoryPanel");
+  if (panel && !panel.hidden) renderMyMemoryPanel();
+  renderMarkers(allPoints);
+  await loadMyContributions();
+  renderMarkers(allPoints);
+  renderRoute(allPoints);
+  renderWalkScene();
+  if (panel && !panel.hidden) renderMyMemoryPanel();
+});

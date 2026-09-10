@@ -7277,3 +7277,29 @@ body.scene-overlay-open {
 .public-place-card__types{margin:-5px 0 14px;color:var(--ink-soft);font-size:.75rem}
 .public-memory-empty{margin:0;padding:18px 0;color:var(--ink-soft);line-height:1.8}
 @media(max-width:700px){.public-memory-types button{flex:1;padding:9px 6px;font-size:.85rem}}
+/* Account binding follows the existing paper and vermilion palette. */
+.memory-account-note { display:flex; align-items:center; gap:16px; padding:16px; margin:20px 0; border:1px solid #d6c4a7; border-radius:12px; background:#f8f1e5; }
+.memory-account-note > div { flex:1; min-width:0; }
+.memory-account-note p { margin:6px 0 0; font-size:13px; line-height:1.7; color:#76654e; }
+.memory-account-note button { flex-shrink:0; }
+.memory-account-dialog { width:min(480px, calc(100% - 28px)); max-height:calc(100dvh - 28px); box-sizing:border-box; padding:32px; border:1px solid #cdbb9a; border-radius:18px; background:#fbf5e9; color:#34281e; box-shadow:0 24px 80px #261d1955; }
+.memory-account-dialog::backdrop { background:#201c18aa; }
+.memory-account-dialog h2 { font-size:24px; padding-right:16px; margin:10px 0 16px; }
+.memory-account-close { position:absolute; top:8px; right:10px; border:0; background:none; color:inherit; width:44px; height:44px; font-size:28px; cursor:pointer; }
+.memory-account-intro { font-size:14px; line-height:1.85; color:#6d5b48; }
+.memory-account-dialog label { display:block; margin:18px 0; font-size:14px; font-weight:600; }
+.memory-account-dialog input { display:block; width:100%; min-width:0; margin-top:8px; box-sizing:border-box; min-height:46px; border:1px solid #c9b89c; border-radius:8px; padding:10px 12px; background:#fffdf7; color:#34281e; font-size:16px; }
+.memory-account-code { display:flex; align-items:center; gap:8px; }
+.memory-account-code input { flex:1; }
+.memory-account-code button { flex-shrink:0; margin-top:8px; }
+.memory-account-fine { font-size:12px; line-height:1.8; color:#7d6b57; }
+.memory-account-change { border:0; padding:4px 0; background:none; color:#934638; text-decoration:underline; cursor:pointer; }
+.memory-account-status { min-height:24px; margin:16px 0 0; font-size:14px; line-height:1.8; color:#934638; }
+.memory-account-dialog button:disabled { opacity:.55; cursor:default; }
+.memory-account-dialog :focus-visible { outline:3px solid #a8553e; outline-offset:3px; }
+@media (max-width:480px) {
+  .memory-account-dialog { padding:26px 20px; }
+  .memory-account-note { flex-wrap:wrap; gap:10px; }
+  .memory-account-note > div { flex-basis:100%; }
+  .memory-account-code .btn { padding:10px; font-size:12px; }
+}
