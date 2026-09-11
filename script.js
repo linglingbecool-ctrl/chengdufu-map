@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260910-phone09";
+const APP_VERSION = "20260911-images02";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -13,17 +13,6 @@ const CLOUDBASE_ENV_ID =
 const CLOUDBASE_REGION =
   window.TUHUI_CONFIG?.region ||
   "ap-shanghai";
-
-const MAX_IMAGE_COUNT = 3;
-
-const MAX_IMAGE_SIZE =
-  5 * 1024 * 1024;
-
-const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp"
-];
 
 let cloudApp = null;
 let cloudDb = null;
@@ -6798,14 +6787,17 @@ function ensureContributionModal() {
             <input
               id="contributionImages"
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/*,.heic,.heif"
+              aria-describedby="contributionImageHelp contributionImageStatus"
               multiple
             >
 
-            <small>
-              支持 JPG、PNG、WebP；每张不超过5MB。照片属于真实记忆材料，将与文字整理稿分开保存。
+            <small id="contributionImageHelp">
+              每张最多20MB；较大的照片会自动压缩后上传。HEIC 照片会尝试转为 JPG；不支持时会提示更换格式。相册原图不会改动。选好后请点击底部“确认投稿并点亮”。
             </small>
           </label>
+
+          <p class="contribution-status" id="contributionImageStatus" role="status" aria-live="polite"></p>
 
           <div
             class="contribution-preview"
@@ -7260,6 +7252,8 @@ function openContributionModal(
     );
 
   form.reset();
+  form.querySelector("#contributionImages").setCustomValidity("");
+  setContributionImageStatus("");
 
   resetWritingWorkshop(
     modal
@@ -7315,6 +7309,7 @@ function openContributionModal(
 }
 
 function closeContributionModal() {
+  if (document.querySelector("#contributionSubmit")?.disabled) return;
   const modal =
     document.querySelector(
       "#contributionModal"
@@ -7371,38 +7366,15 @@ function getSelectedImages() {
 }
 
 function validateImages(files) {
-  if (
-    files.length >
-    MAX_IMAGE_COUNT
-  ) {
-    throw new Error(
-      `每次最多上传${MAX_IMAGE_COUNT}张照片。`
-    );
-  }
+  if (!window.tuhuiImages) throw new Error("照片处理功能未加载，请保留文字并稍后重试。");
+  window.tuhuiImages.validate(files);
+}
 
-  files.forEach(
-    (file) => {
-      if (
-        !ALLOWED_IMAGE_TYPES
-          .includes(
-            file.type
-          )
-      ) {
-        throw new Error(
-          `“${file.name}”格式不支持，请使用 JPG、PNG 或 WebP。`
-        );
-      }
-
-      if (
-        file.size >
-        MAX_IMAGE_SIZE
-      ) {
-        throw new Error(
-          `“${file.name}”超过5MB，请压缩后再上传。`
-        );
-      }
-    }
-  );
+function setContributionImageStatus(message, isError = false) {
+  const element = document.querySelector("#contributionImageStatus");
+  if (!element) return;
+  element.textContent = message;
+  element.classList.toggle("is-error", isError);
 }
 
 function handleImageSelection() {
@@ -7448,8 +7420,8 @@ function handleImageSelection() {
   }
 
   catch (error) {
-    input.value =
-      "";
+    input.setCustomValidity(error.message);
+    setContributionImageStatus(error.message, true);
 
     status.textContent =
       error.message;
@@ -7462,6 +7434,9 @@ function handleImageSelection() {
 
     return;
   }
+
+  input.setCustomValidity("");
+  setContributionImageStatus(files.length ? `已选择 ${files.length} 张照片；点击底部“确认投稿并点亮”后上传。` : "");
 
   files.forEach(
     (file) => {
@@ -7508,27 +7483,7 @@ function handleImageSelection() {
    =============================================== */
 
 function getFileExtension(file) {
-  const map = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp"
-  };
-
-  const parts =
-    file.name.split(".");
-
-  const ext =
-    parts.length > 1
-      ? parts
-          .pop()
-          .toLowerCase()
-      : "";
-
-  return (
-    map[file.type] ||
-    ext ||
-    "jpg"
-  );
+  return { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }[file.type] || "jpg";
 }
 
 function createRandomId() {
@@ -7560,8 +7515,18 @@ async function uploadContributionImages(
   files,
   statusElement
 ) {
-  const fileIDs =
-    [];
+  const fileIDs = [];
+  const report = message => {
+    statusElement.textContent = message;
+    setContributionImageStatus(message);
+  };
+  // Validate/prepare every file before sending any, so a bad later photo does
+  // not leave earlier uploads without a contribution record.
+  const preparedFiles = [];
+  for (let index = 0; index < files.length; index += 1) {
+    report(`正在检查并处理第 ${index + 1}/${files.length} 张照片……`);
+    preparedFiles.push(await window.tuhuiImages.prepare(files[index]));
+  }
 
   for (
     let index = 0;
@@ -7569,7 +7534,7 @@ async function uploadContributionImages(
     index += 1
   ) {
     const file =
-      files[index];
+      preparedFiles[index];
 
     const extension =
       getFileExtension(
@@ -7580,8 +7545,7 @@ async function uploadContributionImages(
       `contributions/images/${point.id}/` +
       `${Date.now()}_${index + 1}_${createRandomId()}.${extension}`;
 
-    statusElement.textContent =
-      `正在上传第 ${index + 1}/${files.length} 张照片……`;
+    report(`正在上传第 ${index + 1}/${files.length} 张照片……`);
 
     const result =
       await cloudApp
@@ -7608,11 +7572,13 @@ async function uploadContributionImages(
                 progressEvent.total
               );
 
-            statusElement.textContent =
-              `正在上传第 ${index + 1}/${files.length} 张照片：${percent}%`;
+            report(`正在上传第 ${index + 1}/${files.length} 张照片：${percent}%`);
           }
+        }).catch(error => {
+          throw new Error(`第 ${index + 1} 张照片上传失败：${error.message || "网络连接中断，请检查网络后重试。"}`);
         });
 
+    if (result?.error) throw result.error;
     if (result?.code) {
       throw new Error(
         result.message ||
@@ -7631,6 +7597,7 @@ async function uploadContributionImages(
     );
   }
 
+  report(`已上传 ${fileIDs.length} 张照片，正在保存投稿……`);
   return fileIDs;
 }
 
@@ -7729,6 +7696,7 @@ async function handleContributionSubmit(
   event
 ) {
   event.preventDefault();
+  if (document.querySelector("#contributionSubmit")?.disabled) return;
 
   if (
     !activeContributionPoint
@@ -7907,6 +7875,8 @@ async function handleContributionSubmit(
 
     submitButton.textContent =
       "正在提交……";
+    document.querySelector("#contributionImages").disabled = true;
+    document.querySelectorAll("[data-close-contribution-modal]").forEach(button => { button.disabled = true; });
 
     let imageFileIds =
       [];
@@ -8147,9 +8117,12 @@ async function handleContributionSubmit(
       .add(
         "is-error"
       );
+    if (files.length) setContributionImageStatus(statusElement.textContent + " 已选照片和文字仍保留，请重试。", true);
   }
 
   finally {
+    document.querySelector("#contributionImages").disabled = false;
+    document.querySelectorAll("[data-close-contribution-modal]").forEach(button => { button.disabled = false; });
     submitButton.disabled =
       false;
 
