@@ -3406,7 +3406,7 @@ async function openPublicMemoryPanel(point, trigger) {
   panel.hidden = false;
   document.body.classList.add("modal-open");
   panel.querySelector(".public-memory-panel__close").focus();
-  if (!point && await loadApprovedMemories() && allPoints.length) renderMarkers(allPoints);
+  if (await loadApprovedMemories() && allPoints.length) renderMarkers(allPoints);
   if (token !== publicArchiveViewToken || panel.hidden) return;
   publicArchivePlaces = collectPublicMemoryPlaces();
   if (point && publicArchivePlaces.has(`id:${point.id}`)) showPublicMemoryPlace(`id:${point.id}`);

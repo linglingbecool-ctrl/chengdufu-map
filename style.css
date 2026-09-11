@@ -3218,7 +3218,7 @@ p {
 .public-archive-card__text.is-collaborative { border-left-color: var(--qing); background: rgba(111,155,139,.06); }
 .public-archive-card__text small { color: var(--cinnabar-dark); font-size: .64rem; font-weight: 800; }
 .public-archive-card__text.is-collaborative small { color: var(--qing-deep); }
-.public-archive-card__text p { margin: 5px 0 0; color: var(--ink-soft); font-size: .82rem; line-height: 1.72; white-space: pre-wrap; }
+.public-archive-card__text p { margin: 5px 0 0; color: var(--ink-soft); font-size: .82rem; line-height: 1.72; white-space: pre-wrap; text-indent: 2em; }
 .public-archive-card__ledger { display: grid; gap: 1px; margin-top: 12px; border: 1px solid var(--line); background: var(--line); }
 .public-archive-card__ledger > div { display: grid; grid-template-columns: 76px 1fr; padding: 7px 9px; background: rgba(255,250,240,.96); }
 .public-archive-card__ledger dt { color: var(--ink-soft); font-size: .66rem; }

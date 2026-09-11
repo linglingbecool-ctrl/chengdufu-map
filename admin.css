@@ -106,7 +106,7 @@ h1{margin:0 0 6px;font-size:clamp(2.6rem,7vw,5.4rem);line-height:.95}
   font-size:.72rem;font-weight:800;letter-spacing:.05em
 }
 .submission-version--draft span{color:var(--qing-dark)}
-.submission-version p{margin:0;white-space:pre-wrap}
+.submission-version p{margin:0;white-space:pre-wrap;text-indent:2em}
 .submission-choice{
   margin:0;padding:7px 9px;border-left:3px solid var(--qing-dark);
   background:rgba(111,155,139,.06);color:var(--qing-dark);
