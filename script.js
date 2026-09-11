@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260911-images02";
+const APP_VERSION = "20260911-likes01";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -811,15 +811,24 @@ async function resolveMemoryImageUrls(
  * rightsConfirmed = true
  */
 let publicMemoriesLoad = null;
+let publicReadEpoch = 0;
+let publicAccountEpoch = 0;
+let publicMemoriesLoadEpoch = -1;
 let publicMemoriesLoaded = false;
 let publicMemoriesError = "";
 
 async function loadApprovedMemories() {
-  if (publicMemoriesLoad) return publicMemoriesLoad;
+  if (publicMemoriesLoad) {
+    const epoch = publicMemoriesLoadEpoch;
+    const result = await publicMemoriesLoad;
+    return epoch === publicReadEpoch ? result : loadApprovedMemories();
+  }
   if (!cloudReady || !cloudApp) {
     publicMemoriesError = "公开记忆暂未连接，请稍后重试。";
     return false;
   }
+  const epoch = publicReadEpoch;
+  publicMemoriesLoadEpoch = epoch;
   publicMemoriesLoad = (async () => {
     try {
       const collected = new Map();
@@ -843,13 +852,14 @@ async function loadApprovedMemories() {
         items.push(memory);
         grouped.set(pointId, items);
       });
+      if (epoch !== publicReadEpoch) return false;
       approvedMemoriesByPoint = grouped;
       publicMemoriesLoaded = true;
       publicMemoriesError = "";
       updateMapMemoryLayerCounts();
       return true;
     } catch (error) {
-      publicMemoriesError = error.message || "公开记忆读取失败，请稍后重试。";
+      if (epoch === publicReadEpoch) publicMemoriesError = error.message || "公开记忆读取失败，请稍后重试。";
       return false;
     }
   })();
@@ -3046,12 +3056,81 @@ let publicArchiveViewToken = 0;
 let publicArchivePlaces = new Map();
 let publicArchivePlaceScroll = 0;
 let publicArchiveSelectedPlace = "";
+const publicLikePending = new Map();
+
+function memoryLikeCount(memory) {
+  return Number.isSafeInteger(memory.likeCount) && memory.likeCount >= 0 ? memory.likeCount : 0;
+}
+
+function sortPublicMemories(memories) {
+  // Sort only after all cursor pages have loaded. Ties retain the stable ID order.
+  return [...memories].sort((a, b) => memoryLikeCount(b) - memoryLikeCount(a) || a.id.localeCompare(b.id));
+}
+
+function publicLikeLabel(memory) {
+  return `${memory.likedByMe ? "♥ 已赞" : "♡ 点赞"} ${memoryLikeCount(memory)}`;
+}
+
+async function setPublicMemoryLike(button) {
+  const id = button.dataset.publicLike;
+  if (publicLikePending.has(id)) return;
+  const memory = Array.from(approvedMemoriesByPoint.values()).flat().find(item => item.id === id);
+  if (!memory) return;
+  const epoch = publicAccountEpoch;
+  const request = Symbol(id);
+  publicLikePending.set(id, request);
+  button.disabled = true;
+  const card = button.closest("[data-public-memory-id]");
+  const status = card.querySelector("[data-like-status]");
+  status.textContent = "正在保存…";
+  try {
+    if (!cloudReady || !cloudApp) throw new Error("云端暂未连接，请稍后重试。");
+    const result = normalizeFunctionResult(await cloudApp.callFunction({ name: "setMemoryLike", data: { memoryId: id, liked: !memory.likedByMe }, parse: true }));
+    if (!result?.ok || !Number.isSafeInteger(result.likeCount) || result.likeCount < 0 || typeof result.likedByMe !== "boolean") {
+      throw new Error(result?.message || "点赞未完成，请重试。");
+    }
+    if (epoch !== publicAccountEpoch) return;
+    publicReadEpoch += 1; // Discard any older list response that could undo this vote.
+    [memory, ...Array.from(approvedMemoriesByPoint.values()).flat(), ...Array.from(publicArchivePlaces.values()).flatMap(place => place.memories)].filter(item => item.id === id).forEach(item => {
+      item.likeCount = result.likeCount;
+      item.likedByMe = result.likedByMe;
+    });
+    const panel = document.querySelector("#publicMemoryPanel");
+    const content = panel.querySelector("#publicMemoryPanelContent");
+    const visibleCards = Array.from(content.querySelectorAll("[data-public-memory-id]"));
+    const currentCard = visibleCards.find(item => item.dataset.publicMemoryId === id);
+    const currentButton = currentCard?.querySelector("[data-public-like]");
+    if (currentButton) {
+      const top = currentButton.getBoundingClientRect().top;
+      const hadFocus = document.activeElement === currentButton;
+      currentButton.textContent = publicLikeLabel(memory);
+      currentButton.setAttribute("aria-pressed", String(memory.likedByMe));
+      currentCard.querySelector("[data-like-status]").textContent = memory.likedByMe ? "已点赞" : "已取消点赞";
+      const ranks = new Map(sortPublicMemories(Array.from(approvedMemoriesByPoint.values()).flat()).map((item, index) => [item.id, index]));
+      visibleCards.sort((a, b) => ranks.get(a.dataset.publicMemoryId) - ranks.get(b.dataset.publicMemoryId)).forEach(item => content.appendChild(item));
+      content.scrollTop += currentButton.getBoundingClientRect().top - top;
+      currentButton.disabled = false;
+      if (hadFocus) currentButton.focus({ preventScroll: true });
+    }
+  } catch (error) {
+    if (epoch === publicAccountEpoch) {
+      const current = Array.from(document.querySelectorAll("[data-public-like]")).find(item => item.dataset.publicLike === id);
+      (current?.closest("[data-public-memory-id]").querySelector("[data-like-status]") || status).textContent = error.message || "点赞未完成，请重试。";
+    }
+  } finally {
+    if (publicLikePending.get(id) === request) {
+      publicLikePending.delete(id);
+      document.querySelectorAll("[data-public-like]").forEach(item => { if (item.dataset.publicLike === id) item.disabled = false; });
+    }
+    button.disabled = false;
+  }
+}
 
 function renderPublicArchiveCards(
   point,
   memories
 ) {
-  return memories
+  return sortPublicMemories(memories)
     .map(
       (memory) => {
         const images =
@@ -3118,6 +3197,7 @@ function renderPublicArchiveCards(
         return `
           <article
             class="memory-card public-archive-card"
+            data-public-memory-id="${escapeHtml(memory.id)}"
           >
             <header class="public-archive-card__head">
               <div>
@@ -3161,6 +3241,11 @@ function renderPublicArchiveCards(
             ` : ""}
 
             ${imageHtml}
+
+            <div class="public-memory-like-row">
+              <button type="button" class="public-memory-like" data-public-like="${escapeHtml(memory.id)}" aria-pressed="${memory.likedByMe === true}" ${publicLikePending.has(memory.id) ? "disabled" : ""}>${publicLikeLabel(memory)}</button>
+              <span data-like-status role="status" aria-live="polite"></span>
+            </div>
 
             <dl class="public-archive-card__ledger">
               <div><dt>投稿类型</dt><dd>${escapeHtml(getMaterialTypeLabel(memory.materialType))}</dd></div>
@@ -3259,6 +3344,8 @@ function ensurePublicMemoryPanel() {
     );
 
   panel.addEventListener("click", event => {
+    const likeButton = event.target.closest("[data-public-like]");
+    if (likeButton) { void setPublicMemoryLike(likeButton); return; }
     const typeButton = event.target.closest("[data-public-memory-type]");
     if (typeButton) {
       showPublicMemoryPlace(publicArchiveSelectedPlace, typeButton.dataset.publicMemoryType);
@@ -3359,7 +3446,7 @@ function showPublicMemoryPlace(key, memoryType) {
   const content = panel.querySelector("#publicMemoryPanelContent");
   publicArchiveSelectedPlace = key;
   panel.querySelector("#publicMemoryPanelTitle").textContent = `${place.name} · 公众记忆`;
-  panel.querySelector("#publicMemoryPanelSummary").textContent = `共 ${place.memories.length} 份 · 仅展示馆员终审通过并公开的内容`;
+  panel.querySelector("#publicMemoryPanelSummary").textContent = `共 ${place.memories.length} 份 · 按点赞数排序 · 仅展示终审通过并公开的内容`;
   const back = panel.querySelector("[data-public-back]");
   back.hidden = false;
   const textCount = place.memories.filter(memory => getPublicMemoryMediaType(memory) === "text").length;
@@ -8315,6 +8402,12 @@ else {
 }
 
 window.addEventListener("tuhui:account-changed", async () => {
+  publicAccountEpoch += 1;
+  publicReadEpoch += 1;
+  publicLikePending.clear();
+  Array.from(approvedMemoriesByPoint.values()).flat().forEach(memory => { memory.likedByMe = false; });
+  const publicPanel = document.querySelector("#publicMemoryPanel");
+  if (publicPanel && !publicPanel.hidden) closePublicMemoryPanel();
   personalReadEpoch += 1;
   myContributionData = null;
   rebuildMyContributionPointState([]);

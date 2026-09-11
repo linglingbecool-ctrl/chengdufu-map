@@ -7303,3 +7303,9 @@ body.scene-overlay-open {
   .memory-account-note > div { flex-basis:100%; }
   .memory-account-code .btn { padding:10px; font-size:12px; }
 }
+.public-memory-like-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; }
+.public-memory-like { min-height: 44px; padding: 8px 18px; border: 1px solid #b8c5bb; border-radius: 24px; background: #faf6e9; color: #315f56; font: inherit; cursor: pointer; }
+.public-memory-like[aria-pressed="true"] { color: #fffaf0; background: #315f56; border-color: #315f56; }
+.public-memory-like:focus-visible { outline: 3px solid #a95836; outline-offset: 3px; }
+.public-memory-like:disabled { opacity: .6; cursor: wait; }
+.public-memory-like-row [data-like-status] { color: #635b4a; font-size: .85rem; }

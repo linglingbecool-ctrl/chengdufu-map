@@ -1,0 +1,10 @@
+{
+  "name": "get-public-memories",
+  "version": "2.0.0",
+  "description": "成都府图公开城市记忆读取接口",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.0.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "envId": "chengdufu-map-d4g459au02132689e",
+  "functionRoot": "cloud-functions",
+  "functions": [
+    {"name":"setMemoryLike","handler":"index.main","runtime":"Nodejs20.19","timeout":10,"memorySize":256,"installDependency":true},
+    {"name":"getPublicMemories","handler":"index.main","runtime":"Nodejs18.15","timeout":10,"memorySize":256,"installDependency":true}
+  ]
+}
