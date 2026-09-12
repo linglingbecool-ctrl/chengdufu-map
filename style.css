@@ -4009,9 +4009,60 @@ p {
   }
 
   .map-ai-drawer {
-    height: min(78vh, 720px);
-    max-height: min(78vh, 720px);
+    height: clamp(720px, 88dvh, 880px);
+    max-height: none;
     transform: translateY(24px);
+  }
+
+  .map-ai-drawer__head {
+    gap: 20px;
+    padding: 18px 20px 16px;
+  }
+
+  .map-ai-drawer__head button:not(.map-ai-workflow-button) {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .map-ai-drawer .ai-point-index {
+    padding: 12px 16px;
+  }
+
+  .map-ai-drawer .ai-point-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .map-ai-drawer .ai-point-tab {
+    min-height: 48px;
+    padding: 8px 10px;
+  }
+
+  .map-ai-drawer .ai-suggestions {
+    max-height: 190px;
+    gap: 8px;
+    padding: 10px 18px 14px;
+    scrollbar-gutter: stable;
+  }
+
+  .map-ai-drawer .ai-suggestions button {
+    width: 100%;
+    padding: 9px 11px;
+    line-height: 1.55;
+  }
+
+  .map-ai-drawer .ai-ask-form {
+    gap: 10px;
+    margin-inline: 18px;
+  }
+
+  .map-ai-drawer .ai-ask-form textarea {
+    min-height: 72px;
+  }
+
+  .map-ai-drawer .ai-disclaimer {
+    margin: 4px 18px 12px;
   }
 
   .map-hub .detail-panel {
@@ -4083,6 +4134,10 @@ p {
 
   .map-ai-drawer .ai-ask-form {
     grid-template-columns: 1fr;
+  }
+
+  .map-ai-drawer .ai-ask-form button {
+    min-height: 50px;
   }
 
   .ai-map-integration-note {

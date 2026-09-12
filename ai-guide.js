@@ -1001,9 +1001,6 @@
               data-ai-question="${escapeHtml(
                 item.question
               )}"
-              title="${escapeHtml(
-                item.question
-              )}"
             >
 
               <span>
