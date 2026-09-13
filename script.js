@@ -773,22 +773,16 @@ async function resolveMemoryImageUrls(
     );
 
     return memories.map(
-      (memory) => ({
-        ...memory,
-
-        imageUrls:
-          (
-            memory.imageFileIds ||
-            []
-          )
-            .map(
-              (fileId) =>
-                urlMap.get(
-                  fileId
-                )
-            )
-            .filter(Boolean)
-      })
+      (memory) => {
+        const imageFiles = (memory.imageFileIds || [])
+          .map(fileId => ({ fileId, url: urlMap.get(fileId) }))
+          .filter(file => file.url);
+        return {
+          ...memory,
+          imageFiles,
+          imageUrls: imageFiles.map(file => file.url)
+        };
+      }
     );
   }
 
@@ -3057,6 +3051,8 @@ let publicArchivePlaces = new Map();
 let publicArchivePlaceScroll = 0;
 let publicArchiveSelectedPlace = "";
 const publicLikePending = new Map();
+let publicMemoryImageReturnFocus = null;
+let publicMemoryImageState = null;
 
 function memoryLikeCount(memory) {
   return Number.isSafeInteger(memory.likeCount) && memory.likeCount >= 0 ? memory.likeCount : 0;
@@ -3069,6 +3065,107 @@ function sortPublicMemories(memories) {
 
 function publicLikeLabel(memory) {
   return `${memory.likedByMe ? "♥ 已赞" : "♡ 点赞"} ${memoryLikeCount(memory)}`;
+}
+
+function findPublicMemory(memoryId) {
+  return Array.from(approvedMemoriesByPoint.values())
+    .flat()
+    .find(memory => memory.id === memoryId);
+}
+
+function publicMemoryImageFileName(pointName, index, url) {
+  const extension = (() => {
+    try {
+      return new URL(url).pathname.match(/\.(jpe?g|png|webp|gif|heic|heif)$/i)?.[1]?.replace(/^jpeg$/i, "jpg");
+    } catch {
+      return "";
+    }
+  })() || "jpg";
+  const safePointName = String(pointName || "成都").replace(/[\\/:*?"<>|]/g, "-");
+  return `城市记忆-${safePointName}-${index + 1}.${extension}`;
+}
+
+function renderPublicMemoryImageViewer() {
+  const viewer = document.querySelector("#publicMemoryImageViewer");
+  if (!viewer || !publicMemoryImageState) return;
+  const { urls, pointName } = publicMemoryImageState;
+  const index = Math.max(0, Math.min(publicMemoryImageState.index, urls.length - 1));
+  publicMemoryImageState.index = index;
+  const image = viewer.querySelector("#publicMemoryImageFull");
+  image.src = urls[index];
+  image.alt = `${pointName}城市记忆照片，第${index + 1}张，共${urls.length}张`;
+  viewer.querySelector("#publicMemoryImageTitle").textContent = `${pointName} · 城市记忆照片`;
+  viewer.querySelector("#publicMemoryImageCounter").textContent = `${index + 1} / ${urls.length}`;
+  viewer.querySelector("[data-public-image-previous]").disabled = index === 0;
+  viewer.querySelector("[data-public-image-next]").disabled = index === urls.length - 1;
+  viewer.querySelector("[data-public-image-download]").disabled = false;
+  viewer.querySelector("[data-public-image-download-status]").textContent = "";
+}
+
+function openPublicMemoryImageViewer(button) {
+  const memory = findPublicMemory(button.dataset.publicMemoryImage);
+  const files = Array.isArray(memory?.imageFiles) && memory.imageFiles.length
+    ? memory.imageFiles
+    : (memory?.imageUrls || []).map((url, index) => ({ url, fileId: memory?.imageFileIds?.[index] || "" }));
+  const usableFiles = files.filter(file => file?.url);
+  const urls = usableFiles.map(file => file.url);
+  if (!urls.length) return;
+  publicMemoryImageReturnFocus = button;
+  publicMemoryImageState = {
+    urls,
+    files: usableFiles,
+    index: Math.max(0, Math.min(Number(button.dataset.publicImageIndex) || 0, urls.length - 1)),
+    pointName: memory.pointName || "成都"
+  };
+  const viewer = document.querySelector("#publicMemoryImageViewer");
+  viewer.hidden = false;
+  viewer.setAttribute("aria-hidden", "false");
+  renderPublicMemoryImageViewer();
+  viewer.querySelector("[data-close-public-memory-image]").focus();
+}
+
+function closePublicMemoryImageViewer({ restoreFocus = true } = {}) {
+  const viewer = document.querySelector("#publicMemoryImageViewer");
+  if (!viewer || viewer.hidden) return;
+  viewer.hidden = true;
+  viewer.setAttribute("aria-hidden", "true");
+  viewer.querySelector("#publicMemoryImageFull").removeAttribute("src");
+  if (restoreFocus) publicMemoryImageReturnFocus?.focus({ preventScroll: true });
+  publicMemoryImageReturnFocus = null;
+  publicMemoryImageState = null;
+}
+
+async function downloadPublicMemoryImage(button) {
+  if (!publicMemoryImageState) return;
+  const { urls, index, pointName } = publicMemoryImageState;
+  const url = urls[index];
+  const status = document.querySelector("[data-public-image-download-status]");
+  button.disabled = true;
+  status.textContent = "正在准备下载…";
+  try {
+    const fileId = publicMemoryImageState.files?.[index]?.fileId;
+    if (fileId && cloudApp && typeof cloudApp.downloadFile === "function") {
+      const result = await cloudApp.downloadFile({ fileID: fileId });
+      if (result?.statusCode && result.statusCode !== 200) throw new Error("图片下载失败");
+      status.textContent = "下载已开始";
+      return;
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("图片读取失败");
+    const blobUrl = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = publicMemoryImageFileName(pointName, index, url);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    status.textContent = "下载已开始";
+  } catch {
+    status.textContent = "下载失败，请稍后重试";
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function setPublicMemoryLike(button) {
@@ -3153,16 +3250,21 @@ function renderPublicArchiveCards(
                       3
                     )
                     .map(
-                      (url) => `
-                        <img
-                          src="${escapeHtml(
-                            url
-                          )}"
-                          alt="${escapeHtml(
-                            point.nameModern
-                          )}城市记忆照片"
-                          loading="lazy"
+                      (url, index) => `
+                        <button
+                          type="button"
+                          class="memory-card__image-button"
+                          data-public-memory-image="${escapeHtml(memory.id)}"
+                          data-public-image-index="${index}"
+                          aria-label="放大查看${escapeHtml(point.nameModern)}城市记忆照片，第${index + 1}张"
                         >
+                          <img
+                            src="${escapeHtml(url)}"
+                            alt="${escapeHtml(point.nameModern)}城市记忆照片"
+                            loading="lazy"
+                          >
+                          <span aria-hidden="true">放大查看</span>
+                        </button>
                       `
                     )
                     .join("")
@@ -3335,6 +3437,38 @@ function ensurePublicMemoryPanel() {
         class="public-memory-panel__content"
         id="publicMemoryPanelContent"
       ></div>
+
+      <section
+        class="public-memory-image-viewer"
+        id="publicMemoryImageViewer"
+        hidden
+        aria-hidden="true"
+      >
+        <button type="button" class="public-memory-image-viewer__backdrop" data-close-public-memory-image aria-label="关闭大图"></button>
+        <div class="public-memory-image-viewer__surface" role="dialog" aria-modal="true" aria-labelledby="publicMemoryImageTitle">
+          <header>
+            <div>
+              <small>PUBLIC MEMORY IMAGE</small>
+              <strong id="publicMemoryImageTitle">城市记忆照片</strong>
+            </div>
+            <button type="button" data-close-public-memory-image aria-label="关闭大图">×</button>
+          </header>
+          <div class="public-memory-image-viewer__stage">
+            <img id="publicMemoryImageFull" alt="">
+          </div>
+          <footer>
+            <div class="public-memory-image-viewer__nav">
+              <button type="button" data-public-image-previous>← 上一张</button>
+              <span id="publicMemoryImageCounter" aria-live="polite">1 / 1</span>
+              <button type="button" data-public-image-next>下一张 →</button>
+            </div>
+            <div class="public-memory-image-viewer__download">
+              <button type="button" data-public-image-download>↓ 下载图片</button>
+              <span data-public-image-download-status role="status" aria-live="polite"></span>
+            </div>
+          </footer>
+        </div>
+      </section>
     </aside>
   `;
 
@@ -3344,6 +3478,21 @@ function ensurePublicMemoryPanel() {
     );
 
   panel.addEventListener("click", event => {
+    const imageButton = event.target.closest("[data-public-memory-image]");
+    if (imageButton) { openPublicMemoryImageViewer(imageButton); return; }
+    if (event.target.closest("[data-close-public-memory-image]")) { closePublicMemoryImageViewer(); return; }
+    if (event.target.closest("[data-public-image-previous]")) {
+      publicMemoryImageState.index -= 1;
+      renderPublicMemoryImageViewer();
+      return;
+    }
+    if (event.target.closest("[data-public-image-next]")) {
+      publicMemoryImageState.index += 1;
+      renderPublicMemoryImageViewer();
+      return;
+    }
+    const downloadButton = event.target.closest("[data-public-image-download]");
+    if (downloadButton) { void downloadPublicMemoryImage(downloadButton); return; }
     const likeButton = event.target.closest("[data-public-like]");
     if (likeButton) { void setPublicMemoryLike(likeButton); return; }
     const typeButton = event.target.closest("[data-public-memory-type]");
@@ -3373,8 +3522,26 @@ function ensurePublicMemoryPanel() {
     marker?.focus({ preventScroll: true });
   });
   panel.addEventListener("keydown", event => {
+    const viewer = panel.querySelector("#publicMemoryImageViewer");
+    if (!viewer.hidden && event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closePublicMemoryImageViewer();
+      return;
+    }
+    if (!viewer.hidden && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+      const direction = event.key === "ArrowLeft" ? -1 : 1;
+      const nextIndex = publicMemoryImageState.index + direction;
+      if (nextIndex >= 0 && nextIndex < publicMemoryImageState.urls.length) {
+        event.preventDefault();
+        publicMemoryImageState.index = nextIndex;
+        renderPublicMemoryImageViewer();
+      }
+      return;
+    }
     if (event.key !== "Tab") return;
-    const items = Array.from(panel.querySelectorAll(".public-memory-panel__dialog button:not([disabled]), .public-memory-panel__dialog a[href]")).filter(item => item.getClientRects().length);
+    const focusRoot = viewer.hidden ? panel.querySelector(".public-memory-panel__dialog") : viewer;
+    const items = Array.from(focusRoot.querySelectorAll("button:not([disabled]), a[href]")).filter(item => item.getClientRects().length);
     const first = items[0], last = items[items.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -3502,6 +3669,8 @@ function closePublicMemoryPanel() {
   ) {
     return;
   }
+
+  closePublicMemoryImageViewer({ restoreFocus: false });
 
   panel.hidden =
     true;
@@ -4820,6 +4989,11 @@ function renderWalkScene() {
         point.nameModern;
   }
 
+  const progressLabel = document.querySelector("#walkProgressLabel");
+  if (progressLabel) {
+    progressLabel.textContent = `第 ${activeWalkStopIndex + 1} / ${points.length} 站 · ${point.nameModern}`;
+  }
+
   if (facts) {
     facts.innerHTML = `
       <section>
@@ -4864,7 +5038,7 @@ function renderWalkScene() {
       activeWalkStopIndex ===
         points.length - 1
         ? "完成路线"
-        : "下一站";
+        : "下一站 →";
   }
 
   const walkMap =
@@ -4882,6 +5056,22 @@ function renderWalkScene() {
       `${Number(point.y)}%`
     );
   }
+
+
+  const layout = document.querySelector(".walk-scene__layout");
+  if (layout?.scrollTop) layout.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function changeWalkStop(direction) {
+  const points = getCitywalkPoints();
+  const nextIndex = activeWalkStopIndex + direction;
+  if (nextIndex < 0) return;
+  if (nextIndex >= points.length) {
+    setWalkScene(false);
+    return;
+  }
+  activeWalkStopIndex = nextIndex;
+  renderWalkScene();
 }
 
 function setWalkScene(open) {
@@ -5038,14 +5228,7 @@ function bindSceneExperience() {
     )
     ?.addEventListener(
       "click",
-      () => {
-        activeWalkStopIndex =
-          Math.max(
-            0,
-            activeWalkStopIndex - 1
-          );
-        renderWalkScene();
-      }
+      () => changeWalkStop(-1)
     );
 
   document
@@ -5054,21 +5237,7 @@ function bindSceneExperience() {
     )
     ?.addEventListener(
       "click",
-      () => {
-        const points =
-          getCitywalkPoints();
-
-        if (
-          activeWalkStopIndex >=
-          points.length - 1
-        ) {
-          setWalkScene(false);
-          return;
-        }
-
-        activeWalkStopIndex += 1;
-        renderWalkScene();
-      }
+      () => changeWalkStop(1)
     );
 
   document
@@ -5132,6 +5301,14 @@ function bindSceneExperience() {
   document.addEventListener(
     "keydown",
     (event) => {
+      const walkScene = document.querySelector("#walkScene");
+      const walkSceneBlocked = ["#publicMemoryPanel", "#evidenceViewer", "#aiWorkflowDrawer", "#projectDrawer"]
+        .some(selector => document.querySelector(selector)?.hidden === false);
+      if (!walkScene?.hidden && !walkSceneBlocked && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+        event.preventDefault();
+        changeWalkStop(event.key === "ArrowLeft" ? -1 : 1);
+        return;
+      }
       if (event.key !== "Escape") {
         return;
       }

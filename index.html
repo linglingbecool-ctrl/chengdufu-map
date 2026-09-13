@@ -30,7 +30,7 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260912-ai-panel01"
+      href="./style.css?v=20260913-memory-viewer-walk01"
     />
 
     <script src="./config.js?v=20260811-ai01"></script>
@@ -1156,6 +1156,12 @@
         <button type="button" data-open-project>ⓘ 项目档案</button>
       </div>
 
+      <nav class="walk-scene__navigation" aria-label="Citywalk 点位切换">
+        <button type="button" class="btn ghost" id="walkPrevious">← 上一站</button>
+        <strong id="walkProgressLabel" aria-live="polite">第 1 / 6 站 · 九眼桥</strong>
+        <button type="button" class="btn primary" id="walkNext">下一站 →</button>
+      </nav>
+
       <div class="walk-scene__layout">
         <div class="walk-map" id="walkMap">
           <div class="walk-map-sheet">
@@ -1172,10 +1178,6 @@
           <p class="walk-stop-card__eyebrow">CITYWALK · 01 / 06</p>
           <h2 id="walkSceneTitle">九眼桥</h2>
           <div class="walk-stop-card__facts" id="walkStopFacts"></div>
-          <div class="walk-stop-card__actions">
-            <button type="button" class="btn ghost" id="walkPrevious">上一站</button>
-            <button type="button" class="btn primary" id="walkNext">下一站</button>
-          </div>
         </article>
       </div>
     </section>
@@ -1198,7 +1200,7 @@
 
     <script src="./account.js?v=20260910-phone09"></script>
     <script src="./contribution-images.js?v=20260911-images02"></script>
-    <script src="./script.js?v=20260911-likes01"></script>
+    <script src="./script.js?v=20260913-memory-viewer-walk01"></script>
 
     <script
       src="./ai-guide.js?v=20260912-ai-panel01"
