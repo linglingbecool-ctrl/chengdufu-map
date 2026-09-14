@@ -772,18 +772,12 @@ async function resolveMemoryImageUrls(
       }
     );
 
-    return memories.map(
-      (memory) => {
-        const imageFiles = (memory.imageFileIds || [])
-          .map(fileId => ({ fileId, url: urlMap.get(fileId) }))
-          .filter(file => file.url);
-        return {
-          ...memory,
-          imageFiles,
-          imageUrls: imageFiles.map(file => file.url)
-        };
-      }
-    );
+    return memories.map(memory => ({
+      ...memory,
+      imageUrls: (memory.imageFileIds || [])
+        .map(fileId => urlMap.get(fileId))
+        .filter(Boolean)
+    }));
   }
 
   catch (error) {
@@ -3073,18 +3067,6 @@ function findPublicMemory(memoryId) {
     .find(memory => memory.id === memoryId);
 }
 
-function publicMemoryImageFileName(pointName, index, url) {
-  const extension = (() => {
-    try {
-      return new URL(url).pathname.match(/\.(jpe?g|png|webp|gif|heic|heif)$/i)?.[1]?.replace(/^jpeg$/i, "jpg");
-    } catch {
-      return "";
-    }
-  })() || "jpg";
-  const safePointName = String(pointName || "成都").replace(/[\\/:*?"<>|]/g, "-");
-  return `城市记忆-${safePointName}-${index + 1}.${extension}`;
-}
-
 function renderPublicMemoryImageViewer() {
   const viewer = document.querySelector("#publicMemoryImageViewer");
   if (!viewer || !publicMemoryImageState) return;
@@ -3098,22 +3080,15 @@ function renderPublicMemoryImageViewer() {
   viewer.querySelector("#publicMemoryImageCounter").textContent = `${index + 1} / ${urls.length}`;
   viewer.querySelector("[data-public-image-previous]").disabled = index === 0;
   viewer.querySelector("[data-public-image-next]").disabled = index === urls.length - 1;
-  viewer.querySelector("[data-public-image-download]").disabled = false;
-  viewer.querySelector("[data-public-image-download-status]").textContent = "";
 }
 
 function openPublicMemoryImageViewer(button) {
   const memory = findPublicMemory(button.dataset.publicMemoryImage);
-  const files = Array.isArray(memory?.imageFiles) && memory.imageFiles.length
-    ? memory.imageFiles
-    : (memory?.imageUrls || []).map((url, index) => ({ url, fileId: memory?.imageFileIds?.[index] || "" }));
-  const usableFiles = files.filter(file => file?.url);
-  const urls = usableFiles.map(file => file.url);
+  const urls = Array.isArray(memory?.imageUrls) ? memory.imageUrls.filter(Boolean) : [];
   if (!urls.length) return;
   publicMemoryImageReturnFocus = button;
   publicMemoryImageState = {
     urls,
-    files: usableFiles,
     index: Math.max(0, Math.min(Number(button.dataset.publicImageIndex) || 0, urls.length - 1)),
     pointName: memory.pointName || "成都"
   };
@@ -3133,39 +3108,6 @@ function closePublicMemoryImageViewer({ restoreFocus = true } = {}) {
   if (restoreFocus) publicMemoryImageReturnFocus?.focus({ preventScroll: true });
   publicMemoryImageReturnFocus = null;
   publicMemoryImageState = null;
-}
-
-async function downloadPublicMemoryImage(button) {
-  if (!publicMemoryImageState) return;
-  const { urls, index, pointName } = publicMemoryImageState;
-  const url = urls[index];
-  const status = document.querySelector("[data-public-image-download-status]");
-  button.disabled = true;
-  status.textContent = "正在准备下载…";
-  try {
-    const fileId = publicMemoryImageState.files?.[index]?.fileId;
-    if (fileId && cloudApp && typeof cloudApp.downloadFile === "function") {
-      const result = await cloudApp.downloadFile({ fileID: fileId });
-      if (result?.statusCode && result.statusCode !== 200) throw new Error("图片下载失败");
-      status.textContent = "下载已开始";
-      return;
-    }
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("图片读取失败");
-    const blobUrl = URL.createObjectURL(await response.blob());
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = publicMemoryImageFileName(pointName, index, url);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    status.textContent = "下载已开始";
-  } catch {
-    status.textContent = "下载失败，请稍后重试";
-  } finally {
-    button.disabled = false;
-  }
 }
 
 async function setPublicMemoryLike(button) {
@@ -3462,10 +3404,6 @@ function ensurePublicMemoryPanel() {
               <span id="publicMemoryImageCounter" aria-live="polite">1 / 1</span>
               <button type="button" data-public-image-next>下一张 →</button>
             </div>
-            <div class="public-memory-image-viewer__download">
-              <button type="button" data-public-image-download>↓ 下载图片</button>
-              <span data-public-image-download-status role="status" aria-live="polite"></span>
-            </div>
           </footer>
         </div>
       </section>
@@ -3491,8 +3429,6 @@ function ensurePublicMemoryPanel() {
       renderPublicMemoryImageViewer();
       return;
     }
-    const downloadButton = event.target.closest("[data-public-image-download]");
-    if (downloadButton) { void downloadPublicMemoryImage(downloadButton); return; }
     const likeButton = event.target.closest("[data-public-like]");
     if (likeButton) { void setPublicMemoryLike(likeButton); return; }
     const typeButton = event.target.closest("[data-public-memory-type]");
