@@ -6882,10 +6882,6 @@ function ensureContributionModal() {
               <h3 id="memoryStepOneTitle">
                 写下真实记忆
               </h3>
-
-              <p>
-                不用写历史介绍。写你真正经历过的事情就好。
-              </p>
             </div>
 
             <small>
@@ -6904,7 +6900,7 @@ function ensureContributionModal() {
               id="contributionContent"
               rows="6"
               maxlength="1200"
-              placeholder="例如：大概哪一年、当时为什么来这里、和谁一起来、印象最深的是什么……不用写成文章。"
+              placeholder="例如：大概哪一年、当时为什么来这里、和谁一起来、印象最深的是什么……"
             ></textarea>
 
             <small>
