@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260911-likes01";
+const APP_VERSION = "20260916-memoryfeed04";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -25,6 +25,12 @@ let routeListEl = null;
 let activeContributionPoint = null;
 
 let previewObjectUrls = [];
+let selectedContributionFiles = [];
+let contributionStep = 0;
+let contributionDraftKey = "";
+let contributionReturnFocus = null;
+let contributionOpenToken = 0;
+let myMemoryFilter = "all";
 
 /*
  * 城市记忆共创工坊：表达偏好标签。
@@ -734,16 +740,11 @@ async function resolveMemoryImageUrls(
   }
 
   try {
-    const result =
-      await cloudApp
-        .getTempFileURL({
-          fileList: fileIds
-        });
-
-    const fileList =
-      result?.fileList ||
-      result?.result?.fileList ||
-      [];
+    const fileList = [];
+    for(let index=0; index<fileIds.length; index+=50) {
+      const result = await cloudApp.getTempFileURL({fileList:fileIds.slice(index,index+50)});
+      fileList.push(...(result?.fileList || result?.result?.fileList || []));
+    }
 
     const urlMap =
       new Map();
@@ -2031,6 +2032,11 @@ async function loadMyContributions() {
       );
     }
 
+    if (Array.isArray(result.items)) {
+      const resolved = [];
+      for (let i = 0; i < result.items.length; i += 30) resolved.push(...await resolveMemoryImageUrls(result.items.slice(i, i + 30)));
+      result.items = resolved;
+    }
     if (epoch !== personalReadEpoch) return null;
     myContributionData =
       result;
@@ -2439,9 +2445,9 @@ function renderMyMemoryPanel() {
 
   const identityText =
     isContributor
-      ? "你的投稿已经通过馆员审核，并正式进入城市记忆共建成果。"
+      ? "这些照片与故事，记录着与成都的相遇。"
       : summary.total > 0
-        ? "你的记忆已经被记录。审核通过后将获得“成都城市记忆共建者”身份，并解锁相应徽章。"
+        ? "你的记忆已经被记录，可以在下方查看。"
         : "选择一个古图点位，留下照片、地名线索或口述故事，从第一份城市记忆开始。";
 
   const badgeDefinitions = [
@@ -2655,14 +2661,12 @@ function renderMyMemoryPanel() {
       )
       .join("");
 
+  const filteredItems = items.filter(item => myMemoryFilter === "all" || (myMemoryFilter === "processing" ? ["pending", "processing"].includes(item.status) : myMemoryFilter === "lit" ? ["pending", "processing", "approved"].includes(item.status) : item.status === myMemoryFilter));
   const footprintsHtml =
-    items.length
-      ? items
+    filteredItems.length
+      ? filteredItems
           .map(
             (item) => {
-              const original = String(item.originalContent || "").trim();
-              const draft = typeof item.collaborativeDraft === "string" ? item.collaborativeDraft.trim() : "";
-
               return `
                 <article
                   class="my-footprint-card"
@@ -2678,38 +2682,11 @@ function renderMyMemoryPanel() {
                         )}
                       </strong>
 
-                      <span
-                        class="my-footprint-card__type"
-                      >
-                        ${escapeHtml(
-                          getMemoryTypeLabel(
-                            item.memoryType
-                          )
-                        )}
-                      </span>
                     </div>
-
-                    <span
-                      class="my-footprint-status ${getMyContributionStatusClass(
-                        item.status
-                      )}"
-                    >
-                      ${escapeHtml(
-                        getMyContributionStatusLabel(
-                          item.status
-                        )
-                      )}
-                    </span>
                   </div>
 
-                  <section class="my-footprint-text">
-                    <h4>原始记忆</h4>
-                    <p>${escapeHtml(original || "本次投稿以影像材料为主。")}</p>
-                  </section>
-                  ${draft ? `<section class="my-footprint-text is-collaborative">
-                    <h4>协作整理稿 · ${item.collaborativeDraftAccepted === true ? "已采纳" : "未采纳"}</h4>
-                    <p>${escapeHtml(draft)}</p>
-                  </section>` : ""}
+                  ${(item.imageUrls || []).length ? `<div class="my-memory-photos">${item.imageUrls.map(url => `<button type="button" data-my-image="${escapeHtml(url)}" aria-label="放大查看记忆照片"><img src="${escapeHtml(url)}" alt="${escapeHtml(item.pointName || "记忆")}照片" loading="lazy"></button>`).join("")}</div>` : Number(item.imageCount) > 0 ? '<p>照片暂未加载，可关闭后重新打开重试。</p>' : ""}
+                  ${memoryDisplayText(item) ? `<section class="my-footprint-text"><p>${escapeHtml(memoryDisplayText(item))}</p></section>` : ""}
 
                   <div
                     class="my-footprint-card__meta"
@@ -2745,7 +2722,7 @@ function renderMyMemoryPanel() {
           class="my-memory-empty"
         >
           <strong>
-            还没有个人城市记忆
+            此分类暂无记忆
           </strong>
 
           <p>
@@ -2812,56 +2789,9 @@ function renderMyMemoryPanel() {
       </div>
     </section>
 
-    <div
-      class="my-memory-stats"
-    >
-      <div>
-        <strong>
-          ${Number(
-            summary.total
-          ) || 0}
-        </strong>
-
-        <span>
-          留下记忆
-        </span>
-      </div>
-
-      <div>
-        <strong>
-          ${Number(
-            summary.processing
-          ) || 0}
-        </strong>
-
-        <span>
-          审核中
-        </span>
-      </div>
-
-      <div>
-        <strong>
-          ${Number(
-            summary.approved
-          ) || 0}
-        </strong>
-
-        <span>
-          已公开
-        </span>
-      </div>
-
-      <div>
-        <strong>
-          ${getMyLitPointCount()}
-        </strong>
-
-        <span>
-          我的点亮
-        </span>
-      </div>
+    <div class="my-memory-stats" role="group" aria-label="筛选我的记忆">
+      ${[["all", "留下记忆", items.length], ["processing", "审核中", items.filter(i=>["pending","processing"].includes(i.status)).length], ["approved", "已公开", approvedCount], ["lit", "我的点亮", litPointCount]].map(([key,label,count])=>`<button type="button" data-my-filter="${key}" aria-pressed="${myMemoryFilter===key}"><strong>${count}</strong><span>${label}</span></button>`).join("")}
     </div>
-
     <section
       class="my-memory-section"
     >
@@ -2918,11 +2848,7 @@ function renderMyMemoryPanel() {
         </div>
 
         <span>
-          共 ${
-            Number(
-              summary.total
-            ) || 0
-          } 份
+          共 ${filteredItems.length} 份
         </span>
       </div>
 
@@ -2933,6 +2859,24 @@ function renderMyMemoryPanel() {
       </div>
     </section>
   `;
+  contentElement.querySelectorAll("[data-my-filter]").forEach(button => button.onclick = () => {
+    myMemoryFilter = button.dataset.myFilter;
+    renderMyMemoryPanel();
+    const target = contentElement.querySelector(`[data-my-filter="${myMemoryFilter}"]`);
+    target.focus({preventScroll:true});
+    contentElement.querySelector(".my-footprints").scrollIntoView({block:"nearest"});
+  });
+  contentElement.querySelectorAll("[data-my-image]").forEach(button => button.onclick = () => {
+    let viewer = document.querySelector("#myPhotoDialog");
+    if (!viewer) {
+      viewer = document.createElement("dialog"); viewer.id = "myPhotoDialog";
+      viewer.innerHTML = '<button type="button" aria-label="关闭照片">关闭 ×</button><img alt="我的记忆照片">';
+      document.body.append(viewer); viewer.querySelector("button").onclick = () => viewer.close();
+      viewer.addEventListener("keydown", e => e.stopPropagation());
+    }
+    viewer.querySelector("img").src = button.dataset.myImage; viewer.showModal();
+  });
+
 }
 
 async function openMyMemoryPanel() {
@@ -3146,7 +3090,8 @@ async function setPublicMemoryLike(button) {
       currentButton.setAttribute("aria-pressed", String(memory.likedByMe));
       currentCard.querySelector("[data-like-status]").textContent = memory.likedByMe ? "已点赞" : "已取消点赞";
       const ranks = new Map(sortPublicMemories(Array.from(approvedMemoriesByPoint.values()).flat()).map((item, index) => [item.id, index]));
-      visibleCards.sort((a, b) => ranks.get(a.dataset.publicMemoryId) - ranks.get(b.dataset.publicMemoryId)).forEach(item => content.appendChild(item));
+      const columns=content.querySelectorAll(".memory-feed-column");
+      visibleCards.sort((a, b) => ranks.get(a.dataset.publicMemoryId) - ranks.get(b.dataset.publicMemoryId)).forEach((item,index) => (columns.length===2 ? columns[index%2] : currentCard.parentElement || content).appendChild(item));
       content.scrollTop += currentButton.getBoundingClientRect().top - top;
       currentButton.disabled = false;
       if (hadFocus) currentButton.focus({ preventScroll: true });
@@ -3215,41 +3160,15 @@ function renderPublicArchiveCards(
             `
             : "";
 
-        const originalContent =
-          String(
-            memory.originalContent ||
-            memory.publicContent ||
-            ""
-          ).trim();
-
-        const collaborativeDraft =
-          String(
-            memory.collaborativeDraft ||
-            ""
-          ).trim();
-
-        const hasAcceptedDraft =
-          memory.contentSource ===
-            "collaborativeDraft" &&
-          collaborativeDraft;
-
-        const publishedDate =
-          formatPublicArchiveDate(
-            memory.publishedAt
-          );
+        const content = memoryDisplayText(memory);
 
         return `
           <article
             class="memory-card public-archive-card"
             data-public-memory-id="${escapeHtml(memory.id)}"
           >
-            <header class="public-archive-card__head">
-              <div>
-                <span>城市公共记忆档案</span>
-                <strong>${escapeHtml(memory.pointName || point.nameModern)}</strong>
-              </div>
-              <span class="public-archive-card__seal">已入档</span>
-            </header>
+${imageHtml || renderPostCover(memory, point)}
+            <h3 class="memory-post-title">${escapeHtml(memory.pointName || point.nameModern)}</h3>
 
             <div
               class="memory-card__meta"
@@ -3263,49 +3182,17 @@ function renderPublicArchiveCards(
                 )}
               </span>
 
-              <span
-                class="memory-card__label"
-              >
-                ${escapeHtml(getMemoryTypeLabel(memory.memoryType))}
-              </span>
+
             </div>
 
-            ${originalContent ? `
-              <section class="public-archive-card__text">
-                <small>原始记忆 · 用户真实材料</small>
-                <p>${escapeHtml(originalContent)}</p>
-              </section>
-            ` : ""}
-
-            ${hasAcceptedDraft ? `
-              <section class="public-archive-card__text is-collaborative">
-                <small>协作整理稿 · ${escapeHtml(memory.writingStyleName || "表达偏好整理")}</small>
-                <p>${escapeHtml(collaborativeDraft)}</p>
-              </section>
-            ` : ""}
-
-            ${imageHtml}
+            ${content ? `<section class="public-archive-card__text"><p>${escapeHtml(content)}</p></section>` : ""}
 
             <div class="public-memory-like-row">
               <button type="button" class="public-memory-like" data-public-like="${escapeHtml(memory.id)}" aria-pressed="${memory.likedByMe === true}" ${publicLikePending.has(memory.id) ? "disabled" : ""}>${publicLikeLabel(memory)}</button>
               <span data-like-status role="status" aria-live="polite"></span>
             </div>
 
-            <dl class="public-archive-card__ledger">
-              <div><dt>投稿类型</dt><dd>${escapeHtml(getMaterialTypeLabel(memory.materialType))}</dd></div>
-              <div>
-                <dt>审核状态</dt>
-                <dd>
-                  <span class="public-archive-review-seal">
-                    <i aria-hidden="true">馆</i>
-                    ${escapeHtml(memory.reviewStatusLabel || "馆员终审通过")}
-                  </span>
-                </dd>
-              </div>
-              ${publishedDate ? `
-                <div><dt>公开时间</dt><dd>${escapeHtml(publishedDate)}</dd></div>
-              ` : ""}
-            </dl>
+
             ${allPoints.some(item => item.id === memory.pointId) ? `<button type="button" class="public-archive-map-link" data-public-map-point="${escapeHtml(memory.pointId)}">在地图查看此地点 →</button>` : ""}
           </article>
         `;
@@ -3323,13 +3210,8 @@ function ensurePublicMemoryPanel() {
     return;
   }
 
-  const panel =
-    document.createElement(
-      "div"
-    );
-
-  panel.id =
-    "publicMemoryPanel";
+  const panel = document.createElement("div");
+  panel.id = "publicMemoryPanel";
 
   panel.className =
     "public-memory-panel";
@@ -3354,7 +3236,7 @@ function ensurePublicMemoryPanel() {
     >
       <header class="public-memory-panel__head">
         <div>
-          <button type="button" class="public-memory-back" data-public-back hidden>← 全部点位</button>
+          <button type="button" class="public-memory-back" data-public-back hidden>← 返回帖子</button>
           <p>PUBLIC MEMORY ARCHIVE</p>
           <h2 id="publicMemoryPanelTitle">城市公共记忆档案</h2>
           <span id="publicMemoryPanelSummary">仅展示馆员终审通过并公开的内容</span>
@@ -3369,9 +3251,9 @@ function ensurePublicMemoryPanel() {
           <span class="public-memory-close-icon" aria-hidden="true">×</span>
           <span class="public-memory-close-label">关闭</span>
         </button>
-        <div class="public-memory-types" role="group" aria-label="记忆类型" hidden>
-          <button type="button" data-public-memory-type="text" aria-pressed="true" aria-controls="publicMemoryPanelContent">文字记忆 <span data-memory-type-count="text">0</span></button>
-          <button type="button" data-public-memory-type="image" aria-pressed="false" aria-controls="publicMemoryPanelContent">图文记忆 <span data-memory-type-count="image">0</span></button>
+        <div class="public-feed-controls">
+          <label>地点<select id="publicFeedPlace" aria-label="选择公众记忆地点"><option value="">全部地点</option></select></label>
+          <button type="button" class="btn primary" data-feed-contribute>＋ 留下记忆</button>
         </div>
       </header>
 
@@ -3431,10 +3313,11 @@ function ensurePublicMemoryPanel() {
     }
     const likeButton = event.target.closest("[data-public-like]");
     if (likeButton) { void setPublicMemoryLike(likeButton); return; }
-    const typeButton = event.target.closest("[data-public-memory-type]");
-    if (typeButton) {
-      showPublicMemoryPlace(publicArchiveSelectedPlace, typeButton.dataset.publicMemoryType);
-      return;
+    const postButton = event.target.closest("[data-public-post]");
+    if (postButton) { showPublicMemoryPost(postButton.dataset.publicPost); return; }
+    if (event.target.closest("[data-feed-contribute]")) {
+      const point = publicArchivePlaces.get(publicArchiveSelectedPlace)?.point;
+      closePublicMemoryPanel(); void openContributionModal(point?.id ? point : null); return;
     }
     const placeButton = event.target.closest("[data-public-place]");
     if (placeButton) {
@@ -3443,7 +3326,7 @@ function ensurePublicMemoryPanel() {
       return;
     }
     if (event.target.closest("[data-public-back]")) {
-      renderPublicMemoryPlaces(true);
+      renderPublicFeed(publicArchiveSelectedPlace, true);
       return;
     }
     const button = event.target.closest("[data-public-map-point]");
@@ -3477,11 +3360,12 @@ function ensurePublicMemoryPanel() {
     }
     if (event.key !== "Tab") return;
     const focusRoot = viewer.hidden ? panel.querySelector(".public-memory-panel__dialog") : viewer;
-    const items = Array.from(focusRoot.querySelectorAll("button:not([disabled]), a[href]")).filter(item => item.getClientRects().length);
+    const items = Array.from(focusRoot.querySelectorAll("button:not([disabled]), a[href], select")).filter(item => item.getClientRects().length);
     const first = items[0], last = items[items.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
   });
+  panel.querySelector("#publicFeedPlace").addEventListener("change", event => renderPublicFeed(event.target.value));
   panel
     .querySelectorAll(
       "[data-close-public-memory]"
@@ -3510,63 +3394,70 @@ function collectPublicMemoryPlaces() {
   return places;
 }
 
-function getPublicMemoryMediaType(memory) {
-  // 依据已保存的投稿信息分类，图片临时地址加载失败也不改变类别。
-  return Number(memory.imageCount) > 0 || memory.imageFileIds?.length > 0 || memory.imageUrls?.length > 0 || ["image", "text_image"].includes(memory.materialType) ? "image" : "text";
-}
-
 function publicMemoryWarning() {
   return publicMemoriesError ? `<p role="status">${escapeHtml(publicMemoriesError)}${publicMemoriesLoaded ? " 以下为上次成功读取的内容。" : ""}</p>` : "";
 }
 
-function renderPublicMemoryPlaces(restorePosition = false) {
-  const panel = document.querySelector("#publicMemoryPanel");
-  const content = panel.querySelector("#publicMemoryPanelContent");
-  panel.querySelector("#publicMemoryPanelTitle").textContent = "公众记忆";
-  panel.querySelector("[data-public-back]").hidden = true;
-  panel.querySelector(".public-memory-types").hidden = true;
-  panel.querySelector("#publicMemoryPanelSummary").textContent = publicMemoriesLoaded
-    ? `共 ${getPublicMemoryCount()} 份公开记忆 · ${publicArchivePlaces.size} 个点位 · 选择点位查看记忆`
-    : "选择点位，查看馆员终审通过并公开的记忆";
-  content.innerHTML = publicMemoryWarning() + (publicArchivePlaces.size ? `<div class="public-place-grid">${Array.from(publicArchivePlaces.values()).map(place => `
-    <button type="button" class="public-place-card" data-public-place="${escapeHtml(place.key)}">
-      <strong>${escapeHtml(place.name)}</strong>
-      <span class="public-place-card__count"><b>${place.memories.length}</b> 份公开记忆</span>
-      <span class="public-place-card__types">文字 ${place.memories.filter(memory => getPublicMemoryMediaType(memory) === "text").length} · 图文 ${place.memories.filter(memory => getPublicMemoryMediaType(memory) === "image").length}</span>
-      <span class="public-place-card__action">查看记忆 <span aria-hidden="true">→</span></span>
-    </button>`).join("")}</div>` : (publicMemoriesError ? "" : "<p>暂时没有已公开的记忆。</p>"));
-  content.scrollTop = restorePosition ? publicArchivePlaceScroll : 0;
-  if (restorePosition) {
-    const previous = Array.from(content.querySelectorAll("[data-public-place]")).find(button => button.dataset.publicPlace === publicArchiveSelectedPlace);
-    (previous || panel.querySelector(".public-memory-panel__close")).focus({ preventScroll: true });
-  }
+// Public API content is authoritative; private records show only the version adopted by their owner.
+function memoryDisplayText(memory) {
+  if (typeof memory.publicContent === "string" && memory.publicContent.trim()) return memory.publicContent.trim();
+  const adopted = memory.collaborativeDraftAccepted === true || memory.contentSource === "collaborativeDraft";
+  return String((adopted && memory.collaborativeDraft?.trim()) || memory.originalContent || "").trim();
 }
 
-function showPublicMemoryPlace(key, memoryType) {
-  const place = publicArchivePlaces.get(key);
-  if (!place) return;
-  const panel = document.querySelector("#publicMemoryPanel");
-  const content = panel.querySelector("#publicMemoryPanelContent");
-  publicArchiveSelectedPlace = key;
-  panel.querySelector("#publicMemoryPanelTitle").textContent = `${place.name} · 公众记忆`;
-  panel.querySelector("#publicMemoryPanelSummary").textContent = `共 ${place.memories.length} 份 · 按点赞数排序 · 仅展示终审通过并公开的内容`;
-  const back = panel.querySelector("[data-public-back]");
-  back.hidden = false;
-  const textCount = place.memories.filter(memory => getPublicMemoryMediaType(memory) === "text").length;
-  const imageCount = place.memories.length - textCount;
-  const selectedType = ["text", "image"].includes(memoryType) ? memoryType : (textCount ? "text" : "image");
-  const types = panel.querySelector(".public-memory-types");
-  types.hidden = false;
-  types.querySelector('[data-memory-type-count="text"]').textContent = textCount;
-  types.querySelector('[data-memory-type-count="image"]').textContent = imageCount;
-  types.querySelectorAll("[data-public-memory-type]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.publicMemoryType === selectedType)));
-  const memories = place.memories.filter(memory => getPublicMemoryMediaType(memory) === selectedType);
-  const empty = `<p class="public-memory-empty" role="status">这个点位暂时没有${selectedType === "text" ? "文字" : "图文"}记忆，可切换另一类查看。</p>`;
-  content.innerHTML = publicMemoryWarning() + (memories.length ? renderPublicArchiveCards(place.point, memories) : empty);
-  content.scrollTop = 0;
-  if (memoryType) types.querySelector(`[data-public-memory-type="${selectedType}"]`).focus();
-  else back.focus();
+function renderPostCover(memory, point = {}) {
+  const actual = memory.imageUrls?.[0];
+  const current = memory.coverStyle === "current" && point.currentImage;
+  const image = actual || `./${current || point.oldImage || "chengdu-map-original.jpg"}`;
+  const label = actual ? "" : current ? "点位配图" : "古图配图";
+  return `<div class="memory-post-cover${actual ? "" : " is-illustration"}"><img src="${escapeHtml(image)}" alt="${escapeHtml(memory.pointName || point.nameModern || "成都")}${label || "记忆照片"}" loading="lazy">${label ? `<span>${label}</span>` : ""}</div>`;
 }
+
+function renderPublicPostCards(memories) {
+  const cards = sortPublicMemories(memories).map(memory => {
+    const point = allPoints.find(p => p.id === memory.pointId) || {};
+    const text = memoryDisplayText(memory) || "一份关于这里的影像记忆";
+    return `<article class="memory-post" data-public-memory-id="${escapeHtml(memory.id)}">
+      <button type="button" class="memory-post-open" data-public-post="${escapeHtml(memory.id)}" aria-label="阅读${escapeHtml(memory.pointName || "成都")}的记忆：${escapeHtml(text.slice(0,36))}">
+        ${renderPostCover(memory, point)}<div class="memory-post-copy"><h3>${escapeHtml(text.slice(0,56))}${text.length>56 ? "…" : ""}</h3><span>${escapeHtml(memory.pointName || point.nameModern || "成都")}</span></div>
+      </button>
+      <div class="public-memory-like-row"><small>${escapeHtml(memory.approximateTime || "城市记忆")}</small><button type="button" class="public-memory-like" data-public-like="${escapeHtml(memory.id)}" aria-pressed="${memory.likedByMe === true}" ${publicLikePending.has(memory.id) ? "disabled" : ""}>${publicLikeLabel(memory)}</button><span data-like-status role="status" aria-live="polite"></span></div>
+    </article>`;
+  });
+  return `<div class="memory-feed-grid">${[0,1].map(column=>`<div class="memory-feed-column">${cards.filter((card,index)=>index%2===column).join("")}</div>`).join("")}</div>`;
+}
+
+function renderPublicFeed(key = "", restorePosition = false) {
+  const panel = document.querySelector("#publicMemoryPanel"), content = panel.querySelector("#publicMemoryPanelContent");
+  publicArchiveSelectedPlace = publicArchivePlaces.has(key) ? key : "";
+  const place = publicArchivePlaces.get(publicArchiveSelectedPlace);
+  const memories = place ? place.memories : Array.from(approvedMemoriesByPoint.values()).flat();
+  panel.querySelector("#publicMemoryPanelTitle").textContent = place ? `${place.name} · 公众记忆` : "公众记忆";
+  panel.querySelector("#publicMemoryPanelSummary").textContent = `${memories.length} 份公开记忆 · 按点赞数排序`;
+  panel.querySelector("[data-public-back]").hidden = true;
+  panel.querySelector(".public-feed-controls").hidden = false;
+  const picker = panel.querySelector("#publicFeedPlace");
+  picker.innerHTML = '<option value="">全部地点</option>' + Array.from(publicArchivePlaces.values()).map(p=>`<option value="${escapeHtml(p.key)}">${escapeHtml(p.name)} · ${p.memories.length}</option>`).join("");
+  picker.value = publicArchiveSelectedPlace;
+  content.innerHTML = publicMemoryWarning() + (memories.length ? renderPublicPostCards(memories) : '<p role="status">这里还没有公开记忆，欢迎留下第一份故事。</p>');
+  content.scrollTop = restorePosition ? publicArchivePlaceScroll : 0;
+  if (restorePosition) (Array.from(content.querySelectorAll("[data-public-post]")).find(b=>b.dataset.publicPost===publicArchiveSelectedPost) || panel.querySelector(".public-memory-panel__close")).focus({preventScroll:true});
+}
+let publicArchiveSelectedPost = "";
+function renderPublicMemoryPlaces(restorePosition = false) { renderPublicFeed("", restorePosition); }
+function showPublicMemoryPlace(key) { renderPublicFeed(key); }
+function showPublicMemoryPost(id) {
+  const memory = findPublicMemory(id); if (!memory) return;
+  const panel = document.querySelector("#publicMemoryPanel"), content = panel.querySelector("#publicMemoryPanelContent");
+  publicArchivePlaceScroll = content.scrollTop; publicArchiveSelectedPost = id;
+  panel.querySelector(".public-feed-controls").hidden = true;
+  const back = panel.querySelector("[data-public-back]"); back.hidden = false;
+  panel.querySelector("#publicMemoryPanelTitle").textContent = memory.pointName || "城市记忆";
+  panel.querySelector("#publicMemoryPanelSummary").textContent = "一段真实经历，一份成都记忆";
+  content.innerHTML = renderPublicArchiveCards(allPoints.find(p=>p.id===memory.pointId) || {nameModern:memory.pointName}, [memory]);
+  content.scrollTop = 0; back.focus();
+}
+
 
 async function openPublicMemoryPanel(point, trigger) {
   ensurePublicMemoryPanel();
@@ -3579,7 +3470,7 @@ async function openPublicMemoryPanel(point, trigger) {
   panel.querySelector("#publicMemoryPanelTitle").textContent = "公众记忆";
   panel.querySelector("#publicMemoryPanelSummary").textContent = "仅展示馆员终审通过并公开的内容";
   panel.querySelector("[data-public-back]").hidden = true;
-  panel.querySelector(".public-memory-types").hidden = true;
+  panel.querySelector(".public-feed-controls").hidden = false;
   content.innerHTML = "<p>正在读取公开记忆…</p>";
   content.scrollTop = 0;
   panel.hidden = false;
@@ -3624,479 +3515,44 @@ function closePublicMemoryPanel() {
     null;
 }
 
-function renderMemorySection(
-  point
-) {
-  const memories =
-    getPointMemories(
-      point.id
-    );
-
-  const count =
-    memories.length;
-
-  const statusHtml =
-    count > 0
-      ? `
-        <div
-          class="memory-status-strip is-lit"
-        >
-          <span
-            class="memory-status-strip__spark"
-          >
-            ✦
-          </span>
-
-          <span>
-            该点位已收录公众城市记忆 · 共 ${count} 份
-          </span>
-        </div>
-      `
-      : `
-        <div
-          class="memory-status-strip"
-        >
-          <span
-            class="memory-status-strip__spark"
-          >
-            ◇
-          </span>
-
-          <span>
-            等待第一份审核通过的公众城市记忆
-          </span>
-        </div>
-      `;
-
-  if (!count) {
-    return `
-      ${statusHtml}
-
-      <section
-        class="memory-section"
-      >
-        <div
-          class="memory-section__head"
-        >
-          <h4>
-            城市记忆
-          </h4>
-        </div>
-
-        <div
-          class="memory-empty"
-        >
-          <strong>
-            这里还没有公开的公众记忆
-          </strong>
-
-          <p>
-            如果你有与此地有关的老照片、家庭故事或现场观察，可以提交材料，审核通过后将在这里公开展示；地图上的个人点亮由你自己的投稿触发。
-          </p>
-        </div>
-      </section>
-    `;
-  }
-
-  return `
-    ${statusHtml}
-
-    <section
-      class="memory-section"
-    >
-      <div
-        class="memory-section__head"
-      >
-        <h4>
-          城市记忆
-        </h4>
-
-        <span
-          class="memory-count"
-        >
-          已收录 ${count} 份
-        </span>
-      </div>
-
-      <div
-        class="public-archive-entry"
-      >
-        <button
-          type="button"
-          class="public-archive-entry__button"
-          data-open-public-archive
-          aria-haspopup="dialog"
-          aria-controls="publicMemoryPanel"
-        >
-          <span
-            class="public-archive-entry__seal"
-            aria-hidden="true"
-          >
-            馆
-          </span>
-
-          <span class="public-archive-entry__copy">
-            <small>城市公共记忆档案</small>
-            <strong>进入档案查看 ${count} 份公开记忆</strong>
-            <span>仅收录馆员终审通过的内容</span>
-          </span>
-
-          <span
-            class="public-archive-entry__arrow"
-            aria-hidden="true"
-          >
-            →
-          </span>
-        </button>
-      </div>
-    </section>
-  `;
+function renderMemorySection(point) {
+  const count = getPointMemories(point.id).length;
+  return `<button type="button" class="detail-memory-link" data-open-public-archive aria-haspopup="dialog">公众记忆 <strong>${count}</strong><span>查看大家的照片与故事 →</span></button>`;
 }
 
 /* ===============================================
    点位详情
    =============================================== */
 
-function renderDetail(
-  point,
-  shouldScroll = false
-) {
-  if (!detailEl) {
-    return;
-  }
+function pointSelectOptions(placeholder = "请选择地点") {
+  const labels=["存续点","变迁点","待考点","新增点"];
+  return `<option value="">${escapeHtml(placeholder)}</option>` + labels.map(label=>`<optgroup label="${label}">${allPoints.filter(p=>getStatusLabel(p)===label).map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(pointPickerName(p))}</option>`).join("")}</optgroup>`).join("");
+}
 
-  const isBasic =
-    point.detailLevel
-      === "basic";
-
-  const isCampus =
-    point.detailLevel
-      === "campus";
-
-  const knowledge =
-    CORE_POINT_KNOWLEDGE[
-      point.id
-    ];
-
-  const memoryCount =
-    getPointMemories(
-      point.id
-    ).length;
-
-  const imageCount =
-    getPointMemories(
-      point.id
-    ).reduce(
-      (count, memory) =>
-        count +
-        (
-          Array.isArray(
-            memory.imageUrls
-          )
-            ? memory.imageUrls.length
-            : Array.isArray(
-                memory.imageFileIds
-              )
-              ? memory.imageFileIds.length
-              : 0
-        ),
-      0
-    );
-
-  const metaHtml =
-    isBasic
-      ? `
-        <div
-          class="meta-grid"
-        >
-          ${renderOptionalRow(
-            "点位类型",
-            point.type
-          )}
-
-          ${renderOptionalRow(
-            "古图标注",
-            point.nameAncient
-          )}
-
-          ${renderOptionalRow(
-            "今日名称",
-            point.nameModern
-          )}
-        </div>
-      `
-      : isCampus
-        ? `
-          <div
-            class="meta-grid"
-          >
-            ${renderOptionalRow(
-              "点位类型",
-              point.type
-            )}
-
-            ${renderOptionalRow(
-              "点位性质",
-              getStatusLabel(
-                point
-              )
-            )}
-
-            ${renderOptionalRow(
-              "古图说明",
-              point.nameAncient
-            )}
-
-            ${renderOptionalRow(
-              "今日地点",
-              point.nameModern
-            )}
-          </div>
-        `
-      : `
-        <div
-          class="meta-grid"
-        >
-          ${renderOptionalRow(
-            "点位类型",
-            point.type
-          )}
-
-          ${renderOptionalRow(
-            "点位状态",
-            getStatusLabel(
-              point
-            )
-          )}
-
-          ${renderOptionalRow(
-            "古图标注",
-            point.nameAncient
-          )}
-
-          ${renderOptionalRow(
-            "今日名称",
-            point.nameModern
-          )}
-
-          ${renderOptionalRow(
-            "城市线索",
-            point.routeNote
-          )}
-        </div>
-      `;
-
-  const mainContent =
-    isBasic
-      ? `
-        <section
-          class="official-intro"
-        >
-          <h4>
-            资料整理中
-          </h4>
-
-          <p>
-            该点位已完成地图标注，基础历史资料正在整理中。公众仍可提交与此地有关的照片、故事或口述线索。
-          </p>
-        </section>
-      `
-      : isCampus
-        ? `
-          <section class="official-summary detail-summary-card campus-memory-intro">
-            <p class="detail-section-label">校园记忆征集</p>
-            ${renderParagraphs(point.quick)}
-          </section>
-
-          ${point.extended ? `
-            <section class="official-intro campus-memory-guide">
-              <h4>${
-                point.id === "huaxiba"
-                  ? "在华西坝留下你的记忆"
-                  : "在川大留下你的记忆"
-              }</h4>
-              ${renderParagraphs(point.extended)}
-            </section>
-          ` : ""}
-
-          <p class="detail-caution">
-            <strong>地图说明</strong>
-            ${escapeHtml(point.note || "该点位为今地点位，不作为古图历史地名对应结论。")}
-          </p>
-        `
-      : `
-        <section class="detail-glance">
-          <p class="detail-section-label">第一眼</p>
-          <dl>
-            <div><dt>古图题名</dt><dd>${escapeHtml(point.nameAncient || "待考")}</dd></div>
-            <div><dt>今日对应</dt><dd>${escapeHtml(point.nameModern || point.nameAncient)}</dd></div>
-            <div><dt>状态</dt><dd>${escapeHtml(getStatusLabel(point))}</dd></div>
-            <div><dt>证据等级</dt><dd><span class="evidence-grade evidence-grade--${escapeHtml((knowledge?.grade || "C").toLowerCase())}">${escapeHtml(knowledge?.grade || "C")}</span></dd></div>
-          </dl>
-        </section>
-
-        ${point.quick ? `
-          <section class="official-summary detail-summary-card">
-            <p class="detail-section-label">一句话认识</p>
-            ${renderParagraphs(point.quick)}
-          </section>
-        ` : ""}
-
-        ${knowledge?.timeline?.length ? `
-          <section class="detail-timeline-section">
-            <p class="detail-section-label">时间变化</p>
-            <ol class="detail-timeline">
-              ${knowledge.timeline.map(([period, content]) => `
-                <li>
-                  <time>${escapeHtml(period)}</time>
-                  <p>${escapeHtml(content)}</p>
-                </li>
-              `).join("")}
-            </ol>
-          </section>
-        ` : ""}
-
-        ${knowledge?.caution ? `
-          <p class="detail-caution"><strong>证据边界</strong>${escapeHtml(knowledge.caution)}</p>
-        ` : ""}
-
-        ${point.extended ? `
-          <details class="detail-longread">
-            <summary>展开完整历史导读</summary>
-            <div>${renderParagraphs(point.extended)}</div>
-          </details>
-        ` : ""}
-      `;
-
-  detailEl.innerHTML = `
-    <div
-      class="point-card"
-    >
-      <span
-        class="type-pill"
-      >
-        ${
-          isBasic
-            ? "资料整理中"
-            : isCampus
-              ? "校园记忆点"
-            : "官方点位介绍"
-        }
-      </span>
-
-      <div>
-        <p
-          class="detail-kicker"
-        >
-          ${
-            isBasic
-              ? "Candidate Point"
-              : isCampus
-                ? "Campus Memory Point"
-              : "Point Detail"
-          }
-        </p>
-
-        <h3>
-          ${escapeHtml(
-            point.nameModern ||
-            point.nameAncient
-          )}
-        </h3>
-      </div>
-
-      ${renderPointMedia(
-        point
-      )}
-
-      ${metaHtml}
-
-      ${mainContent}
-
-      <section class="detail-memory-overview">
-        <p class="detail-section-label">成都人的记忆</p>
-        <div>
-          <strong>${memoryCount}</strong><span>条公开故事</span>
-          <strong>${imageCount}</strong><span>张公众照片</span>
-        </div>
-      </section>
-
-      ${renderMemorySection(
-        point
-      )}
-
-      <button
-        type="button"
-        class="memory-btn"
-        data-memory-button
-      >
-        留下我的城市记忆
-      </button>
-
-      <p
-        class="memory-help"
-      >
-        可提交文字、现场照片、家庭留影或旧照片线索；每次最多3张图片。
-      </p>
-    </div>
-  `;
-
-  detailEl
-    .querySelector(
-      "[data-memory-button]"
-    )
-    ?.addEventListener(
-      "click",
-      () =>
-        openContributionModal(
-          point
-        )
-    );
-
-  const publicArchiveButton =
-    detailEl
-      .querySelector(
-        "[data-open-public-archive]"
-      );
-
-  publicArchiveButton
-    ?.addEventListener(
-      "click",
-      () =>
-        openPublicMemoryPanel(
-          point,
-          publicArchiveButton
-        )
-    );
-
+function renderDetail(point, shouldScroll = false) {
+  if (!detailEl) return;
+  const knowledge = CORE_POINT_KNOWLEDGE[point.id];
+  const meta = `<div class="meta-grid">${renderOptionalRow("点位类型", point.type)}${renderOptionalRow("点位状态", getStatusLabel(point))}${renderOptionalRow("古图标注", point.nameAncient)}${renderOptionalRow("今日名称", point.nameModern)}</div>`;
+  const timeline = knowledge?.timeline?.length ? `<details class="detail-facts"><summary>时间变化</summary><ol class="detail-timeline">${knowledge.timeline.map(([period, content]) => `<li><time>${escapeHtml(period)}</time><p>${escapeHtml(content)}</p></li>`).join("")}</ol></details>` : "";
+  const caution = knowledge?.caution || point.note;
+  detailEl.innerHTML = `<article class="point-card point-card--compact">
+    <span class="type-pill">官方点位介绍</span><h3>${escapeHtml(point.nameModern || point.nameAncient)}</h3>
+    <label class="detail-point-select">切换点位<select id="detailPointSelect" aria-label="选择点位查看介绍">${pointSelectOptions()}</select></label>
+    <details class="detail-facts"><summary>地点信息</summary>${meta}</details>${timeline}
+    ${renderPointMedia(point)}
+    <section class="official-intro"><h4>历史导读</h4>${renderParagraphs(point.extended || point.quick || "基础历史资料正在整理中，欢迎留下与此地有关的真实记忆。")}</section>
+    ${caution ? `<p class="detail-caution"><strong>资料说明</strong>${escapeHtml(caution)}</p>` : ""}
+    <button type="button" class="memory-btn" data-memory-button>留下我的城市记忆</button>
+    ${renderMemorySection(point)}
+  </article>`;
+  const pointSelect=detailEl.querySelector("#detailPointSelect");pointSelect.value=point.id;
+  pointSelect.onchange=event=>{const selected=allPoints.find(p=>p.id===event.target.value);if(!selected)return;focusMapPoint(selected);renderDetail(selected);detailEl.querySelector("#detailPointSelect").focus({preventScroll:true});};
+  detailEl.querySelector("[data-memory-button]").onclick = () => openContributionModal(point);
+  const archive = detailEl.querySelector("[data-open-public-archive]");
+  archive.onclick = () => openPublicMemoryPanel(point, archive);
   if (shouldScroll) {
-    const panel =
-      detailEl.closest(
-        ".detail-panel"
-      ) ||
-      detailEl;
-
-    const rect =
-      panel
-        .getBoundingClientRect();
-
-    const outside =
-      rect.top
-        >= window.innerHeight ||
-      rect.bottom
-        <= 0 ||
-      rect.left
-        >= window.innerWidth;
-
-    if (outside) {
-      requestAnimationFrame(
-        () =>
-          panel.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-          })
-      );
-    }
+    const panel = detailEl.closest(".detail-panel") || detailEl, rect = panel.getBoundingClientRect();
+    if (rect.top >= window.innerHeight || rect.bottom <= 0 || rect.left >= window.innerWidth) panel.scrollIntoView({behavior:"smooth",block:"start"});
   }
 }
 
@@ -5308,39 +4764,7 @@ function getWritingStyle(styleId) {
 }
 
 function buildWritingStyleCards() {
-  return WRITING_STYLES
-    .map(
-      (style) => `
-        <button
-          type="button"
-          class="writing-style-card${style.id === "original" ? " is-selected" : ""}"
-          data-writing-style="${escapeHtml(style.id)}"
-          aria-pressed="${style.id === "original" ? "true" : "false"}"
-        >
-          <span
-            class="writing-style-card__mark"
-            aria-hidden="true"
-          >
-            ${escapeHtml(style.mark)}
-          </span>
-
-          <span class="writing-style-card__copy">
-            <strong>
-              ${escapeHtml(style.name)}
-            </strong>
-
-            <em>
-              ${escapeHtml(style.tagline)}
-            </em>
-
-            <small>
-              ${escapeHtml(style.description)}
-            </small>
-          </span>
-        </button>
-      `
-    )
-    .join("");
+  return WRITING_STYLES.map(style => `<button type="button" class="writing-style-card${style.id === "original" ? " is-selected" : ""}" data-writing-style="${escapeHtml(style.id)}" aria-pressed="${style.id === "original"}">${escapeHtml(style.name)}</button>`).join("");
 }
 
 function syncWritingStyleSelection(modal) {
@@ -5507,6 +4931,7 @@ function setRewriteChoice(
         ? "已选择：公开展示时优先采用整理稿；真实原文仍单独保存。"
         : "已选择：保留真实原文作为公开表达。";
   }
+  saveContributionDraft();
 }
 
 function renderRewriteState(
@@ -6816,453 +6241,77 @@ function ensureContributionModal() {
     true;
 
   modal.innerHTML = `
-    <div
-      class="contribution-modal__backdrop"
-      data-close-contribution-modal
-    ></div>
-
-    <section
-      class="contribution-modal__dialog contribution-workshop-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="contributionModalTitle"
-    >
-      <button
-        type="button"
-        class="contribution-modal__close"
-        aria-label="关闭投稿窗口"
-        data-close-contribution-modal
-      >
-        ×
-      </button>
-
-      <p class="detail-kicker">
-        Memory Co-creation
-      </p>
-
-      <h2
-        id="contributionModalTitle"
-      >
-        城市记忆共创工坊
-      </h2>
-
-      <p
-        class="contribution-modal__point"
-        id="contributionPointName"
-      ></p>
-
-      <div class="contribution-workshop-intro">
-        <span
-          class="contribution-workshop-intro__seal"
-          aria-hidden="true"
-        >
-          记
-        </span>
-
-        <p>
-          先留下真实经历，再选择表达偏好。智能工具只做基础整理，
-          <strong>不会改变你的真实经历，也不会补写你没有提供的人物、时间与事实。</strong>
-        </p>
-      </div>
-
-      <form
-        id="contributionForm"
-      >
-        ${window.tuhuiAccount?.markup() || ""}
-        <section
-          class="contribution-workshop-step"
-          aria-labelledby="memoryStepOneTitle"
-        >
-          <div class="contribution-workshop-step__head">
-            <span>
-              STEP 01
-            </span>
-
-            <div>
-              <h3 id="memoryStepOneTitle">
-                写下真实记忆
-              </h3>
-            </div>
-
-            <small>
-              真实材料
-            </small>
+    <div class="contribution-modal__backdrop" data-close-contribution-modal></div>
+    <section class="contribution-modal__dialog contribution-workshop-dialog" role="dialog" aria-modal="true" aria-labelledby="contributionModalTitle">
+      <button type="button" class="contribution-modal__close" aria-label="关闭投稿窗口" data-close-contribution-modal>×</button>
+      <p class="detail-kicker">LEAVE A MEMORY</p><h2 id="contributionModalTitle">留下城市记忆</h2>
+      <p id="contributionPointName" class="contribution-modal__point"></p>
+      <p id="contributionDraftStatus" role="status">草稿仅保存在本浏览器，照片刷新后需重新选择。</p>
+      <form id="contributionForm" novalidate>
+        <p class="memory-step-progress" id="contributionStepProgress" aria-live="polite"></p>
+        <section class="memory-wizard-step" data-memory-step="0" hidden><h3 tabindex="-1">写下一段真实记忆</h3>
+          <label class="contribution-field"><span>我的原始记忆</span><textarea id="contributionContent" rows="6" maxlength="1200" placeholder="那年，和谁一起，发生了什么……也可以只上传照片。"></textarea><small>原文单独保留，整理稿不会覆盖它。</small></label>
+          <h4>表达偏好</h4>
+          <div class="writing-style-grid" id="writingStyleGrid" role="group" aria-label="表达偏好选择">${buildWritingStyleCards()}</div>
+          <p id="selectedWritingStyleNote" class="writing-style-selected"></p>
+          <details id="writingIntentDetails" class="memory-optional"><summary>补充表达方向（选填）</summary><label class="contribution-field"><span>希望保留的感觉</span><textarea id="contributionWritingIntent" rows="2" maxlength="300"></textarea></label></details>
+          <div id="memoryRewritePanel" class="ai-writing-preview is-idle" aria-busy="false"><p>只做基础表达整理，原文始终保留。</p><button type="button" id="memoryRewriteTrigger" class="ai-writing-trigger">开始整理</button></div>
+          <p id="memoryRewriteStatus" class="memory-rewrite-status" role="status"></p>
+          <div id="memoryRewriteComparison" class="memory-rewrite-comparison" hidden>
+            <article><span>真实原文</span><p id="memoryRewriteOriginal"></p></article>
+            <article class="is-draft"><span id="memoryRewriteDraftLabel">整理稿</span><p id="memoryRewriteDraft"></p></article>
+            <div class="memory-rewrite-choice"><button type="button" id="keepOriginalMemory" class="is-selected" aria-pressed="true">保留原文</button><button type="button" id="useRewriteDraft" aria-pressed="false">采用整理稿</button></div>
           </div>
-
-          <label
-            class="contribution-field contribution-field--primary"
-          >
-            <span>
-              我的原始记忆
-            </span>
-
-            <textarea
-              id="contributionContent"
-              rows="6"
-              maxlength="1200"
-              placeholder="例如：大概哪一年、当时为什么来这里、和谁一起来、印象最深的是什么……"
-            ></textarea>
-
-            <small>
-              这份原始文字将作为你的真实记忆保留，后续整理稿不会覆盖它。
-            </small>
-          </label>
-
-          <div class="contribution-field-grid">
-            <label
-              class="contribution-field"
-            >
-              <span>
-                大约时间
-              </span>
-
-              <input
-                id="contributionTime"
-                type="text"
-                maxlength="80"
-                placeholder="例如：2000年前后、童年时期、2026年7月"
-              >
-            </label>
-
-            <label
-              class="contribution-field"
-            >
-              <span>
-                记忆类型
-              </span>
-
-              <select
-                id="contributionMemoryType"
-              >
-                <option value="general">
-                  城市记忆 / 现场观察
-                </option>
-
-                <option value="place_name">
-                  地名线索
-                </option>
-
-                <option value="oral_history">
-                  口述记忆
-                </option>
-              </select>
-
-              <small>
-                审核通过后，不同类型的贡献可解锁相应共建徽章。
-              </small>
-            </label>
-          </div>
-
-          <label
-            class="contribution-field contribution-contact-field"
-          >
-            <span>
-              联系方式（选填）
-            </span>
-
-            <input
-              id="contributionContact"
-              type="text"
-              maxlength="120"
-              autocomplete="email"
-              placeholder="填写手机号码或常用邮箱"
-            >
-
-            <small>
-              仅供馆员在需要核实投稿信息时联系，不会在网站公开展示。
-            </small>
-          </label>
-
-          <label
-            class="contribution-field"
-          >
-            <span>
-              上传真实照片（最多3张）
-            </span>
-
-            <input
-              id="contributionImages"
-              type="file"
-              accept="image/*,.heic,.heif"
-              aria-describedby="contributionImageHelp contributionImageStatus"
-              multiple
-            >
-
-            <small id="contributionImageHelp">
-              每张最多20MB；较大的照片会自动压缩后上传。HEIC 照片会尝试转为 JPG；不支持时会提示更换格式。相册原图不会改动。选好后请点击底部“确认投稿并点亮”。
-            </small>
-          </label>
-
-          <p class="contribution-status" id="contributionImageStatus" role="status" aria-live="polite"></p>
-
-          <div
-            class="contribution-preview"
-            id="contributionPreview"
-            aria-live="polite"
-          ></div>
-        </section>
-
-        <section
-          class="contribution-workshop-step contribution-workshop-step--writing"
-          aria-labelledby="memoryStepTwoTitle"
-        >
-          <div class="contribution-workshop-step__head">
-            <span>
-              STEP 02
-            </span>
-
-            <div>
-              <h3 id="memoryStepTwoTitle">
-                记录一种表达偏好
-              </h3>
-
-              <p>
-                无模型版本会按所选偏好调整语序、措辞和节奏；不生成仿作，也不增加事实。
-              </p>
-            </div>
-
-            <small>
-              偏好标签
-            </small>
-          </div>
-
-          <div
-            class="writing-style-grid"
-            id="writingStyleGrid"
-            role="group"
-            aria-label="表达偏好选择"
-          >
-            ${buildWritingStyleCards()}
-          </div>
-
-          <p
-            class="writing-style-selected"
-            id="selectedWritingStyleNote"
-            aria-live="polite"
-          >
-            <span aria-hidden="true">
-              ✓
-            </span>
-
-            已选择：
-                <strong>
-                  保持原声
-                </strong>
-                · 无模型整理以原声优先
-          </p>
-
-          <details
-            class="writing-intent-details"
-            id="writingIntentDetails"
-          >
-            <summary>
-              补充表达方向（可选）
-            </summary>
-
-            <label
-              class="contribution-field writing-intent-field"
-            >
-              <span>
-                你还希望保留什么感觉？
-              </span>
-
-              <textarea
-                id="contributionWritingIntent"
-                rows="3"
-                maxlength="300"
-                placeholder="例如：不要写得太伤感；重点保留爸爸第一次带我来这里的感觉；尽量保留我原来的口语。"
-              ></textarea>
-            </label>
+          <details class="memory-optional"><summary>补充时间与线索（选填）</summary>
+            <label class="contribution-field"><span>大约时间</span><input id="contributionTime" maxlength="80" placeholder="例如：童年时期、2000年前后"></label>
+            <label class="contribution-field"><span>记忆类型</span><select id="contributionMemoryType"><option value="general">城市记忆 / 现场观察</option><option value="place_name">地名线索</option><option value="oral_history">口述记忆</option></select></label>
+            <label class="contribution-field"><span>联系方式（选填，不公开）</span><input id="contributionContact" maxlength="120" placeholder="手机号或邮箱"></label>
           </details>
         </section>
-
-        <section
-          class="contribution-workshop-step contribution-workshop-step--ai"
-          aria-labelledby="memoryStepThreeTitle"
-        >
-          <div class="contribution-workshop-step__head">
-            <span>
-              STEP 03
-            </span>
-
-            <div>
-              <h3 id="memoryStepThreeTitle">
-                表达偏好整理
-              </h3>
-
-              <p>
-                直接在本机浏览器检查标点、重复，并按所选偏好调整语序、措辞和节奏；不调用云函数或生成式模型，真实原文永久保留。
-              </p>
-            </div>
-
-            <small>
-              浏览器本地整理 · 零成本
-            </small>
-          </div>
-
-          <div
-            class="ai-writing-preview is-idle"
-            id="memoryRewritePanel"
-            aria-busy="false"
-          >
-            <div>
-              <span aria-hidden="true">
-                ✦
-              </span>
-
-              <div>
-                <strong>
-                  帮我整理这段记忆
-                </strong>
-
-                <p>
-                  整理前后并排显示，由你决定采用哪一版。没有整理也可以直接投稿。
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="ai-writing-trigger"
-              id="memoryRewriteTrigger"
-              aria-disabled="false"
-              title="在本机浏览器进行基础整理"
-            >
-              开始整理
-            </button>
-          </div>
-
-          <p
-            class="memory-rewrite-status"
-            id="memoryRewriteStatus"
-            aria-live="polite"
-          ></p>
-
-          <div
-            class="memory-rewrite-comparison"
-            id="memoryRewriteComparison"
-            hidden
-          >
-            <article>
-              <span>
-                真实原文 · 永久保留
-              </span>
-
-              <p id="memoryRewriteOriginal"></p>
-            </article>
-
-            <article class="is-draft">
-              <span id="memoryRewriteDraftLabel">
-                基础整理稿 · 无模型 · 保持原声
-              </span>
-
-              <p id="memoryRewriteDraft"></p>
-            </article>
-
-            <div
-              class="memory-rewrite-choice"
-              role="group"
-              aria-label="选择投稿表达版本"
-            >
-              <button
-                type="button"
-                id="keepOriginalMemory"
-                class="memory-rewrite-choice__button is-selected"
-                aria-pressed="true"
-              >
-                保留原文
-              </button>
-
-              <button
-                type="button"
-                id="useRewriteDraft"
-                class="memory-rewrite-choice__button"
-                aria-pressed="false"
-              >
-                采用整理稿
-              </button>
-            </div>
-          </div>
+        <section class="memory-wizard-step" data-memory-step="1" hidden><h3 tabindex="-1">为记忆选地点和照片</h3>
+          <label class="contribution-field"><span>记忆发生的地点</span><select id="contributionPlace" required></select></label>
+          <label class="contribution-field"><span>添加真实照片（可多次选择，最多3张）</span><input id="contributionImages" type="file" accept="image/*,.heic,.heif" multiple aria-describedby="contributionImageHelp contributionImageStatus"><small id="contributionImageHelp">每张最多20MB，上传前自动处理较大照片；不支持的格式会提示重选。</small></label>
+          <p id="contributionImageStatus" class="contribution-status" role="status"></p><div class="contribution-preview" id="contributionPreview"></div>
+          <div id="memoryCoverOptions"><label class="contribution-field"><span>没有照片？选一张帖子配图</span><select id="contributionCover"><option value="map">古图局部</option><option value="current">点位现有图片</option></select></label><div id="memoryCoverPreview"></div><small>封面会标注“配图”，不计入上传照片数量。</small></div>
         </section>
-
-        <section class="contribution-workshop-final">
-          <h3>
-            确认投稿
-          </h3>
-
-          <p>
-            只要投稿保存成功，你自己的地图就会立即点亮；内容进入公共城市记忆前，仍需自动初审和馆员终审。
-          </p>
-
-          <p
-            class="memory-rewrite-choice-note"
-            id="memoryRewriteChoice"
-            aria-live="polite"
-          >
-            当前将保存并展示真实原文。
-          </p>
-
-          <label
-            class="contribution-consent"
-          >
-            <input
-              id="consentToPublish"
-              type="checkbox"
-            >
-
-            <span>
-              我已阅读并同意<a href="./copyright-20260908.html" target="_blank" rel="noopener" title="在新标签页阅读版权与使用授权声明">《版权与使用授权声明》</a>，同意本投稿经审核后公开展示，并按声明约定使用。
-            </span>
-          </label>
-
-          <label
-            class="contribution-consent"
-          >
-            <input
-              id="rightsConfirmed"
-              type="checkbox"
-            >
-
-            <span>
-              我确认有权按声明授权使用所提交内容；涉及他人著作权、肖像、隐私或个人信息的，已取得依法所需的授权或同意。
-            </span>
-          </label>
-        </section>
-
-        <p
-          class="contribution-status"
-          id="contributionStatus"
-          aria-live="polite"
-        ></p>
-
-        <div
-          class="contribution-actions-row"
-        >
-          <button
-            type="button"
-            class="btn ghost"
-            data-close-contribution-modal
-          >
-            取消
-          </button>
-
-          <button
-            type="submit"
-            class="btn primary"
-            id="contributionSubmit"
-          >
-            确认投稿并点亮
-          </button>
+        <section class="memory-wizard-step" data-memory-step="2" hidden><h3 tabindex="-1">确认这份记忆</h3><div id="memoryFinalPreview"></div><p id="memoryRewriteChoice" role="status"></p><p>保存后点亮个人地图，经馆员审核后公开。</p>
+          <label class="contribution-consent"><input id="consentToPublish" type="checkbox"><span>我已阅读并同意<a href="./copyright-20260908.html" target="_blank" rel="noopener">《版权与使用授权声明》</a>，同意本投稿经审核后公开展示，并按声明约定使用。</span></label>
+          <label class="contribution-consent"><input id="rightsConfirmed" type="checkbox"><span>我确认有权按声明授权使用所提交内容；涉及他人著作权、肖像、隐私或个人信息的，已取得依法所需的授权或同意。</span></label>
+</section>
+        <p id="contributionStatus" class="contribution-status" role="status" aria-live="polite"></p>
+        <div class="contribution-actions-row">
+          <button type="button" class="btn ghost" data-save-memory-draft>暂存并关闭</button>
+          <button type="button" class="btn ghost" id="memoryPreviousStep" hidden>上一步</button>
+          <button type="button" class="btn primary" id="memoryNextStep">下一步</button>
+          <button type="submit" class="btn primary" id="contributionSubmit" hidden>确认投稿并点亮</button>
         </div>
       </form>
-    </section>
-  `;
+      <section id="memorySubmissionSuccess" hidden></section>
+    </section>`;
 
   document.body
     .appendChild(
       modal
     );
 
+  modal.querySelector("#memoryNextStep").onclick = () => advanceMemoryStep();
+  modal.querySelector("#memoryPreviousStep").onclick = () => showMemoryStep(contributionStep - 1);
+  modal.querySelector("[data-save-memory-draft]").onclick = () => closeContributionModal();
+  modal.querySelector("#contributionPlace").onchange = event => {
+    activeContributionPoint = allPoints.find(p=>p.id===event.target.value) || null;
+    invalidateRewriteDraft(modal, "地点已改变，可重新整理。"); syncMemoryCover(); saveContributionDraft();
+  };
+  modal.querySelector("#contributionCover").onchange = () => { syncMemoryCover(); saveContributionDraft(); };
+  modal.querySelector("#contributionForm").addEventListener("input", saveContributionDraft);
+  modal.querySelector("#contributionForm").addEventListener("change", saveContributionDraft);
+  modal.querySelector("#contributionForm").addEventListener("click", () => queueMicrotask(saveContributionDraft));
+  modal.addEventListener("keydown", event => {
+    if (event.key !== "Tab") return;
+    const buttons = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea, select, a[href]')].filter(e=>e.getClientRects().length);
+    const first=buttons[0],last=buttons.at(-1);
+    if(event.shiftKey && document.activeElement===first){event.preventDefault();last?.focus();}
+    else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first?.focus();}
+  });
   modal
     .querySelectorAll(
       "[data-close-contribution-modal]"
@@ -7417,122 +6466,97 @@ function ensureContributionModal() {
     );
 }
 
-function openContributionModal(
-  point
-) {
-  if (
-    !cloudReady ||
-    !cloudDb ||
-    !cloudApp
-  ) {
-    alert(
-      "云端投稿服务尚未连接。\n\n地图和点位可以正常浏览，请稍后再试。"
-    );
-
-    return;
-  }
-
+async function openContributionModal(point) {
   ensureContributionModal();
-
-  activeContributionPoint =
-    point;
-
-  const modal =
-    document.querySelector(
-      "#contributionModal"
-    );
-
-  const form =
-    modal.querySelector(
-      "#contributionForm"
-    );
-
-  form.reset();
-  form.querySelector("#contributionImages").setCustomValidity("");
-  setContributionImageStatus("");
-
-  resetWritingWorkshop(
-    modal
-  );
-
-  clearPreviewUrls();
-
-  modal
-    .querySelector(
-      "#contributionPreview"
-    )
-    .innerHTML =
-      "";
-
-  const statusElement =
-    modal.querySelector(
-      "#contributionStatus"
-    );
-
-  statusElement.textContent =
-    "";
-
-  statusElement
-    .classList
-    .remove(
-      "is-error"
-    );
-
-  modal
-    .querySelector(
-      "#contributionPointName"
-    )
-    .textContent =
-      `当前点位：${point.nameModern}`;
-
-  modal.hidden =
-    false;
-
-  document.body
-    .classList
-    .add(
-      "modal-open"
-    );
-
-  requestAnimationFrame(
-    () =>
-      modal
-        .querySelector(
-          "#contributionContent"
-        )
-        .focus()
-  );
+  const token = ++contributionOpenToken;
+  contributionReturnFocus = document.activeElement;
+  const modal = document.querySelector("#contributionModal"), form=modal.querySelector("#contributionForm");
+  contributionDraftKey = "";
+  try {
+    const result = await cloudApp?.auth?.getUser();
+    if (result?.data?.user?.id) contributionDraftKey = `tuhui-memory-draft-v1:${result.data.user.id}`;
+  } catch { /* Offline writing remains possible; don't expose another account's draft. */ }
+  if (token !== contributionOpenToken) return;
+  form.reset(); form.hidden = false; modal.querySelector("#memorySubmissionSuccess").hidden=true;
+  form.querySelectorAll("input,textarea,select,button").forEach(el=>el.disabled=false);
+  selectedContributionFiles=[]; clearPreviewUrls();
+  resetWritingWorkshop(modal);
+  activeContributionPoint = point || null;
+  modal.querySelector("#contributionPlace").innerHTML = pointSelectOptions();
+  let saved;
+  try { saved=JSON.parse(localStorage.getItem(contributionDraftKey)||"null"); } catch {}
+  if (saved && typeof saved === "object") {
+    // One draft per browser identity. Reopening from another map point never silently moves it.
+    activeContributionPoint = allPoints.find(p=>p.id===saved.pointId) || activeContributionPoint;
+    for (const id of ["contributionContent","contributionTime","contributionContact","contributionMemoryType","contributionWritingIntent","contributionCover"]) {
+      if (typeof saved[id] === "string") modal.querySelector(`#${id}`).value=saved[id];
+    }
+    selectedWritingStyle=getWritingStyle(saved.style).id;
+    if (typeof saved.draft === "string") {currentRewriteDraft=saved.draft;currentRewriteAccepted=saved.accepted===true;currentRewriteMeta=saved.meta || null;}
+  }
+  modal.querySelector("#contributionPlace").value=activeContributionPoint?.id || "";
+  modal.querySelector("#contributionDraftStatus").textContent = saved ? `已恢复文字草稿${saved.photoCount ? `，原先 ${saved.photoCount} 张照片请重新选择` : ""}。可在下一步更换地点。` : "草稿仅保存在本浏览器，照片刷新或重开后需重新选择。";
+  modal.querySelector("#contributionStatus").textContent="";
+  renderSelectedMemoryImages(); syncWritingStyleSelection(modal);
+  if(currentRewriteDraft) { renderRewriteState(modal,"success"); setRewriteChoice(modal,currentRewriteAccepted); }
+  if(!contributionDraftKey) modal.querySelector("#contributionDraftStatus").textContent="账号服务暂未连接，目前无法暂存；关闭前请复制文字。";
+  modal.hidden=false; document.body.classList.add("modal-open"); showMemoryStep(0);
 }
 
 function closeContributionModal() {
   if (document.querySelector("#contributionSubmit")?.disabled) return;
-  const modal =
-    document.querySelector(
-      "#contributionModal"
-    );
-
-  if (!modal) {
-    return;
-  }
-
-  modal.hidden =
-    true;
-
-  activeContributionPoint =
-    null;
-
-  document.body
-    .classList
-    .remove(
-      "modal-open"
-    );
-
-  resetWritingWorkshop(
-    modal
-  );
-
-  clearPreviewUrls();
+  const modal=document.querySelector("#contributionModal"); if(!modal) return;
+  saveContributionDraft(); contributionOpenToken++;
+  modal.hidden=true; activeContributionPoint=null; contributionDraftKey="";
+  document.body.classList.remove("modal-open"); resetWritingWorkshop(modal); clearPreviewUrls();
+  contributionReturnFocus?.focus({preventScroll:true});
 }
+
+function saveContributionDraft() {
+  const modal=document.querySelector("#contributionModal");
+  if (!modal || modal.hidden || !contributionDraftKey || modal.querySelector("#contributionForm").hidden) return;
+  const data={pointId:activeContributionPoint?.id || "",style:selectedWritingStyle,draft:currentRewriteDraft,accepted:currentRewriteAccepted,meta:currentRewriteMeta,photoCount:selectedContributionFiles.length};
+  for(const id of ["contributionContent","contributionTime","contributionContact","contributionMemoryType","contributionWritingIntent","contributionCover"]) data[id]=modal.querySelector(`#${id}`).value;
+  try {
+    localStorage.setItem(contributionDraftKey, JSON.stringify(data));
+    modal.querySelector("#contributionDraftStatus").textContent="文字草稿已暂存本浏览器；照片重开后需重新选择。";
+  } catch { modal.querySelector("#contributionDraftStatus").textContent="本浏览器无法暂存草稿，请先复制文字，暂勿关闭窗口。"; }
+}
+function syncMemoryCover() {
+  const modal=document.querySelector("#contributionModal"), select=modal.querySelector("#contributionCover");
+  select.querySelector('[value="current"]').disabled=!activeContributionPoint?.currentImage;
+  if(select.value==="current" && !activeContributionPoint?.currentImage)select.value="map";
+  modal.querySelector("#contributionPointName").textContent=activeContributionPoint ? `记忆地点：${pointPickerName(activeContributionPoint)}` : "留下一段经历，再选择发生的地点";
+  modal.querySelector("#memoryCoverOptions").hidden=selectedContributionFiles.length>0;
+  modal.querySelector("#memoryCoverPreview").innerHTML=renderPostCover({coverStyle:select.value},activeContributionPoint || {});
+}
+function showMemoryStep(step) {
+  contributionStep=Math.max(0,Math.min(2,step));
+  const modal=document.querySelector("#contributionModal");
+  modal.querySelectorAll("[data-memory-step]").forEach(el=>el.hidden=Number(el.dataset.memoryStep)!==contributionStep);
+  modal.querySelector("#memoryPreviousStep").hidden=contributionStep===0;
+  modal.querySelector("#memoryNextStep").hidden=contributionStep===2;
+  modal.querySelector("#contributionSubmit").hidden=contributionStep!==2;
+  modal.querySelector("#memoryNextStep").textContent="下一步";
+  modal.querySelector("#contributionStepProgress").textContent=`${contributionStep + 1} / 3 · ${["写记忆与表达","加照片","确认投稿"][contributionStep]}`;
+  modal.querySelector("#contributionStatus").textContent="";
+  if(contributionStep===2) {
+    const content=currentRewriteAccepted ? currentRewriteDraft : modal.querySelector("#contributionContent").value;
+    modal.querySelector("#memoryFinalPreview").innerHTML=`<strong>${escapeHtml(pointPickerName(activeContributionPoint || {}))}</strong><p>${escapeHtml(content || "本次以照片记录记忆。")}</p><small>${selectedContributionFiles.length} 张真实照片${!selectedContributionFiles.length ? " · 使用标注配图" : ""}</small>`;
+  }
+  modal.querySelector(`[data-memory-step="${contributionStep}"] h3`).focus();
+  modal.querySelector(".contribution-modal__dialog").scrollTop=0;
+}
+function advanceMemoryStep() {
+  const modal=document.querySelector("#contributionModal"), status=modal.querySelector("#contributionStatus");
+  if(contributionStep===0) {
+    const contact=modal.querySelector("#contributionContact").value.trim();
+    if(contact && !isValidContributionContact(contact)){status.textContent="请检查联系方式，或留空。";return;}
+  }
+  if(contributionStep===1 && (!activeContributionPoint || (!modal.querySelector("#contributionContent").value.trim() && !selectedContributionFiles.length))) {status.textContent="请选择地点，并至少填写一段记忆或添加一张照片。";return;}
+  saveContributionDraft(); showMemoryStep(contributionStep+1);
+}
+
 
 function clearPreviewUrls() {
   previewObjectUrls
@@ -7547,132 +6571,38 @@ function clearPreviewUrls() {
     [];
 }
 
-function getSelectedImages() {
-  const input =
-    document.querySelector(
-      "#contributionImages"
-    );
-
-  return input
-    ? Array.from(
-        input.files ||
-        []
-      )
-    : [];
-}
-
+function getSelectedImages() { return selectedContributionFiles.slice(); }
 function validateImages(files) {
   if (!window.tuhuiImages) throw new Error("照片处理功能未加载，请保留文字并稍后重试。");
   window.tuhuiImages.validate(files);
 }
-
 function setContributionImageStatus(message, isError = false) {
-  const element = document.querySelector("#contributionImageStatus");
-  if (!element) return;
-  element.textContent = message;
-  element.classList.toggle("is-error", isError);
+  const element=document.querySelector("#contributionImageStatus"); if(!element)return;
+  element.textContent=message; element.classList.toggle("is-error",isError);
 }
-
-function handleImageSelection() {
-  const preview =
-    document.querySelector(
-      "#contributionPreview"
-    );
-
-  const status =
-    document.querySelector(
-      "#contributionStatus"
-    );
-
-  const input =
-    document.querySelector(
-      "#contributionImages"
-    );
-
-  const files =
-    Array.from(
-      input.files ||
-      []
-    );
-
+function renderSelectedMemoryImages() {
   clearPreviewUrls();
-
-  preview.innerHTML =
-    "";
-
-  status.textContent =
-    "";
-
-  status
-    .classList
-    .remove(
-      "is-error"
-    );
-
-  try {
-    validateImages(
-      files
-    );
-  }
-
-  catch (error) {
-    input.setCustomValidity(error.message);
-    setContributionImageStatus(error.message, true);
-
-    status.textContent =
-      error.message;
-
-    status
-      .classList
-      .add(
-        "is-error"
-      );
-
-    return;
-  }
-
-  input.setCustomValidity("");
-  setContributionImageStatus(files.length ? `已选择 ${files.length} 张照片；点击底部“确认投稿并点亮”后上传。` : "");
-
-  files.forEach(
-    (file) => {
-      const url =
-        URL.createObjectURL(
-          file
-        );
-
-      previewObjectUrls
-        .push(
-          url
-        );
-
-      const figure =
-        document.createElement(
-          "figure"
-        );
-
-      figure.innerHTML = `
-        <img
-          src="${url}"
-          alt="${escapeHtml(
-            file.name
-          )}预览"
-        >
-
-        <figcaption>
-          ${escapeHtml(
-            file.name
-          )}
-        </figcaption>
-      `;
-
-      preview
-        .appendChild(
-          figure
-        );
-    }
-  );
+  const preview=document.querySelector("#contributionPreview"); preview.innerHTML="";
+  selectedContributionFiles.forEach((file,index)=>{
+    const url=URL.createObjectURL(file);previewObjectUrls.push(url);
+    const figure=document.createElement("figure");
+    figure.innerHTML=`<img src="${url}" alt="${escapeHtml(file.name)}预览"><button type="button" aria-label="删除第${index+1}张照片">×</button><figcaption>${escapeHtml(file.name)}</figcaption>`;
+    figure.querySelector("button").onclick=()=>{if(document.querySelector("#contributionSubmit").disabled)return;selectedContributionFiles.splice(index,1);renderSelectedMemoryImages();saveContributionDraft();};
+    preview.appendChild(figure);
+  });
+  setContributionImageStatus(selectedContributionFiles.length ? `已选 ${selectedContributionFiles.length}/3 张，可继续添加或删除。` : "");
+  syncMemoryCover();
 }
+function handleImageSelection() {
+  const input=document.querySelector("#contributionImages"), added=Array.from(input.files || []);
+  if(!added.length)return; // Cancelling the picker must not erase previous selections.
+  const next=selectedContributionFiles.slice();
+  for(const file of added) if(!next.some(old=>old.name===file.name && old.size===file.size && old.lastModified===file.lastModified)) next.push(file);
+  input.value=""; input.setCustomValidity("");
+  try {validateImages(next);} catch(error) {setContributionImageStatus(`${error.message} 已有照片仍保留。`,true);return;}
+  selectedContributionFiles=next; renderSelectedMemoryImages();saveContributionDraft();
+}
+
 
 /* ===============================================
    图片上传
@@ -7893,6 +6823,7 @@ async function handleContributionSubmit(
 ) {
   event.preventDefault();
   if (document.querySelector("#contributionSubmit")?.disabled) return;
+  if (contributionStep !== 2) { advanceMemoryStep(); return; }
 
   if (
     !activeContributionPoint
@@ -7900,6 +6831,7 @@ async function handleContributionSubmit(
     return;
   }
 
+  let submissionSaved = false;
   // 保存当前点位引用，避免关闭弹窗后 activeContributionPoint 被清空。
   const submittedPoint =
     activeContributionPoint;
@@ -8062,9 +6994,9 @@ async function handleContributionSubmit(
   }
 
   try {
-    validateImages(
-      files
-    );
+    if (!cloudReady || !cloudDb) throw new Error("投稿服务尚未连接，草稿已保留，请稍后重试。");
+    validateImages(files);
+    document.querySelector("#contributionForm").querySelectorAll("input,textarea,select,button").forEach(el=>el.disabled=true);
 
     submitButton.disabled =
       true;
@@ -8156,6 +7088,7 @@ async function handleContributionSubmit(
           contactInfo,
 
           materialType,
+          coverStyle: document.querySelector("#contributionCover").value === "current" ? "current" : "map",
 
           memoryType,
 
@@ -8209,8 +7142,10 @@ async function handleContributionSubmit(
       );
     }
 
-    statusElement.textContent =
-      "投稿已保存，正在启动自动处理流程……";
+    submissionSaved = true;
+    try { localStorage.removeItem(contributionDraftKey); } catch {}
+    contributionDraftKey = "";
+    statusElement.textContent = "投稿已保存，正在启动自动处理流程……";
 
     let processingStarted =
       false;
@@ -8276,23 +7211,13 @@ async function handleContributionSubmit(
       renderMyMemoryPanel();
     }
 
-    window.setTimeout(
-      () => {
-        closeContributionModal();
-
-        // 回到古图，让本次投稿的地点成为视觉中心。
-        focusPersonalLitPoint(
-          submittedPoint
-        );
-
-        // 用站内动效替代浏览器原生 alert。
-        showPersonalLightCelebration(
-          submittedPoint,
-          processingStarted
-        );
-      },
-      520
-    );
+    const modal=document.querySelector("#contributionModal");
+    modal.querySelector("#contributionForm").hidden=true;
+    const success=modal.querySelector("#memorySubmissionSuccess");success.hidden=false;
+    success.innerHTML=`<h3 tabindex="-1">记忆已保存，已点亮${escapeHtml(submittedPoint.nameModern)}</h3><p>无需重复投稿，馆员审核后会出现在公众记忆。</p>${window.tuhuiAccount?.markup() || ""}<button type="button" class="btn primary" data-memory-finish>返回地图</button>`;
+    success.querySelector("[data-memory-finish]").onclick=()=>{closeContributionModal();focusPersonalLitPoint(submittedPoint);showPersonalLightCelebration(submittedPoint,processingStarted);};
+    success.querySelector("h3").focus();
+    selectedContributionFiles=[];
 
   }
 
@@ -8303,7 +7228,7 @@ async function handleContributionSubmit(
     );
 
     statusElement.textContent =
-      `提交失败：${
+      `${submissionSaved ? "投稿已保存，页面刷新暂未完成。请关闭后查看我的记忆，不要重复投稿。" : "提交失败："}${
         error.message ||
         "请稍后重试"
       }`;
@@ -8313,10 +7238,17 @@ async function handleContributionSubmit(
       .add(
         "is-error"
       );
-    if (files.length) setContributionImageStatus(statusElement.textContent + " 已选照片和文字仍保留，请重试。", true);
+    if (submissionSaved) {
+      const modal=document.querySelector("#contributionModal"), success=modal.querySelector("#memorySubmissionSuccess");
+      success.hidden=false;
+      success.innerHTML='<h3>投稿已保存</h3><p>页面刷新暂未完成，请关闭后查看“我的记忆”，无需重复投稿。</p><button type="button" class="btn primary" data-saved-close>关闭</button>';
+      success.querySelector("[data-saved-close]").onclick=closeContributionModal;
+    } else if (files.length) setContributionImageStatus(statusElement.textContent + " 已选照片和文字仍保留，请重试。", true);
   }
 
   finally {
+    document.querySelector("#contributionForm").querySelectorAll("input,textarea,select,button").forEach(el=>el.disabled=false);
+    if(submissionSaved) document.querySelector("#contributionForm").hidden=true;
     document.querySelector("#contributionImages").disabled = false;
     document.querySelectorAll("[data-close-contribution-modal]").forEach(button => { button.disabled = false; });
     submitButton.disabled =
@@ -8420,6 +7352,7 @@ async function init() {
 
   bindMyMemoryButtons();
   bindPointPicker();
+  document.querySelector("#publicMemoryHeroButton").addEventListener("click", event => openPublicMemoryPanel(null, event.currentTarget));
   document.querySelector("#publicMemoryButton").addEventListener("click", event => openPublicMemoryPanel(null, event.currentTarget));
 
   try {
@@ -8511,6 +7444,9 @@ else {
 }
 
 window.addEventListener("tuhui:account-changed", async () => {
+  const workshop=document.querySelector("#contributionModal");
+  if(workshop && !workshop.hidden && !workshop.querySelector("#contributionForm").hidden) closeContributionModal();
+  myMemoryFilter="all";
   publicAccountEpoch += 1;
   publicReadEpoch += 1;
   publicLikePending.clear();

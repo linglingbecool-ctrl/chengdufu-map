@@ -64,10 +64,23 @@ global.document = { createElement() {
   const nodes = Object.fromEntries(["#contributionPreview","#contributionStatus","#contributionImages","#contributionImageStatus"].map(id => [id,{textContent:"",innerHTML:"",classList:{remove(){},add(){},toggle(){}},setCustomValidity(value){this.validity=value;}}]));
   nodes["#contributionImages"].files=[{ name:"huge.jpg",type:"image/jpeg",size:21*MB }];
   nodes["#contributionImages"].value="selected-photo";
-  const sel = vm.createContext({document:{querySelector:id=>nodes[id]},window:{tuhuiImages:images},clearPreviewUrls(){},Array,Error});
-  vm.runInContext(selection + "\nhandleImageSelection();",sel);
-  assert.equal(nodes["#contributionImages"].value,"selected-photo");
+  const sel = vm.createContext({document:{querySelector:id=>nodes[id]},window:{tuhuiImages:images},clearPreviewUrls(){},Array,Error,selectedContributionFiles:[small]});
+  vm.runInContext(selection,sel);
+  let renders=0,saves=0;
+  sel.renderSelectedMemoryImages=()=>renders++;
+  sel.saveContributionDraft=()=>saves++;
+  sel.handleImageSelection();
+  assert.equal(sel.selectedContributionFiles.length,1);
   assert.match(nodes["#contributionImageStatus"].textContent,/超过20MB/);
+  const input=nodes["#contributionImages"];
+  input.files=[photo("image/jpeg","two.jpg")];sel.handleImageSelection();
+  assert.equal(sel.selectedContributionFiles.length,2);
+  input.files=[];sel.handleImageSelection();assert.equal(sel.selectedContributionFiles.length,2);
+  input.files=[sel.selectedContributionFiles[1]];sel.handleImageSelection();assert.equal(sel.selectedContributionFiles.length,2);
+  input.files=[photo("image/jpeg","three.jpg")];sel.handleImageSelection();assert.equal(sel.selectedContributionFiles.length,3);
+  input.files=[photo("image/jpeg","four.jpg")];sel.handleImageSelection();assert.equal(sel.selectedContributionFiles.length,3);
+  assert.match(nodes["#contributionImageStatus"].textContent,/最多选择3/);
+  assert.equal(renders,3);assert.equal(saves,3);
 
   const source = script.slice(script.indexOf("async function uploadContributionImages("),script.indexOf("async function triggerContributionProcessing("));
   let uploads=0;

@@ -84,6 +84,7 @@ exports.main = async (event, context) => {
 
         approximateTime: item.approximateTime || "",
         materialType: item.materialType || "text",
+        coverStyle: item.coverStyle === "current" ? "current" : "map",
         memoryType: item.memoryType || "general",
         writingStyleName: item.writingStyleName || "",
         status: "approved",

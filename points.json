@@ -473,5 +473,23 @@
     "currentImage": "",
     "source": "四川大学图书馆馆藏古图“少陵草堂”标注；成都杜甫草堂博物馆《草堂简介》（https://www.cddfct.cn/go-c11.htm）。",
     "detailLevel": "basic"
+  },
+  {
+    "id": "wangjianglou",
+    "nameAncient": "薛涛井",
+    "nameModern": "望江楼公园（薛涛井）",
+    "type": "园林 / 诗人纪念遗迹",
+    "status": "存续点",
+    "detailLevel": "standard",
+    "x": 68.625,
+    "y": 76.623,
+    "quick": "以古图中的薛涛井为线索，走近今日望江楼公园的诗人纪念遗迹、竹林与锦江岸边生活。",
+    "extended": "望江楼公园位于成都锦江南岸，以望江楼古建筑群、薛涛纪念遗迹和竹文化景观为特色。薛涛井是园内纪念唐代女诗人薛涛的主要遗迹之一。本图以“薛涛井”的题名及井形符号定位，连接今日望江楼公园的游园、读诗、赏竹和河岸生活记忆。欢迎留下与这里有关的真实照片和经历。",
+    "note": "点位标在古图薛涛井的井形符号处，用作古图阅读和公众记忆征集入口；不将古井符号等同于今日整个公园的范围，也不作为现代精确测绘坐标。",
+    "source": "望江楼公园官网《望江楼简介》《薛涛井》；古图位置经原始扫描图核对。https://www.wangjianglou.com/about.html https://www.wangjianglou.com/build/201804/178.html",
+    "oldImage": "wangjianglou-old.jpg",
+    "currentImage": "",
+    "confidence": "古图题名与今日纪念遗迹相关，园区范围另作区分",
+    "evidence": "原始古图薛涛井题名及井形符号；望江楼公园官网薛涛井介绍。"
   }
 ]
