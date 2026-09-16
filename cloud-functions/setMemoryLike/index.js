@@ -38,7 +38,9 @@ exports.main = async (event = {}) => {
       const total = transaction.collection("memoryLikeTotals").doc(memoryId);
       const previous = row(await receipt.get());
       const savedTotal = row(await total.get());
-      const count = savedTotal ? savedTotal.count : 0;
+      // Migrate legacy records lazily: their contribution.likeCount becomes
+      // the initial total when no memoryLikeTotals row exists yet.
+      const count = savedTotal ? savedTotal.count : (Number.isSafeInteger(memory?.likeCount) && memory.likeCount >= 0 ? memory.likeCount : 0);
       if (!Number.isSafeInteger(count) || count < 0 || (previous?.liked === true && count === 0)) {
         fail("COUNT_UNAVAILABLE", "赞数暂不可用，请稍后重试。");
       }

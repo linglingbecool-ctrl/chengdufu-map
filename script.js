@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20260916-memoryfeed04";
+const APP_VERSION = "20260916-textcover02";
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -2661,7 +2661,8 @@ function renderMyMemoryPanel() {
       )
       .join("");
 
-  const filteredItems = items.filter(item => myMemoryFilter === "all" || (myMemoryFilter === "processing" ? ["pending", "processing"].includes(item.status) : myMemoryFilter === "lit" ? ["pending", "processing", "approved"].includes(item.status) : item.status === myMemoryFilter));
+  const likedItems = Array.from(approvedMemoriesByPoint.values()).flat().filter(item => item.likedByMe === true);
+  const filteredItems = (myMemoryFilter === "liked" ? likedItems : items).filter(item => myMemoryFilter === "all" || myMemoryFilter === "liked" || (myMemoryFilter === "processing" ? ["pending", "processing"].includes(item.status) : myMemoryFilter === "lit" ? ["pending", "processing", "approved"].includes(item.status) : item.status === myMemoryFilter));
   const footprintsHtml =
     filteredItems.length
       ? filteredItems
@@ -2790,7 +2791,7 @@ function renderMyMemoryPanel() {
     </section>
 
     <div class="my-memory-stats" role="group" aria-label="筛选我的记忆">
-      ${[["all", "留下记忆", items.length], ["processing", "审核中", items.filter(i=>["pending","processing"].includes(i.status)).length], ["approved", "已公开", approvedCount], ["lit", "我的点亮", litPointCount]].map(([key,label,count])=>`<button type="button" data-my-filter="${key}" aria-pressed="${myMemoryFilter===key}"><strong>${count}</strong><span>${label}</span></button>`).join("")}
+      ${[["all", "留下记忆", items.length], ["processing", "审核中", items.filter(i=>["pending","processing"].includes(i.status)).length], ["approved", "已公开", approvedCount], ["lit", "我的点亮", litPointCount], ["liked", "已点赞", likedItems.length]].map(([key,label,count])=>`<button type="button" data-my-filter="${key}" aria-pressed="${myMemoryFilter===key}"><strong>${count}</strong><span>${label}</span></button>`).join("")}
     </div>
     <section
       class="my-memory-section"
@@ -2934,7 +2935,7 @@ async function openMyMemoryPanel() {
     return;
   }
 
-  await loadMyContributions();
+  await Promise.all([loadMyContributions(), loadApprovedMemories()]);
 
   renderMyMemoryPanel();
 }
@@ -3193,7 +3194,7 @@ ${imageHtml || renderPostCover(memory, point)}
             </div>
 
 
-            ${allPoints.some(item => item.id === memory.pointId) ? `<button type="button" class="public-archive-map-link" data-public-map-point="${escapeHtml(memory.pointId)}">在地图查看此地点 →</button>` : ""}
+            ${allPoints.some(item => item.id === memory.pointId) ? `<button type="button" class="public-archive-map-link" data-public-map-point="${escapeHtml(memory.pointId)}">在地图查看此地点</button>` : ""}
           </article>
         `;
       }
@@ -3405,12 +3406,36 @@ function memoryDisplayText(memory) {
   return String((adopted && memory.collaborativeDraft?.trim()) || memory.originalContent || "").trim();
 }
 
+// Cover contains a bounded excerpt; the post keeps its complete text for reading and accessibility.
+// Approximate glyph widths avoid a font/canvas dependency; fixed CJK typography fits 10 lines.
+function memoryTextCover(text, place = "成都") {
+  const characters = Array.from(String(text || "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim());
+  const lines=[]; let line="", width=0, index=0;
+  for (; index<characters.length; index++) {
+    const char=characters[index], size=/[\x20-\x7e]/.test(char) ? .62 : 1;
+    if(char==="\n" || width+size>14) {
+      lines.push(line); line=""; width=0;
+      if(lines.length===10)break;
+      if(char==="\n")continue;
+    }
+    line+=char; width+=size;
+  }
+  if(line && lines.length<10)lines.push(line);
+  const truncated=index<characters.length;
+  if(truncated)lines[9]=Array.from(lines[9]).slice(0,-1).join("")+"…";
+  const heading=Array.from(place).slice(0,18).join("");
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="800" viewBox="0 0 640 800"><rect width="640" height="800" fill="#f4eddf"/><path d="M54 118H586" stroke="#b9ab90"/><text x="54" y="82" fill="#58705b" font-size="25" font-family="sans-serif">${escapeHtml(heading)}</text><g fill="#302e27" font-size="36" font-family="PingFang SC,Microsoft YaHei,sans-serif">${lines.map((value,i)=>`<text x="54" y="${183+i*51}">${escapeHtml(value)}</text>`).join("")}</g><text x="54" y="756" fill="#87795e" font-size="20" font-family="sans-serif">${truncated ? "点开阅读完整记忆 →" : "舆上·成都 · 城市记忆"}</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg).replace(/%E2%86%92/g, "");
+}
+
 function renderPostCover(memory, point = {}) {
-  const actual = memory.imageUrls?.[0];
-  const current = memory.coverStyle === "current" && point.currentImage;
-  const image = actual || `./${current || point.oldImage || "chengdu-map-original.jpg"}`;
-  const label = actual ? "" : current ? "点位配图" : "古图配图";
-  return `<div class="memory-post-cover${actual ? "" : " is-illustration"}"><img src="${escapeHtml(image)}" alt="${escapeHtml(memory.pointName || point.nameModern || "成都")}${label || "记忆照片"}" loading="lazy">${label ? `<span>${label}</span>` : ""}</div>`;
+  const actual=memory.imageUrls?.[0], content=memoryDisplayText(memory);
+  const place=memory.pointName || point.nameModern || "成都";
+  // A temporarily unavailable uploaded photo must not be mistaken for a text-only contribution.
+  const textOnly=!actual && !(memory.imageFileIds?.length || Number(memory.imageCount)) && Boolean(content);
+  const image=actual || (textOnly ? memoryTextCover(content,place) : `./${point.oldImage || "chengdu-map-original.jpg"}`);
+  const label=actual || textOnly ? "" : "古图配图";
+  return `<div class="memory-post-cover${textOnly ? " is-text-cover" : actual ? "" : " is-illustration"}"><img src="${escapeHtml(image)}" alt="${escapeHtml(place)}${textOnly ? "文字封面" : label || "记忆照片"}" loading="lazy">${label ? `<span>${label}</span>` : ""}</div>`;
 }
 
 function renderPublicPostCards(memories) {
@@ -3517,7 +3542,7 @@ function closePublicMemoryPanel() {
 
 function renderMemorySection(point) {
   const count = getPointMemories(point.id).length;
-  return `<button type="button" class="detail-memory-link" data-open-public-archive aria-haspopup="dialog">公众记忆 <strong>${count}</strong><span>查看大家的照片与故事 →</span></button>`;
+  return `<button type="button" class="detail-memory-link" data-open-public-archive aria-haspopup="dialog">公众记忆 <strong>${count}</strong><span>查看大家的照片与故事</span></button>`;
 }
 
 /* ===============================================
@@ -6249,8 +6274,12 @@ function ensureContributionModal() {
       <p id="contributionDraftStatus" role="status">草稿仅保存在本浏览器，照片刷新后需重新选择。</p>
       <form id="contributionForm" novalidate>
         <p class="memory-step-progress" id="contributionStepProgress" aria-live="polite"></p>
-        <section class="memory-wizard-step" data-memory-step="0" hidden><h3 tabindex="-1">写下一段真实记忆</h3>
+        <section class="memory-wizard-step" data-memory-step="0" hidden><h3 tabindex="-1">写记忆、选地点和照片</h3>
+          <label class="contribution-field"><span>记忆发生的地点</span><select id="contributionPlace" required></select></label>
+          <label class="contribution-field"><span>添加真实照片（可多次选择，最多3张）</span><input id="contributionImages" type="file" accept="image/*,.heic,.heif" multiple aria-describedby="contributionImageHelp contributionImageStatus"><small id="contributionImageHelp">每张最多20MB，上传前自动处理较大照片；不支持的格式会提示重选。</small></label>
+          <p id="contributionImageStatus" class="contribution-status" role="status"></p><div class="contribution-preview" id="contributionPreview"></div>
           <label class="contribution-field"><span>我的原始记忆</span><textarea id="contributionContent" rows="6" maxlength="1200" placeholder="那年，和谁一起，发生了什么……也可以只上传照片。"></textarea><small>原文单独保留，整理稿不会覆盖它。</small></label>
+          <div id="memoryCoverOptions"><p>不传照片，文字会自动生成封面图。</p><div id="memoryCoverPreview"></div></div>
           <h4>表达偏好</h4>
           <div class="writing-style-grid" id="writingStyleGrid" role="group" aria-label="表达偏好选择">${buildWritingStyleCards()}</div>
           <p id="selectedWritingStyleNote" class="writing-style-selected"></p>
@@ -6268,13 +6297,7 @@ function ensureContributionModal() {
             <label class="contribution-field"><span>联系方式（选填，不公开）</span><input id="contributionContact" maxlength="120" placeholder="手机号或邮箱"></label>
           </details>
         </section>
-        <section class="memory-wizard-step" data-memory-step="1" hidden><h3 tabindex="-1">为记忆选地点和照片</h3>
-          <label class="contribution-field"><span>记忆发生的地点</span><select id="contributionPlace" required></select></label>
-          <label class="contribution-field"><span>添加真实照片（可多次选择，最多3张）</span><input id="contributionImages" type="file" accept="image/*,.heic,.heif" multiple aria-describedby="contributionImageHelp contributionImageStatus"><small id="contributionImageHelp">每张最多20MB，上传前自动处理较大照片；不支持的格式会提示重选。</small></label>
-          <p id="contributionImageStatus" class="contribution-status" role="status"></p><div class="contribution-preview" id="contributionPreview"></div>
-          <div id="memoryCoverOptions"><label class="contribution-field"><span>没有照片？选一张帖子配图</span><select id="contributionCover"><option value="map">古图局部</option><option value="current">点位现有图片</option></select></label><div id="memoryCoverPreview"></div><small>封面会标注“配图”，不计入上传照片数量。</small></div>
-        </section>
-        <section class="memory-wizard-step" data-memory-step="2" hidden><h3 tabindex="-1">确认这份记忆</h3><div id="memoryFinalPreview"></div><p id="memoryRewriteChoice" role="status"></p><p>保存后点亮个人地图，经馆员审核后公开。</p>
+        <section class="memory-wizard-step" data-memory-step="1" hidden><h3 tabindex="-1">确认这份记忆</h3><div id="memoryFinalPreview"></div><p id="memoryRewriteChoice" role="status"></p><p>保存后点亮个人地图，经馆员审核后公开。</p>
           <label class="contribution-consent"><input id="consentToPublish" type="checkbox"><span>我已阅读并同意<a href="./copyright-20260908.html" target="_blank" rel="noopener">《版权与使用授权声明》</a>，同意本投稿经审核后公开展示，并按声明约定使用。</span></label>
           <label class="contribution-consent"><input id="rightsConfirmed" type="checkbox"><span>我确认有权按声明授权使用所提交内容；涉及他人著作权、肖像、隐私或个人信息的，已取得依法所需的授权或同意。</span></label>
 </section>
@@ -6301,8 +6324,7 @@ function ensureContributionModal() {
     activeContributionPoint = allPoints.find(p=>p.id===event.target.value) || null;
     invalidateRewriteDraft(modal, "地点已改变，可重新整理。"); syncMemoryCover(); saveContributionDraft();
   };
-  modal.querySelector("#contributionCover").onchange = () => { syncMemoryCover(); saveContributionDraft(); };
-  modal.querySelector("#contributionForm").addEventListener("input", saveContributionDraft);
+  modal.querySelector("#contributionForm").addEventListener("input", () => queueMicrotask(saveContributionDraft));
   modal.querySelector("#contributionForm").addEventListener("change", saveContributionDraft);
   modal.querySelector("#contributionForm").addEventListener("click", () => queueMicrotask(saveContributionDraft));
   modal.addEventListener("keydown", event => {
@@ -6488,14 +6510,14 @@ async function openContributionModal(point) {
   if (saved && typeof saved === "object") {
     // One draft per browser identity. Reopening from another map point never silently moves it.
     activeContributionPoint = allPoints.find(p=>p.id===saved.pointId) || activeContributionPoint;
-    for (const id of ["contributionContent","contributionTime","contributionContact","contributionMemoryType","contributionWritingIntent","contributionCover"]) {
+    for (const id of ["contributionContent","contributionTime","contributionContact","contributionMemoryType","contributionWritingIntent"]) {
       if (typeof saved[id] === "string") modal.querySelector(`#${id}`).value=saved[id];
     }
     selectedWritingStyle=getWritingStyle(saved.style).id;
     if (typeof saved.draft === "string") {currentRewriteDraft=saved.draft;currentRewriteAccepted=saved.accepted===true;currentRewriteMeta=saved.meta || null;}
   }
   modal.querySelector("#contributionPlace").value=activeContributionPoint?.id || "";
-  modal.querySelector("#contributionDraftStatus").textContent = saved ? `已恢复文字草稿${saved.photoCount ? `，原先 ${saved.photoCount} 张照片请重新选择` : ""}。可在下一步更换地点。` : "草稿仅保存在本浏览器，照片刷新或重开后需重新选择。";
+  modal.querySelector("#contributionDraftStatus").textContent = saved ? `已恢复文字草稿${saved.photoCount ? `，原先 ${saved.photoCount} 张照片请重新选择` : ""}。可在这里更换地点。` : "草稿仅保存在本浏览器，照片刷新或重开后需重新选择。";
   modal.querySelector("#contributionStatus").textContent="";
   renderSelectedMemoryImages(); syncWritingStyleSelection(modal);
   if(currentRewriteDraft) { renderRewriteState(modal,"success"); setRewriteChoice(modal,currentRewriteAccepted); }
@@ -6514,35 +6536,36 @@ function closeContributionModal() {
 
 function saveContributionDraft() {
   const modal=document.querySelector("#contributionModal");
-  if (!modal || modal.hidden || !contributionDraftKey || modal.querySelector("#contributionForm").hidden) return;
+  if (!modal || modal.hidden || modal.querySelector("#contributionForm").hidden) return;
+  syncMemoryCover();
+  if (!contributionDraftKey) return;
   const data={pointId:activeContributionPoint?.id || "",style:selectedWritingStyle,draft:currentRewriteDraft,accepted:currentRewriteAccepted,meta:currentRewriteMeta,photoCount:selectedContributionFiles.length};
-  for(const id of ["contributionContent","contributionTime","contributionContact","contributionMemoryType","contributionWritingIntent","contributionCover"]) data[id]=modal.querySelector(`#${id}`).value;
+  for(const id of ["contributionContent","contributionTime","contributionContact","contributionMemoryType","contributionWritingIntent"]) data[id]=modal.querySelector(`#${id}`).value;
   try {
     localStorage.setItem(contributionDraftKey, JSON.stringify(data));
     modal.querySelector("#contributionDraftStatus").textContent="文字草稿已暂存本浏览器；照片重开后需重新选择。";
   } catch { modal.querySelector("#contributionDraftStatus").textContent="本浏览器无法暂存草稿，请先复制文字，暂勿关闭窗口。"; }
 }
 function syncMemoryCover() {
-  const modal=document.querySelector("#contributionModal"), select=modal.querySelector("#contributionCover");
-  select.querySelector('[value="current"]').disabled=!activeContributionPoint?.currentImage;
-  if(select.value==="current" && !activeContributionPoint?.currentImage)select.value="map";
-  modal.querySelector("#contributionPointName").textContent=activeContributionPoint ? `记忆地点：${pointPickerName(activeContributionPoint)}` : "留下一段经历，再选择发生的地点";
+  const modal=document.querySelector("#contributionModal");
+  const content=currentRewriteAccepted && currentRewriteDraft ? currentRewriteDraft : modal.querySelector("#contributionContent").value;
+  modal.querySelector("#contributionPointName").textContent=activeContributionPoint ? `记忆地点：${pointPickerName(activeContributionPoint)}` : "选择记忆发生的地点";
   modal.querySelector("#memoryCoverOptions").hidden=selectedContributionFiles.length>0;
-  modal.querySelector("#memoryCoverPreview").innerHTML=renderPostCover({coverStyle:select.value},activeContributionPoint || {});
+  modal.querySelector("#memoryCoverPreview").innerHTML=content.trim() ? renderPostCover({originalContent:content},activeContributionPoint || {}) : "";
 }
 function showMemoryStep(step) {
-  contributionStep=Math.max(0,Math.min(2,step));
+  contributionStep=Math.max(0,Math.min(1,step));
   const modal=document.querySelector("#contributionModal");
   modal.querySelectorAll("[data-memory-step]").forEach(el=>el.hidden=Number(el.dataset.memoryStep)!==contributionStep);
   modal.querySelector("#memoryPreviousStep").hidden=contributionStep===0;
-  modal.querySelector("#memoryNextStep").hidden=contributionStep===2;
-  modal.querySelector("#contributionSubmit").hidden=contributionStep!==2;
+  modal.querySelector("#memoryNextStep").hidden=contributionStep===1;
+  modal.querySelector("#contributionSubmit").hidden=contributionStep!==1;
   modal.querySelector("#memoryNextStep").textContent="下一步";
-  modal.querySelector("#contributionStepProgress").textContent=`${contributionStep + 1} / 3 · ${["写记忆与表达","加照片","确认投稿"][contributionStep]}`;
+  modal.querySelector("#contributionStepProgress").textContent=`${contributionStep + 1} / 2 · ${["编辑记忆","确认发布"][contributionStep]}`;
   modal.querySelector("#contributionStatus").textContent="";
-  if(contributionStep===2) {
+  if(contributionStep===1) {
     const content=currentRewriteAccepted ? currentRewriteDraft : modal.querySelector("#contributionContent").value;
-    modal.querySelector("#memoryFinalPreview").innerHTML=`<strong>${escapeHtml(pointPickerName(activeContributionPoint || {}))}</strong><p>${escapeHtml(content || "本次以照片记录记忆。")}</p><small>${selectedContributionFiles.length} 张真实照片${!selectedContributionFiles.length ? " · 使用标注配图" : ""}</small>`;
+    modal.querySelector("#memoryFinalPreview").innerHTML=`<strong>${escapeHtml(pointPickerName(activeContributionPoint || {}))}</strong>${!selectedContributionFiles.length ? renderPostCover({originalContent:content},activeContributionPoint || {}) : ""}<p>${escapeHtml(content || "本次以照片记录记忆。")}</p>${selectedContributionFiles.length ? `<small>${selectedContributionFiles.length} 张照片</small>` : ""}`;
   }
   modal.querySelector(`[data-memory-step="${contributionStep}"] h3`).focus();
   modal.querySelector(".contribution-modal__dialog").scrollTop=0;
@@ -6553,7 +6576,7 @@ function advanceMemoryStep() {
     const contact=modal.querySelector("#contributionContact").value.trim();
     if(contact && !isValidContributionContact(contact)){status.textContent="请检查联系方式，或留空。";return;}
   }
-  if(contributionStep===1 && (!activeContributionPoint || (!modal.querySelector("#contributionContent").value.trim() && !selectedContributionFiles.length))) {status.textContent="请选择地点，并至少填写一段记忆或添加一张照片。";return;}
+  if(contributionStep===0 && (!activeContributionPoint || (!modal.querySelector("#contributionContent").value.trim() && !selectedContributionFiles.length))) {status.textContent="请选择地点，并至少填写一段记忆或添加一张照片。";return;}
   saveContributionDraft(); showMemoryStep(contributionStep+1);
 }
 
@@ -6823,7 +6846,7 @@ async function handleContributionSubmit(
 ) {
   event.preventDefault();
   if (document.querySelector("#contributionSubmit")?.disabled) return;
-  if (contributionStep !== 2) { advanceMemoryStep(); return; }
+  if (contributionStep !== 1) { advanceMemoryStep(); return; }
 
   if (
     !activeContributionPoint
@@ -7088,7 +7111,6 @@ async function handleContributionSubmit(
           contactInfo,
 
           materialType,
-          coverStyle: document.querySelector("#contributionCover").value === "current" ? "current" : "map",
 
           memoryType,
 
@@ -7216,7 +7238,6 @@ async function handleContributionSubmit(
     const success=modal.querySelector("#memorySubmissionSuccess");success.hidden=false;
     success.innerHTML=`<h3 tabindex="-1">记忆已保存，已点亮${escapeHtml(submittedPoint.nameModern)}</h3><p>无需重复投稿，馆员审核后会出现在公众记忆。</p>${window.tuhuiAccount?.markup() || ""}<button type="button" class="btn primary" data-memory-finish>返回地图</button>`;
     success.querySelector("[data-memory-finish]").onclick=()=>{closeContributionModal();focusPersonalLitPoint(submittedPoint);showPersonalLightCelebration(submittedPoint,processingStarted);};
-    success.querySelector("h3").focus();
     selectedContributionFiles=[];
 
   }
@@ -7248,7 +7269,15 @@ async function handleContributionSubmit(
 
   finally {
     document.querySelector("#contributionForm").querySelectorAll("input,textarea,select,button").forEach(el=>el.disabled=false);
-    if(submissionSaved) document.querySelector("#contributionForm").hidden=true;
+    if(submissionSaved) {
+      document.querySelector("#contributionForm").hidden=true;
+      const modal=document.querySelector("#contributionModal"), dialog=modal.querySelector(".contribution-modal__dialog");
+      const heading=modal.querySelector("#memorySubmissionSuccess h3");
+      heading.tabIndex=-1; heading.focus({preventScroll:true});
+      // The long form has disappeared: discard its scroll offset, including Safari scroll anchoring.
+      dialog.scrollTop=0;
+      requestAnimationFrame(()=>{if(!modal.hidden)dialog.scrollTop=0;});
+    }
     document.querySelector("#contributionImages").disabled = false;
     document.querySelectorAll("[data-close-contribution-modal]").forEach(button => { button.disabled = false; });
     submitButton.disabled =

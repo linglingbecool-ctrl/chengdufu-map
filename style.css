@@ -7445,7 +7445,8 @@ body.scene-overlay-open {
 .memory-post-copy>span{color:#537465;font-size:.8rem}
 .memory-post .public-memory-like-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px;padding:9px 14px 14px;margin:0}
 .memory-post .public-memory-like-row>small{color:#817869;font-size:.72rem}
-.memory-post .public-memory-like{padding:6px 9px;border:0;background:transparent;font-size:.8rem;min-height:40px}
+.memory-post .public-memory-like{padding:6px 9px;border:0;background:transparent;color:#315f56;font-size:.8rem;min-height:40px}
+.memory-post .public-memory-like[aria-pressed="true"]{background:#315f56;color:#fffaf0;border-radius:20px}
 .memory-post [data-like-status]:empty{display:none}
 .memory-post [data-like-status]{flex-basis:100%;font-size:.7rem}
 .memory-post-title{font-size:1.5rem;margin:18px 0 8px}
@@ -7512,3 +7513,9 @@ body.scene-overlay-open {
 .public-feed-controls label{white-space:nowrap}.memory-post .public-memory-like-row>small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%}
 
 .detail-point-select{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;font-size:.8rem;color:#56705f}.detail-point-select select{width:100%;min-width:0;min-height:42px;padding:8px;border:1px solid #cfc7b6;border-radius:6px;background:#fffaf1;color:var(--ink);font:inherit}.point-picker__list{overflow-y:auto;scrollbar-gutter:stable}
+
+.memory-post-cover.is-text-cover,.memory-post:nth-child(3n+1) .memory-post-cover.is-text-cover{aspect-ratio:4/5}.memory-post-cover.is-text-cover img{object-fit:contain}.public-archive-card>.memory-post-cover.is-text-cover{max-height:none;max-width:420px;margin:0 auto 18px}#memoryCoverPreview{max-width:240px}#memoryCoverPreview .memory-post-cover.is-text-cover{aspect-ratio:4/5}#memoryCoverOptions>p{font-size:.8rem;color:#746b5b}#memoryFinalPreview>.memory-post-cover{max-width:280px;margin:16px auto}
+
+/* Match the workshop selector so older vh rules cannot override the mobile dialog. */
+.contribution-modal--workshop .contribution-workshop-dialog{width:min(660px,96vw);max-height:92dvh;box-sizing:border-box;overflow-anchor:none;overscroll-behavior:contain}
+@media(max-width:700px){.contribution-modal--workshop{padding:0;place-items:start stretch}.contribution-modal--workshop .contribution-workshop-dialog{width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;border-radius:0;padding:calc(22px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom))}}

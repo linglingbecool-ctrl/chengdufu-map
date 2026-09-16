@@ -41,6 +41,8 @@ exports.main = async (event, context) => {
       uid ? db.collection("memoryLikes").where({ _id: db.command.in(ids.map(id => receiptId(id, uid))) }).limit(100).get() : { data: [] }
     ]) : [{ data: [] }, { data: [] }];
     if (!Array.isArray(totals?.data) || !Array.isArray(receipts?.data)) throw new Error("赞数读取未完成");
+    // Older approved submissions may predate memoryLikeTotals. Preserve their
+    // recorded likeCount until the first new vote creates the authoritative total.
     const counts = new Map(totals.data.map(item => [item._id, item.count]));
     const likedIds = new Set(receipts.data.filter(item => item.liked === true).map(item => item.memoryId));
 
@@ -64,7 +66,9 @@ exports.main = async (event, context) => {
 
       return {
         id: item._id || "",
-        likeCount: Number.isSafeInteger(counts.get(item._id)) && counts.get(item._id) >= 0 ? counts.get(item._id) : 0,
+        likeCount: Number.isSafeInteger(counts.get(item._id)) && counts.get(item._id) >= 0
+          ? counts.get(item._id)
+          : Number.isSafeInteger(item.likeCount) && item.likeCount >= 0 ? item.likeCount : 0,
         likedByMe: likedIds.has(item._id),
         pointId: item.pointId || "",
         pointName: item.pointName || "",
