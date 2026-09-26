@@ -1,6 +1,5 @@
 // 舆上·成都：馆藏证据问答前端
-// 功能：六点位切换、三道固定示范问题、CloudBase Agent 流式回答。
-// 公众界面只渲染 Agent 最终文字，不展示工具调用 JSON。
+// 功能：地点选择、馆藏证据问答、网络失败时查阅已有资料。
 
 (function () {
   "use strict";
@@ -908,7 +907,7 @@
   }
 
   async function callEvidenceQuestion(
-    question
+    question, pointId = activePointId
   ) {
     const app = getCloudApp();
 
@@ -927,29 +926,32 @@
       name: "askEvidenceQuestion",
       data: {
         question,
-        pointId: activePointId,
+        pointId,
         requestId: createId("evidence")
       },
       parse: true
     });
 
+    let timeoutId;
     const clientTimeout = new Promise(
       (_, reject) => {
-        window.setTimeout(() => {
+        timeoutId = window.setTimeout(() => {
           reject(
             Object.assign(
-              new Error("实时模型等待超过22秒，请重试。"),
+              new Error("在线问答暂未完成。"),
               { code: "CLIENT_TIMEOUT" }
             )
           );
-        }, 22000);
+        }, 28000);
       }
     );
 
-    const response = await Promise.race([
-      request,
-      clientTimeout
-    ]);
+    let response;
+    try {
+      response = await Promise.race([request, clientTimeout]);
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
     const result =
       normalizeFunctionResult(response);
 
@@ -980,60 +982,7 @@
   }
 
   // ========================================================
-  // 三道比赛示范问题
-  // ========================================================
-
-  function renderDemoQuestions() {
-    if (!elements.suggestions) {
-      return;
-    }
-
-    elements.suggestions.innerHTML =
-      demoQuestions
-        .map(
-          (item, index) => `
-            <button
-              type="button"
-              class="ai-demo-question"
-              data-demo-question="${escapeHtml(
-                item.id
-              )}"
-              data-ai-question="${escapeHtml(
-                item.question
-              )}"
-            >
-
-              <span>
-                0${index + 1}
-              </span>
-
-              ${escapeHtml(
-                item.label
-              )}｜<em>${escapeHtml(
-                item.grade
-              )}</em>｜${escapeHtml(
-                item.question
-              )}
-
-            </button>
-          `
-        )
-        .join("");
-
-    elements.suggestions.classList.remove(
-      "is-collapsed"
-    );
-
-    if (elements.toggleSuggestions) {
-      elements.toggleSuggestions.setAttribute(
-        "aria-expanded",
-        "true"
-      );
-    }
-  }
-
-  // ========================================================
-  // 左侧六点位
+  // 地点选择
   // ========================================================
 
   function selectPoint(
@@ -1059,7 +1008,7 @@
         );
       });
 
-    renderDemoQuestions();
+    if (elements.pointSelect) elements.pointSelect.value = activePointId;
 
     if (notifyMap) {
       document.dispatchEvent(
@@ -1120,49 +1069,18 @@
         question
       );
 
-    return demoQuestions
-      .filter((item) => {
-        const allGroups =
-          Array.isArray(item.matchAll)
-            ? item.matchAll
-            : [];
-        const anyTerms =
-          Array.isArray(item.matchAny)
-            ? item.matchAny
-            : [];
-
-        const allMatched =
-          allGroups.every((group) =>
-            (Array.isArray(group) ? group : [group])
-              .some((term) =>
-                normalized.includes(
-                  normalizeDemoQuestionText(term)
-                )
-              )
-          );
-        const anyMatched =
-          anyTerms.some((term) =>
-            normalized.includes(
-              normalizeDemoQuestionText(term)
-            )
-          );
-
-        return allMatched && anyMatched;
-      })
-      .sort(
-        (first, second) =>
-          Number(second.matchPriority || 0) -
-          Number(first.matchPriority || 0)
-      )[0] || null;
+    return demoQuestions.find((item) =>
+      normalizeDemoQuestionText(item.question) === normalized
+    ) || null;
   }
 
-  function queueQuestion(question) {
+  function queueQuestion(question, pointId = activePointId) {
     const normalized =
       normalizeDemoQuestionText(question);
     const duplicate =
       questionQueue.some(
         (item) =>
-          normalizeDemoQuestionText(item) ===
+          normalizeDemoQuestionText(item.question) ===
           normalized
       );
 
@@ -1171,9 +1089,10 @@
         questionQueue.length >=
         MAX_QUEUED_QUESTIONS
       ) {
-        questionQueue.shift();
+        setStatus("请先等待前面的回答，当前问题已保留在输入框", "working");
+        return;
       }
-      questionQueue.push(question);
+      questionQueue.push({question, pointId});
     }
 
     elements.input.value = "";
@@ -1190,7 +1109,7 @@
 
     const next = questionQueue.shift();
     window.setTimeout(
-      () => sendQuestion(next),
+      () => sendQuestion(next.question, next.pointId),
       120
     );
   }
@@ -1220,7 +1139,7 @@
     elements.sendButton.disabled = true;
     elements.input.disabled = true;
 
-    setStatus("快速演示 · 调取已核结果", "working");
+    setStatus("查阅已核结果", "working");
 
     elements.messages
       .querySelectorAll(".is-latest-question, .is-latest-answer")
@@ -1236,15 +1155,11 @@
     userArticle.classList.add("is-latest-question");
     assistantArticle.classList.add("is-latest-answer", "is-demo-answer");
     elements.messages.classList.add("has-answer-focus");
-    elements.suggestions.classList.add("is-collapsed");
-    elements.toggleSuggestions?.setAttribute("aria-expanded", "false");
 
     updateAssistantMessage(assistantArticle, "", "已核结果调取中");
 
-    // 保留评审演示约 1.1 秒的稳定反馈节奏，避免结果瞬闪。
-    await new Promise((resolve) => window.setTimeout(resolve, 1050));
 
-    updateAssistantMessage(assistantArticle, demo.answer, "快速演示 · 已核对");
+    updateAssistantMessage(assistantArticle, demo.answer, "已核验答案");
 
     const meta = document.createElement("div");
     meta.className = "ai-demo-result-note";
@@ -1252,12 +1167,12 @@
       demo.decision || "preset-verified";
     meta.innerHTML = `
       <strong>预置核验结果${demo.decision === "insufficient-evidence" ? " · 证据不足" : ""}</strong>
-      <span>本答案为人工预先核对结果，非实时模型生成；未命中演示题的问题由 CloudBase 安全中转后实时检索。</span>
+      <span>本答案已经预先核对，非本次实时生成。</span>
     `;
     assistantArticle.querySelector(".ai-message-body")?.appendChild(meta);
 
     appendConversationPair(demo.question, demo.answer);
-    setStatus("快速演示完成 · 原页可复核", "ready");
+    setStatus("已核验答案 · 来源可复核", "ready");
 
     busy = false;
     elements.sendButton.disabled = false;
@@ -1266,7 +1181,27 @@
     processNextQueuedQuestion();
   }
 
-  async function sendQuestion(question) {
+  function localEvidenceFallback(question, pointId) {
+    // 本地只有六点位的少量核验记录；这里只提供查阅材料，不推断问题答案。
+    const explicitPoint = Object.keys(pointQuestions).find((id) =>
+      question.includes(pointQuestions[id].name.replace(/（.*$/, ""))
+    );
+    const hasHistoryIntent = /古图|历史|文献|建于|修建|何时|哪年|始建|建成|多大|多长|在哪|哪里|是谁|简介|介绍|来历|年代|沿革|由来|记载|证据|拆除|重建|改名/.test(question);
+    const selected = explicitPoint || (hasHistoryIntent ? pointId : "");
+    const records = window.TUHUI_EVIDENCE?.byPoint?.[selected] || [];
+    const intro = "在线服务暂时未能完成这次问答，请点击下方重试。";
+    if (!records.length) return intro + "这不代表问题没有答案，也不代表馆藏没有相关记载。";
+    const tokens = question.match(/[\u3400-\u9fff]{2,}/g)?.flatMap((part) =>
+      Array.from({length: part.length - 1}, (_, i) => part.slice(i, i + 2))
+    ) || [];
+    const ranked = records.map((record) => ({record, score: tokens.filter((token) =>
+      `${record.excerpt} ${record.proves}`.includes(token)).length
+    })).sort((a, b) => b.score - a.score).slice(0, 3);
+    return intro + `下面是${pointQuestions[selected].name}已有的本地查阅材料，尚未判定能否回答本次问题。\n\n` +
+      ranked.map(({record}) => `${record.title} · ${record.pageLabel}\n${record.excerpt}\n可证明：${record.proves}\n边界：${record.limits}`).join("\n\n");
+  }
+
+  async function sendQuestion(question, pointId = activePointId) {
     const cleanedQuestion =
       String(question || "").trim();
 
@@ -1275,7 +1210,7 @@
     }
 
     if (busy) {
-      queueQuestion(cleanedQuestion);
+      queueQuestion(cleanedQuestion, pointId);
       return;
     }
 
@@ -1285,9 +1220,9 @@
       );
 
     if (matchedDemo) {
-      await sendDemoQuestion(
-        matchedDemo
-      );
+      const draft = elements.input.value.trim() === cleanedQuestion ? "" : elements.input.value;
+      await sendDemoQuestion(matchedDemo);
+      elements.input.value = draft;
       return;
     }
 
@@ -1296,7 +1231,8 @@
     // 实时检索期间仍允许输入下一问；再次提交时进入长度为2的本地队列。
     elements.sendButton.disabled = false;
     elements.input.disabled = false;
-    elements.input.value = "";
+    // 排队问题和重试不能清掉读者正在写的下一问。
+    if (elements.input.value.trim() === cleanedQuestion) elements.input.value = "";
 
     setStatus(
       "正在检索馆藏证据",
@@ -1340,17 +1276,6 @@
       "has-answer-focus"
     );
 
-    elements.suggestions.classList.add(
-      "is-collapsed"
-    );
-
-    if (elements.toggleSuggestions) {
-      elements.toggleSuggestions.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-    }
-
     updateAssistantMessage(
       assistantArticle,
       "",
@@ -1376,7 +1301,7 @@
 
       const result =
         await callEvidenceQuestion(
-          cleanedQuestion
+          cleanedQuestion, pointId
         );
       const answer =
         String(result.answer || "").trim();
@@ -1418,9 +1343,7 @@
       sourceNote.innerHTML = `
         <strong>${escapeHtml(result.sourceLabel || "实时检索生成")}</strong>
         <span>
-          ${result.model ? `${escapeHtml(result.model)} · ` : ""}
-          ${Number(result.evidenceCount) || 0} 条相关证据
-          ${result.timing?.totalMs ? ` · ${Number(result.timing.totalMs)} ms` : ""}
+          ${Number(result.evidenceCount) || 0} 条馆藏依据 · 来源可复核
         </span>
       `;
       assistantArticle
@@ -1454,20 +1377,19 @@
       const needsKey =
         !getPublishableKey();
 
-      const friendlyMessage =
-        needsKey
-          ? "网页尚未配置 CloudBase Publishable Key，请检查网页公开连接配置。"
-          : ["MODEL_TIMEOUT", "CLIENT_TIMEOUT"].includes(error?.code)
-            ? "实时检索超过等待时间，请稍后重试；输入框已恢复，可以继续浏览地图或重新提问。"
-            : error?.code === "MODEL_BUSY"
-              ? "免费模型当前请求较多，请稍后重试；输入框仍可继续使用。"
-              : "馆藏 AI 暂时未能完成检索，请稍后重试。地图与点位资料仍可正常浏览。";
-
-      updateAssistantMessage(
-        assistantArticle,
-        friendlyMessage,
-        "连接未完成"
-      );
+      const fallback = localEvidenceFallback(cleanedQuestion, pointId);
+      updateAssistantMessage(assistantArticle, fallback, "在线问答暂不可用");
+      assistantArticle.dataset.answerRoute = "local-evidence";
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "ai-retry-button";
+      retry.textContent = "重试这一问";
+      retry.addEventListener("click", () => {
+        const draft = elements.input.value;
+        sendQuestion(cleanedQuestion, pointId);
+        elements.input.value = draft;
+      });
+      assistantArticle.querySelector(".ai-message-body")?.prepend(retry);
 
       if (
         elements.setup &&
@@ -1481,8 +1403,8 @@
         ["MODEL_TIMEOUT", "CLIENT_TIMEOUT"].includes(error?.code)
           ? "实时检索超时 · 可重新提问"
           : error?.code === "MODEL_BUSY"
-            ? "免费模型繁忙 · 可稍后重试"
-            : "馆藏 AI 等待连接",
+            ? "在线服务繁忙 · 可重试"
+            : "在线连接未完成 · 可重试",
         "error"
       );
 
@@ -1512,6 +1434,7 @@
   // ========================================================
 
   function clearConversation() {
+    if (busy) { setStatus("请等待当前回答后再开启新对话", "working"); return; }
     conversation = [];
     questionQueue.length = 0;
 
@@ -1537,7 +1460,7 @@
         <div class="ai-message-body">
 
           <p>
-            对话已清空。请选择点位，或点击下方示范问题，开始一次新的馆藏证据检索。
+            对话已清空。选择地点，输入想了解的问题。
           </p>
 
         </div>
@@ -1549,7 +1472,7 @@
       "has-answer-focus"
     );
 
-    renderDemoQuestions();
+    if (elements.pointSelect) elements.pointSelect.value = activePointId;
 
     setStatus(
       "馆藏知识库待命",
@@ -1578,7 +1501,8 @@
       (event) => {
         if (
           event.key === "Enter" &&
-          !event.shiftKey
+          !event.shiftKey &&
+          !event.isComposing && event.keyCode !== 229
         ) {
           event.preventDefault();
 
@@ -1633,25 +1557,9 @@
       clearConversation
     );
 
-    elements.toggleSuggestions.addEventListener(
-      "click",
-      () => {
-        const willExpand =
-          elements.suggestions.classList.contains(
-            "is-collapsed"
-          );
-
-        elements.suggestions.classList.toggle(
-          "is-collapsed",
-          !willExpand
-        );
-
-        elements.toggleSuggestions.setAttribute(
-          "aria-expanded",
-          String(willExpand)
-        );
-      }
-    );
+    elements.pointSelect.addEventListener("change", () => {
+      selectPoint(elements.pointSelect.value);
+    });
 
     elements.saveAccessKey.addEventListener(
       "click",
@@ -1703,10 +1611,7 @@
         "#aiMessages"
       );
 
-    elements.suggestions =
-      document.querySelector(
-        "#aiSuggestions"
-      );
+    elements.pointSelect = document.querySelector("#aiPointSelect");
 
     elements.form =
       document.querySelector(
@@ -1726,11 +1631,6 @@
     elements.clearButton =
       document.querySelector(
         "#aiClearConversation"
-      );
-
-    elements.toggleSuggestions =
-      document.querySelector(
-        "#aiToggleSuggestions"
       );
 
     elements.connectionStatus =

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "chengdufu-map-d4g459au02132689e",
+  "functionRoot": ".",
+  "functions": [
+    {
+      "name": "askEvidenceQuestion",
+      "handler": "index.main",
+      "runtime": "Nodejs18.15",
+      "timeout": 25,
+      "memorySize": 256,
+      "installDependency": true
+    }
+  ]
+}

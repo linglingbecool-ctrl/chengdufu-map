@@ -1,0 +1,10 @@
+{
+  "name": "ask-evidence-question",
+  "version": "1.0.0",
+  "description": "图绘成都馆藏证据检索与GLM模型安全中转",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.0.0"
+  }
+}

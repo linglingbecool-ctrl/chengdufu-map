@@ -261,7 +261,7 @@ const MAP_HUB_MODES = {
   ask: {
     label: "02 · 问图",
     caption: "选择核心点位，让地图与馆藏证据同步聚焦",
-    hint: "点击六个核心点位，右侧选择证据问题"
+    hint: "选择一个核心点位，输入想了解的问题"
   },
 
   memory: {
@@ -1156,7 +1156,7 @@ function updateMapPointContext(
     }” · 今日“${
       point.nameModern ||
       point.nameAncient
-    }” · 点击下方推荐问题开始查证。`;
+    }” · 输入问题，查阅馆藏依据。`;
 }
 
 function focusMapPoint(

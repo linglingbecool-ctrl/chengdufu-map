@@ -30,12 +30,12 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20260916-textcover02"
+      href="./style.css?v=20260927-ask01"
     />
 
-    <script src="./config.js?v=20260916-textcover02"></script>
+    <script src="./config.js?v=20260927-ask01"></script>
 
-    <script src="./evidence-data.js?v=20260916-textcover02"></script>
+    <script src="./evidence-data.js?v=20260927-ask01"></script>
 
     <!-- CloudBase Web SDK 3.x：数据库、公众投稿与 Agent 流式问答共用 -->
     <script
@@ -341,15 +341,11 @@
           >
             <div class="map-ai-drawer__head">
               <div>
-                <p>
-                  MAP × EVIDENCE
-                </p>
-
                 <h3 id="mapAiDrawerTitle">
                   问图 · 馆藏证据助手
                 </h3>
 
-                <small id="mapAiPointContext">
+                <small id="mapAiPointContext" class="sr-only">
                   选择六个核心点位，地图与文献证据将同步聚焦。
                 </small>
 
@@ -358,7 +354,7 @@
                   class="map-ai-workflow-button"
                   data-open-ai-workflow
                 >
-                  AI 如何工作 →
+                  AI 如何工作
                 </button>
               </div>
 
@@ -470,147 +466,17 @@
             class="ai-point-index"
             aria-label="六个点位索引"
           >
-            <div class="ai-index-head">
-              <span>
-                六点位索引
-              </span>
-
-              <small>
-                选择后提问
-              </small>
-            </div>
-
-            <div
-              class="ai-point-tabs"
-              id="aiPointTabs"
-            >
-              <button
-                type="button"
-                class="ai-point-tab is-active"
-                data-ai-point="jiuyanqiao"
-              >
-                <span>
-                  01
-                </span>
-
-                <b>
-                  九眼桥
-                </b>
-
-                <small>
-                  古图：九贤桥
-                </small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="wuhouci"
-              >
-                <span>
-                  02
-                </span>
-
-                <b>
-                  武侯祠
-                </b>
-
-                <small>
-                  蜀汉纪念空间
-                </small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="wenshuyuan"
-              >
-                <span>
-                  03
-                </span>
-
-                <b>
-                  文殊院
-                </b>
-
-                <small>
-                  寺院与街巷
-                </small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="qingyanggong"
-              >
-                <span>
-                  04
-                </span>
-
-                <b>
-                  青羊宫
-                </b>
-
-                <small>
-                  道观与地名
-                </small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="mancheng"
-              >
-                <span>
-                  05
-                </span>
-
-                <b>
-                  满城（宽窄巷子）
-                </b>
-
-                <small>
-                  宽窄巷子线索
-                </small>
-              </button>
-
-              <button
-                type="button"
-                class="ai-point-tab"
-                data-ai-point="hongpailou"
-              >
-                <span>
-                  06
-                </span>
-
-                <b>
-                  红牌楼
-                </b>
-
-                <small>
-                  证据不足示例
-                </small>
-              </button>
-            </div>
-
-            <div class="ai-evidence-promise">
-              <span
-                class="ai-seal"
-                aria-hidden="true"
-              >
-                据
-              </span>
-
-              <p>
-                <b>
-                  回答原则
-                </b>
-
-                <br />
-
-                有据可查，逐页标注；资料不足，明确保留。
-              </p>
-            </div>
+            <label class="ai-point-picker" for="aiPointSelect">
+              <span>查阅地点</span>
+              <select id="aiPointSelect">
+                <option value="jiuyanqiao">九眼桥</option>
+                <option value="wuhouci">武侯祠</option>
+                <option value="wenshuyuan">文殊院</option>
+                <option value="qingyanggong">青羊宫</option>
+                <option value="mancheng">满城（宽窄巷子）</option>
+                <option value="hongpailou">红牌楼</option>
+              </select>
+            </label>
 
             <details
               class="ai-setup"
@@ -661,16 +527,6 @@
               <div class="ai-transcript-actions">
                 <button
                   type="button"
-                  class="ai-clear-button ai-question-toggle"
-                  id="aiToggleSuggestions"
-                  aria-expanded="true"
-                  aria-controls="aiSuggestions"
-                >
-                  换个问题
-                </button>
-
-                <button
-                  type="button"
                   class="ai-clear-button"
                   id="aiClearConversation"
                 >
@@ -700,17 +556,11 @@
 
                 <div class="ai-message-body">
                   <p>
-                    请选择左侧点位，或直接提问。我会先检索《成都通览》《成都街巷志》与古图点位资料，再组织回答。
+                    想了解这个地点的什么？直接输入问题，回答会附上馆藏依据。
                   </p>
                 </div>
               </article>
             </div>
-
-            <div
-              class="ai-suggestions"
-              id="aiSuggestions"
-              aria-label="推荐问题"
-            ></div>
 
             <form
               class="ai-ask-form"
@@ -726,8 +576,9 @@
               <textarea
                 id="aiQuestionInput"
                 rows="2"
-                maxlength="500"
-                placeholder="例如：九眼桥何时修建？请给出书名和 PDF 页码。"
+                minlength="2"
+                maxlength="400"
+                placeholder="输入想了解的问题……"
                 required
               ></textarea>
 
@@ -736,7 +587,7 @@
                 id="aiSendButton"
               >
                 <span>
-                  查阅并回答
+                  提问
                 </span>
 
                 <i aria-hidden="true">
@@ -749,7 +600,7 @@
               class="ai-disclaimer"
               id="aiDisclaimer"
             >
-              AI 只在当前六点位知识库范围内作答；点击回答中的“查看证据”可复核公版扫描页或当代文献引用卡与证据边界。
+              依据现有六点位馆藏资料作答，来源可点击复核。
             </p>
           </div>
         </div>
@@ -1193,12 +1044,12 @@
       版本号用于避免浏览器继续读取旧缓存。
     -->
 
-    <script src="./account.js?v=20260916-textcover02"></script>
-    <script src="./contribution-images.js?v=20260916-textcover02"></script>
-    <script src="./script.js?v=20260916-textcover02"></script>
+    <script src="./account.js?v=20260927-ask01"></script>
+    <script src="./contribution-images.js?v=20260927-ask01"></script>
+    <script src="./script.js?v=20260927-ask01"></script>
 
     <script
-      src="./ai-guide.js?v=20260916-textcover02"
+      src="./ai-guide.js?v=20260927-ask01"
     ></script>
   </body>
 </html>
