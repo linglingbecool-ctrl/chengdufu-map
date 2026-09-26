@@ -1671,6 +1671,9 @@ function initMapHubShell() {
         event.detail
           ?.pointId;
 
+      // 地点数据可能仍在加载；先保存读者刚选的地点，渲染时据此聚焦。
+      if (citywalkOrder.includes(pointId)) activeMapPointId = pointId;
+
       const point =
         allPoints.find(
           (item) =>

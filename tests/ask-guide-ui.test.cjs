@@ -22,9 +22,13 @@ window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolat
  const page=await browser.newPage({viewport:{width:1440,height:1000}}), errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/cloudbase.full.js*',route=>route.fulfill({contentType:'text/javascript',body:stub}));
+ let pointsRequest;await page.route('**/points.json*',route=>{pointsRequest=route});
  await page.goto(process.env.ASK_PREVIEW_URL || 'http://127.0.0.1:8775/',{waitUntil:'domcontentloaded'});
  await page.getByRole('button',{name:'02 问图 让馆藏证据与地图联动'}).click();
  await page.locator('#aiPointSelect').selectOption('wuhouci');
+ await pointsRequest.continue();
+ await page.locator('.map-marker[data-point-id="wuhouci"].active').waitFor();
+ assert.match(await page.locator('#pointPickerCurrent').innerText(),/武侯祠/);
  const input=page.locator('#aiQuestionInput'),send=page.locator('#aiSendButton'),latest=page.locator('.is-latest-answer');
  assert.equal(await page.locator('#aiSuggestions,#aiToggleSuggestions').count(),0);
  await input.fill('武侯祠攻心联是谁写的？');
