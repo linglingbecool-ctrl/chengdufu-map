@@ -15,7 +15,7 @@ assert.doesNotMatch(html,/审核状态|投稿类型|public-memory-types/);
 const points=JSON.parse(fs.readFileSync('points.json'));const old=JSON.parse(require('node:child_process').execFileSync('git',['show','5bd73a2:points.json'],{encoding:'utf8'}));
 // 地图下架不删除投稿；保留点位 ID、坐标及其余历史资料。
 const removedIds=new Set(['dafosi','chengduxianwenmiao','wenchanggong']);
-const renamed={mancheng:'满城（宽窄巷子、人民公园一带）',huayangxian:'华阳县治所（正府街一带）',chengdufuwenmiao:'成都府文庙（文翁路一带）'};
+const renamed={tianyashi:'天涯石',mancheng:'满城（宽窄巷子、人民公园一带）',huayangxian:'华阳县治所（正府街一带）',chengdufuwenmiao:'成都府文庙（文翁路一带）'};
 for(const previous of old){
  const current=points.find(p=>p.id===previous.id);
  if(removedIds.has(previous.id)){assert.equal(current,undefined);continue;}
