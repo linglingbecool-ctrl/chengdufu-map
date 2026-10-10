@@ -13,14 +13,26 @@ assert.equal((html.match(/data-public-post=/g)||[]).length,3);
 assert.equal((html.match(/class="memory-feed-column"/g)||[]).length,2);
 assert.doesNotMatch(html,/审核状态|投稿类型|public-memory-types/);
 const points=JSON.parse(fs.readFileSync('points.json'));const old=JSON.parse(require('node:child_process').execFileSync('git',['show','5bd73a2:points.json'],{encoding:'utf8'}));
-assert.deepEqual(points.slice(0,old.length),old);assert.equal(points.length,26);assert.equal(points.at(-1).nameAncient,'薛涛井');assert.equal(points.at(-1).x,68.625);
+// 地图下架不删除投稿；保留点位 ID、坐标及其余历史资料。
+const removedIds=new Set(['dafosi','chengduxianwenmiao','wenchanggong']);
+const renamed={mancheng:'满城（宽窄巷子、人民公园一带）',huayangxian:'华阳县治所（正府街一带）',chengdufuwenmiao:'成都府文庙（文翁路一带）'};
+for(const previous of old){
+ const current=points.find(p=>p.id===previous.id);
+ if(removedIds.has(previous.id)){assert.equal(current,undefined);continue;}
+ assert.deepEqual(current,{...previous,nameModern:renamed[previous.id]||previous.nameModern});
+}
+assert.equal(new Set(points.map(p=>p.id)).size,points.length);
+assert.equal(points.find(p=>p.id==='wangjianglou').nameAncient,'薛涛井');
+assert.equal(points.find(p=>p.id==='wangjianglou').x,68.625);
+for(const id of ['zongduyamen','zhijishi','dacisi','dongjiaochang','beijiaochang'])assert.ok(points.some(p=>p.id===id));
+for(const p of points)assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.x>=0&&p.x<=100&&p.y>=0&&p.y<=100);
 assert.doesNotMatch(index,/id="publicMemoryHeroButton"[^>]*>公众记忆\s*<span/);
 assert.doesNotMatch(index,/馆藏与项目说明\s*[↗→]/);
 assert.doesNotMatch(source,/查看大家的照片与故事\s*[↗→]/);
 assert.doesNotMatch(source,/在地图查看此地点\s*[↗→]/);
 assert.match(source,/\["liked", "已点赞", likedItems.length\]/);
 assert.match(source,/item\.likedByMe === true/);
-console.log('PASS: mixed cards, descending likes, two columns, labeled stock covers, escaped input, original records and existing points unchanged');
+console.log('PASS: mixed cards, descending likes, two columns, labeled stock covers, escaped input, original records and retained point IDs/coordinates preserved');
 
 assert.equal(ctx.memoryDisplayText({originalContent:'原文',collaborativeDraft:'偏好文字',collaborativeDraftAccepted:true}),'偏好文字');
 assert.equal(ctx.memoryDisplayText({originalContent:'原文',collaborativeDraft:'未采纳文字',collaborativeDraftAccepted:false}),'原文');
