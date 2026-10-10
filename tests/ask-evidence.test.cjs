@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const source = fs.readFileSync('cloud-functions/askEvidenceQuestion/index.js', 'utf8');
 const fragment = {fragment_id:'wuhouci_1',point_id:'wuhouci',source_title:'《成都街巷志》',pdf_page_start:299,evidence_level:'A',normalized_summary:'1902年赵藩撰写攻心联。',source_type:'in-copyright'};
 function harness(code) {
-  const query = (data) => ({limit(){return this},where(){return this},doc(){return this},async get(){return {data}},async set(){},async update(){}});
+  const query = (data) => ({limit(){return this},orderBy(){return this},skip(){return this},where(){return this},doc(){return this},async get(){return {data}},async set(){},async update(){}});
   const db = {command:{inc:n=>n},serverDate:()=>new Date(),collection:name=>query(name==='source_fragments'?[fragment]:[])};
   const context = {exports:{}, console:{warn(){}}, Date, require:name=>name==='crypto'?require(name):name==='@cloudbase/node-sdk'?{init:()=>({database:()=>db})}:{PROVIDER_CONFIG:{modelId:'test'},callModel:async()=>{if(code==='invalid')return {content:'not-json'};if(code==='missing-conclusion')return {content:'{"decision":"supported"}'};throw Object.assign(new Error(code),{code})}}};
   vm.runInNewContext(source,context); return context.exports.main;
