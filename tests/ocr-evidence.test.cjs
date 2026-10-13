@@ -25,5 +25,14 @@ function harness(records, cache = []) {
   const stale={_id:h.ctx.cacheId('wuhouci',h.ctx.normalizeQuestion('支矶石街的名称由来'),revision),answer:'旧无证据答案',corpusRevision:'old',questionTokens:h.ctx.buildTokens('支矶石街的名称由来')};
   assert.equal(await harness(records,[stale]).ctx.findCachedAnswer('wuhouci',h.ctx.normalizeQuestion('支矶石街的名称由来'),stale.questionTokens,revision),null);
   assert.equal((await h.main({question:'火星天气预报'})).route,'out-of-scope');
+  const newBook = {...ocr,_id:'photo_book',fragment_id:'photo_book',source_title:'《成都百年影像》',source_edition:'扫描本',pdf_page_start:11,pdf_page_end:11,pdf_side:'right',section:'引言',excerpt:'成都百年影像中记载大慈寺的照片。'};
+  const fresh = harness([ocr,newBook]);
+  const result = await fresh.ctx.retrieveEvidence('《成都百年影像》中大慈寺有什么记载？','wuhouci');
+  assert.deepEqual(Array.from(result.evidence,x=>x.fragmentId),['photo_book']);
+  assert.equal(result.evidence[0].page,'PDF第11页（右页）');
+  assert.ok(!result.tokens.includes('成都百年影像'));
+  const wrongBookCache={answer:'另一本书的回答',corpusRevision:result.revision,sourceScope:'成都街巷志',questionTokens:Array.from(result.tokens)};
+  assert.equal(await harness([ocr,newBook],[wrongBookCache]).ctx.findCachedAnswer('', 'different-normalized-question', result.tokens, result.revision, result.sourceScope),null);
+
   console.log('PASS: pagination, all-book retrieval, OCR excerpt and honest citation, corpus cache invalidation, unrelated questions');
 })().catch(e=>{console.error(e);process.exitCode=1});

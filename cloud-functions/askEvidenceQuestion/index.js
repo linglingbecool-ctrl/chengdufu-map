@@ -186,7 +186,7 @@ function safeEvidenceRecord(record) {
   const pageEnd = Number(record.pdf_page_end) || pageStart;
   const page = pageStart
     ? pageStart === pageEnd
-      ? `PDF第${pageStart}页`
+      ? `PDF第${pageStart}页${record.pdf_side === "left" ? "（左页）" : record.pdf_side === "right" ? "（右页）" : ""}`
       : `PDF第${pageStart}—${pageEnd}页`
     : record.record_type === "ocr_chunk"
       ? `${cleanText(record.section, 90)} · OCR原文件第${record.source_line_start}—${record.source_line_end}行`
@@ -227,7 +227,7 @@ async function loadCorpus() {
     if (page.length < size) break;
   }
   const revision = crypto.createHash("sha256")
-    .update("ocr-retrieval-v1|").update(JSON.stringify(records.map(r => [r._id || r.fragment_id, r.source_sha256, r.normalized_summary, r.excerpt, r.citation, r.verification_status])))
+    .update("ocr-retrieval-v2|").update(JSON.stringify(records.map(r => [r._id || r.fragment_id, r.source_sha256, r.normalized_summary, r.excerpt, r.citation, r.verification_status])))
     .digest("hex").slice(0, 24);
   corpusCache = {records, revision, loadedAt: Date.now()};
   return corpusCache;
@@ -235,8 +235,12 @@ async function loadCorpus() {
 
 async function retrieveEvidence(question, requestedPointId) {
   const {records, revision} = await loadCorpus();
-  const tokens = buildTokens(question);
-  const pointId = inferPointId(question, requestedPointId);
+  const requestedBook = [...new Set(records.map(record => cleanText(record.source_title, 160).replace(/[《》]/g, "")))]
+    .filter(title => title.length > 1 && question.includes(title));
+  // 书名用于限定文献范围，不应淹没问题里的地点或主题；新增书籍无需再写死书名。
+  const topicQuestion = requestedBook.reduce((text, title) => text.split(title).join(" "), question);
+  const tokens = buildTokens(topicQuestion);
+  const pointId = inferPointId(topicQuestion, requestedPointId);
   // 简短的指代式问题沿用所选地点；有明确主题的问题仍检索整套文献。
   if (pointId && /^(哪年|何时|什么时候|多大|多长|多宽|多高|谁建|它|这里|这个)/.test(question)) {
     tokens.push(...(POINT_ALIASES[pointId] || []));
@@ -245,7 +249,6 @@ async function retrieveEvidence(question, requestedPointId) {
   const weights = new Map(tokens.map(token => [token,
     Math.log(1 + records.length / (1 + texts.filter(text => text.includes(token)).length))
   ]));
-  const requestedBook = ["成都通览", "成都街巷志"].filter(title => question.includes(title));
   const ranked = records.filter(record => !requestedBook.length || requestedBook.some(title => String(record.source_title).includes(title)))
     .map(record => ({record, ...scoreRecord(record, tokens, pointId, weights)}))
     .filter(item => item.score > 0)
@@ -253,7 +256,7 @@ async function retrieveEvidence(question, requestedPointId) {
   // 只去掉相对弱的匹配，不把检索分数当作史实可信度。
   const evidence = ranked.filter(item => item.score >= (ranked[0]?.score || 0) * 0.3)
     .slice(0, 6).map(item => safeEvidenceRecord(item.record));
-  return {pointId, tokens, evidence, revision};
+  return {pointId, tokens, evidence, revision, sourceScope: requestedBook.slice().sort().join("|")};
 }
 
 function tokenSimilarity(first, second) {
@@ -275,7 +278,7 @@ function cacheId(pointId, normalizedQuestion, revision) {
     .slice(0, 48);
 }
 
-async function findCachedAnswer(pointId, normalizedQuestion, tokens, revision) {
+async function findCachedAnswer(pointId, normalizedQuestion, tokens, revision, sourceScope = "") {
   const exactId = cacheId(pointId, normalizedQuestion, revision);
 
   try {
@@ -286,7 +289,7 @@ async function findCachedAnswer(pointId, normalizedQuestion, tokens, revision) {
     const exact = Array.isArray(exactResult?.data)
       ? exactResult.data[0]
       : exactResult?.data;
-    if (exact?.answer && exact.corpusRevision === revision) return { item: exact, similarity: 1 };
+    if (exact?.answer && exact.corpusRevision === revision && (exact.sourceScope || "") === sourceScope) return { item: exact, similarity: 1 };
   } catch (error) {
     if (!String(error?.message || "").includes("not exist")) {
       console.warn("exact cache lookup failed", error?.message);
@@ -296,8 +299,8 @@ async function findCachedAnswer(pointId, normalizedQuestion, tokens, revision) {
   let items = [];
   try {
     const query = pointId
-      ? db.collection("evidence_answer_cache").where({ pointId, corpusRevision: revision }).limit(100)
-      : db.collection("evidence_answer_cache").where({corpusRevision: revision}).limit(100);
+      ? db.collection("evidence_answer_cache").where({ pointId, corpusRevision: revision, sourceScope }).limit(100)
+      : db.collection("evidence_answer_cache").where({corpusRevision: revision, sourceScope}).limit(100);
     const result = await query.get();
     items = Array.isArray(result?.data) ? result.data : [];
   } catch (error) {
@@ -307,7 +310,7 @@ async function findCachedAnswer(pointId, normalizedQuestion, tokens, revision) {
   let best = null;
 
   items.forEach((item) => {
-    if (!item?.answer || item.corpusRevision !== revision || !Array.isArray(item.questionTokens)) return;
+    if (!item?.answer || item.corpusRevision !== revision || (item.sourceScope || "") !== sourceScope || !Array.isArray(item.questionTokens)) return;
     const similarity = tokenSimilarity(tokens, item.questionTokens);
     const required = item.status === "librarian-verified" ? 0.74 : 0.9;
     if (similarity >= required && (!best || similarity > best.similarity)) {
@@ -417,13 +420,15 @@ async function saveCache({
   answer,
   evidence,
   usage,
-  revision
+  revision,
+  sourceScope
 }) {
   const id = cacheId(pointId, normalizedQuestion, revision);
   await db.collection("evidence_answer_cache").doc(id).set({
     question,
     questionNormalized: normalizedQuestion,
     corpusRevision: revision,
+    sourceScope: sourceScope || "",
     questionTokens,
     pointId: pointId || "",
     decision: modelResult.decision,
@@ -484,7 +489,8 @@ exports.main = async (event = {}) => {
       retrieval.pointId,
       normalizedQuestion,
       retrieval.tokens,
-      retrieval.revision
+      retrieval.revision,
+      retrieval.sourceScope
     );
 
     if (cached) {
@@ -567,7 +573,7 @@ exports.main = async (event = {}) => {
 
     const ocrEvidence = retrieval.evidence.filter(item => item.verificationStatus.includes("OCR"));
     const answer = formatModelAnswer(modelResult, retrieval.evidence) + (ocrEvidence.length
-      ? `\n\nOCR来源定位（转录待核；以下为原文件行号，不是PDF页码）\n${ocrEvidence.map(item => `${item.title}｜${item.page}`).join("\n")}` : "");
+      ? `\n\nOCR来源定位（转录待核；PDF页码与原文件行号分别标注）\n${ocrEvidence.map(item => `${item.title}｜${item.page}`).join("\n")}` : "");
     try {
       await saveCache({
         question,
@@ -578,7 +584,8 @@ exports.main = async (event = {}) => {
         answer,
         evidence: retrieval.evidence,
         usage: modelResponse.usage,
-        revision: retrieval.revision
+        revision: retrieval.revision,
+        sourceScope: retrieval.sourceScope
       });
     } catch (error) {
       console.warn("cache write failed", error?.message);
