@@ -397,7 +397,7 @@
       const book = rawTitle.match(/《[^》]+》/);
       // 项目内部研究记录不是参考文献；古图题名仍可作为图像依据。
       if (!book && !rawTitle.includes("古图")) continue;
-      const title = book ? rawTitle.split(/[｜|]/)[0] : "馆藏《成都府图》";
+      const title = book ? book[0] : "馆藏《成都府图》";
       const page = (origin?.page || source.page).match(/PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页(?:（[左右]页）)?/)?.[0]
         || (book ? "页码待核" : "古图题名");
       const label = `${title} · ${page}`;

@@ -11,7 +11,7 @@ const sources = [{title:'《成都百年影像》（扫描本）',page:'PDF第67
 const rendered = ctx.renderAnswer(oldAnswer,sources);
 assert.match(rendered,/印经时刷墨/);
 assert.match(rendered,/参考依据/);
-assert.match(rendered,/《成都百年影像》（扫描本） · PDF第67页（右页）/);
+assert.match(rendered,/《成都百年影像》 · PDF第67页（右页）/);
 assert.doesNotMatch(rendered,/OCR|证据等级|证据边界|证据 C|长篇原文|内部记录/);
 assert.equal((rendered.match(/<p /g)||[]).length,1);
 const missing = ctx.renderAnswer('结论\n地名相关记录。\n文献依据\n1｜《成都街巷志》｜支机石街 · OCR原文件第4644—4659行\n转录待核\n2｜《成都街巷志》｜其他章节 · OCR原文件第9000—9020行\n转录待核');
