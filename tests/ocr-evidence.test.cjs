@@ -34,5 +34,11 @@ function harness(records, cache = []) {
   const wrongBookCache={answer:'另一本书的回答',corpusRevision:result.revision,sourceScope:'成都街巷志',questionTokens:Array.from(result.tokens)};
   assert.equal(await harness([ocr,newBook],[wrongBookCache]).ctx.findCachedAnswer('', 'different-normalized-question', result.tokens, result.revision, result.sourceScope),null);
 
+  // 生成文本不能篡改来源页码、等级或OCR状态。
+  const sourceRecord=result.evidence[0];
+  const formatted=fresh.ctx.evidenceLines({evidence_basis:[{fragmentId:'photo_book',title:'虚构书名',page:'PDF第999页',grade:'A',statement:'可核对的转述'}]},[sourceRecord]);
+  assert.match(formatted,/PDF第11页（右页）/);assert.match(formatted,/证据 C/);assert.doesNotMatch(formatted,/虚构|999|证据 A/);
+  const excerpt=fresh.ctx.evidenceExcerpt({...sourceRecord,evidenceText:'前'.repeat(300)+'三走三擦'+'后'.repeat(300)},['三走三擦']);
+  assert.match(excerpt,/三走三擦/);assert.ok(excerpt.length<260);
   console.log('PASS: pagination, all-book retrieval, OCR excerpt and honest citation, corpus cache invalidation, unrelated questions');
 })().catch(e=>{console.error(e);process.exitCode=1});

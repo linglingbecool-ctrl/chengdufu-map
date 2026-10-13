@@ -8,6 +8,9 @@ window.setTimeout=(fn,ms,...args)=>originalTimeout(fn,ms===28000&&window.__askTe
 window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolated UI test')})},callFunction:async({name,data})=>{
  if(name!=='askEvidenceQuestion')return {result:{ok:true,memories:[]}};
  const test=window.__askTest;test.calls.push(data);
+ if(test.mode==='raw')return {result:{ok:true,route:'raw-evidence',retryable:true,evidenceCount:1,
+   evidenceSources:[{title:'《成都街巷志》',page:'PDF第9页（右页）',sourceType:'user-provided-ocr',grade:'C',verificationStatus:'OCR待核'}],
+   answer:'结论\\n仅返回文献依据。\\n\\n文献依据\\n1｜《成都街巷志》｜PDF第9页（右页）\\n录入原文，待核验。'}};
  if(test.mode==='network')throw new Error('network request error');
  if(test.mode==='timeout')return new Promise(()=>{});
  if(test.mode==='hold')return new Promise(resolve=>test.pending.push(resolve));
@@ -38,6 +41,17 @@ window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolat
  assert.equal(await page.evaluate(()=>window.__askTest.calls[0].pointId),'wuhouci');
  // 原页入口仍可用。
  assert.ok(await latest.locator('[data-open-evidence]').count()>0);
+ await page.evaluate(()=>window.__askTest.mode='raw');
+ await input.fill('请查找新增文献中的武侯祠');await send.click();
+ await latest.getByRole('button',{name:'重试这一问'}).waitFor();
+ assert.match(await latest.locator('.ai-evidence-source small').innerText(),/PDF第9页（右页）/);
+ assert.equal(await latest.locator('.ai-evidence-source strong').innerText(),'《成都街巷志》');
+ assert.match(await latest.innerText(),/证据 C · OCR待核/);
+ assert.equal(await latest.locator('[data-open-evidence]').count(),0);
+ await input.fill('原文回退重试也保留草稿');await page.evaluate(()=>window.__askTest.mode='success');
+ await latest.getByRole('button',{name:'重试这一问'}).click();
+ await latest.getByText('武侯祠攻心联由赵藩撰写。',{exact:true}).waitFor();
+ assert.equal(await input.inputValue(),'原文回退重试也保留草稿');
  for(const mode of ['network','MODEL_TIMEOUT','MODEL_BUSY','empty','invalid','timeout']) {
    await page.evaluate(mode=>window.__askTest.mode=mode,mode);
    await input.fill('武侯祠的攻心联是什么时候出现的？');await send.click();

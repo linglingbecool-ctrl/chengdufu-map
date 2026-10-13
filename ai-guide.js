@@ -220,7 +220,7 @@
         '<mark class="ai-citation">$1</mark>'
       )
       .replace(
-        /(PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页)/g,
+        /(PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页(?:（[左右]页）)?)/g,
         '<span class="ai-page">$1</span>'
       );
   }
@@ -307,7 +307,7 @@
     const rawTitle = match[2].trim();
 
     const pageMatch = rawTitle.match(
-      /(PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页)/
+      /(PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页(?:（[左右]页）)?|[^｜|]*OCR原文件第\d+[—-]\d+行)/
     );
 
     let title = rawTitle;
@@ -329,9 +329,12 @@
     };
   }
 
-  function sourceCardHeader(source) {
-    const evidenceRecord =
-      resolveEvidenceRecord(source);
+  function sourceCardHeader(source, evidenceSources = []) {
+    const origin = evidenceSources.find(item =>
+      escapeHtml(item.title) === source.title && escapeHtml(item.page) === source.page);
+    // 新OCR只能展示自己的定位与待核状态，不借用同名旧版本的核验卡。
+    const evidenceRecord = origin?.sourceType === "user-provided-ocr"
+      ? null : resolveEvidenceRecord(source);
 
     return `
       <div class="ai-evidence-card-head">
@@ -383,7 +386,7 @@
             `
             : `
               <span class="ai-evidence-verification">
-                来源信息待进一步匹配
+                ${origin ? escapeHtml(`证据 ${origin.grade} · ${origin.verificationStatus || "待复核"}`) : "来源尚未匹配核验卡"}
               </span>
             `
         }
@@ -421,6 +424,7 @@
   }
 
   function resolveEvidenceRecord(source) {
+    if (/OCR原文件/.test(source.page)) return null;
     const records = window.TUHUI_EVIDENCE?.records || [];
     const sourceTitle = normalizeSourceTitle(source.title);
     const pages = parsePageRange(`${source.title} ${source.page}`);
@@ -458,7 +462,7 @@
         )
       );
 
-      if (pageMatched.length) candidates = pageMatched;
+      candidates = pageMatched;
     }
 
     if (!candidates.length) return null;
@@ -475,7 +479,7 @@
   // 回答渲染
   // ========================================================
 
-  function renderAnswer(text) {
+  function renderAnswer(text, evidenceSources = []) {
     sourceEvidenceQueues.clear();
 
     const safeText = escapeHtml(
@@ -577,7 +581,7 @@
         );
 
         html.push(
-          sourceCardHeader(source)
+          sourceCardHeader(source, evidenceSources)
         );
 
         return;
@@ -741,7 +745,8 @@
   function updateAssistantMessage(
     article,
     text,
-    status = "刚刚"
+    status = "刚刚",
+    evidenceSources = []
   ) {
     const body =
       article.querySelector(
@@ -757,7 +762,7 @@
 
     if (text) {
       body.innerHTML =
-        renderAnswer(text);
+        renderAnswer(text, evidenceSources);
     } else {
       body.innerHTML = `
         <div class="ai-thinking">
@@ -1201,6 +1206,19 @@
       ranked.map(({record}) => `${record.title} · ${record.pageLabel}\n${record.excerpt}\n可证明：${record.proves}\n边界：${record.limits}`).join("\n\n");
   }
 
+  function addRetryButton(article, question, pointId) {
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "ai-retry-button";
+    retry.textContent = "重试这一问";
+    retry.addEventListener("click", () => {
+      const draft = elements.input.value;
+      sendQuestion(question, pointId);
+      elements.input.value = draft;
+    });
+    article.querySelector(".ai-message-body")?.prepend(retry);
+  }
+
   async function sendQuestion(question, pointId = activePointId) {
     const cleanedQuestion =
       String(question || "").trim();
@@ -1330,7 +1348,8 @@
               ? "证据范围之外"
               : result.route === "raw-evidence"
                 ? "仅返回馆藏依据"
-                : "实时检索完成"
+                : "实时检索完成",
+        result.evidenceSources || []
       );
 
       assistantArticle.dataset.answerRoute =
@@ -1350,6 +1369,15 @@
         .querySelector(".ai-message-body")
         ?.appendChild(sourceNote);
 
+      if (result.route === "raw-evidence" && result.retryable !== false) {
+        addRetryButton(assistantArticle, cleanedQuestion, pointId);
+      }
+      if (result.modelStatus?.message) {
+        const notice = document.createElement("p");
+        notice.className = "ai-result-source-note";
+        notice.textContent = result.modelStatus.message;
+        assistantArticle.querySelector(".ai-message-body")?.prepend(notice);
+      }
       setStatus(
         result.route === "insufficient-evidence"
           ? "已检索 · 证据不足以定论"
@@ -1380,16 +1408,7 @@
       const fallback = localEvidenceFallback(cleanedQuestion, pointId);
       updateAssistantMessage(assistantArticle, fallback, "在线问答暂不可用");
       assistantArticle.dataset.answerRoute = "local-evidence";
-      const retry = document.createElement("button");
-      retry.type = "button";
-      retry.className = "ai-retry-button";
-      retry.textContent = "重试这一问";
-      retry.addEventListener("click", () => {
-        const draft = elements.input.value;
-        sendQuestion(cleanedQuestion, pointId);
-        elements.input.value = draft;
-      });
-      assistantArticle.querySelector(".ai-message-body")?.prepend(retry);
+      addRetryButton(assistantArticle, cleanedQuestion, pointId);
 
       if (
         elements.setup &&

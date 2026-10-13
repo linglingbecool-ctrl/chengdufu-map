@@ -33,19 +33,7 @@ function getApiKey() {
   ).trim();
 }
 
-function getRetryDelay(response) {
-  const seconds = Number(
-    response.headers.get("retry-after")
-  );
-
-  if (Number.isFinite(seconds) && seconds > 0) {
-    return Math.min(seconds * 1000, 2000);
-  }
-
-  return 1200;
-}
-
-async function requestOnce(messages) {
+async function requestOnce(messages, modelId, timeoutMs) {
   const apiKey = getApiKey();
 
   if (!apiKey) {
@@ -58,7 +46,7 @@ async function requestOnce(messages) {
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
-    PROVIDER_CONFIG.timeoutMs
+    timeoutMs
   );
 
   try {
@@ -71,7 +59,7 @@ async function requestOnce(messages) {
           Authorization: `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: PROVIDER_CONFIG.modelId,
+          model: modelId,
           messages,
           stream: false,
           temperature: 0.2,
@@ -84,25 +72,18 @@ async function requestOnce(messages) {
       }
     );
 
-    if (response.status === 429) {
-      throw createProviderError(
-        "MODEL_BUSY",
-        "免费模型当前请求较多",
-        { retryAfterMs: getRetryDelay(response) }
-      );
-    }
-
     if (!response.ok) {
-      const responseText = await response.text();
+      let payload = {};
+      try { payload = JSON.parse(await response.text()); } catch (_) { /* 非JSON错误仍按HTTP状态处理。 */ }
+      const providerCode = String(payload?.error?.code || "");
+      const quotaLimited = ["1113", "1308", "1309", "1310"].includes(providerCode);
       throw createProviderError(
-        response.status === 401 || response.status === 403
-          ? "MODEL_AUTH_FAILED"
-          : "MODEL_UNAVAILABLE",
-        `模型接口返回 HTTP ${response.status}`,
-        {
-          status: response.status,
-          responsePreview: responseText.slice(0, 240)
-        }
+        providerCode === "1301" ? "MODEL_CONTENT_FILTERED" : quotaLimited ? "MODEL_QUOTA_EXCEEDED"
+          : response.status === 401 || response.status === 403 ? "MODEL_AUTH_FAILED"
+          : response.status === 429 ? "MODEL_BUSY" : "MODEL_UNAVAILABLE",
+        quotaLimited ? "模型服务额度或套餐受限"
+          : response.status === 429 ? "模型当前请求受限" : `模型接口返回 HTTP ${response.status}`,
+        { status: response.status, providerCode }
       );
     }
 
@@ -119,7 +100,8 @@ async function requestOnce(messages) {
 
     return {
       content: String(content).trim(),
-      usage: payload?.usage || null
+      usage: payload?.usage || null,
+      model: modelId
     };
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -136,8 +118,19 @@ async function requestOnce(messages) {
 }
 
 async function callModel(messages) {
-  // 一次请求最多18秒；繁忙时直接交还已有证据，避免重试跨过前端等待上限。
-  return requestOnce(messages);
+  const startedAt = Date.now();
+  try {
+    return await requestOnce(messages, PROVIDER_CONFIG.modelId, PROVIDER_CONFIG.timeoutMs);
+  } catch (error) {
+    const remainingMs = PROVIDER_CONFIG.timeoutMs - (Date.now() - startedAt);
+    // 只处理已确认的智谱容量错误1305；不绕过账号额度/权限限制。
+    // 两次请求共享最多18秒预算，备用也是官方免费模型，禁止跨服务商转发密钥。
+    const canFallback = error?.providerCode === "1305" && error?.code === "MODEL_BUSY" &&
+      PROVIDER_CONFIG.apiUrl === "https://open.bigmodel.cn/api/paas/v4/chat/completions" &&
+      PROVIDER_CONFIG.modelId.toLowerCase() === "glm-4.7-flash" && remainingMs >= 3000;
+    if (!canFallback) throw error;
+    return requestOnce(messages, "glm-4-flash-250414", remainingMs);
+  }
 }
 
 module.exports = {

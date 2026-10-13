@@ -56,6 +56,8 @@ const SYSTEM_PROMPT = `你是“舆上·成都”馆藏证据参考咨询助手�
 - 若检索到了相关片段，但不足以支持定论，decision 必须为 insufficient-evidence，并明确 missing_materials，说明缺少哪类地方志、档案、地图配准、文字校勘、文保或其他材料。
 - 不允许为了完成回答而把推测写成结论。
 
+回答保持简短：结论不超过150字，依据最多3条且每条转述不超过80字；能证明与不能证明各不超过80字。引用必须返回对应的fragmentId，不改变证据等级或核验状态。
+
 【输出格式】
 只输出一个合法 JSON 对象，不要输出代码围栏或额外说明：
 {
@@ -63,6 +65,7 @@ const SYSTEM_PROMPT = `你是“舆上·成都”馆藏证据参考咨询助手�
   "conclusion": "结论文字",
   "evidence_basis": [
     {
+      "fragmentId": "所提供的片段ID",
       "title": "书名或项目记录名",
       "page": "所提供的PDF页码、OCR章节与行号或项目记录",
       "statement": "依据要点转述",
@@ -227,7 +230,7 @@ async function loadCorpus() {
     if (page.length < size) break;
   }
   const revision = crypto.createHash("sha256")
-    .update("ocr-retrieval-v2|").update(JSON.stringify(records.map(r => [r._id || r.fragment_id, r.source_sha256, r.normalized_summary, r.excerpt, r.citation, r.verification_status])))
+    .update("ocr-retrieval-v3|").update(JSON.stringify(records.map(r => [r._id || r.fragment_id, r.source_sha256, r.normalized_summary, r.excerpt, r.citation, r.verification_status])))
     .digest("hex").slice(0, 24);
   corpusCache = {records, revision, loadedAt: Date.now()};
   return corpusCache;
@@ -350,6 +353,7 @@ function cacheResponse(match) {
     model: item.model || PROVIDER_CONFIG.modelId,
     answer: item.answer,
     evidenceIds: item.evidenceIds || [],
+    evidenceSources: item.evidenceSources || [],
     evidenceCount: Number(item.evidenceCount) || 0,
     cacheHit: true,
     cacheStatus: item.status || "unverified",
@@ -377,12 +381,15 @@ function evidenceLines(modelResult, evidence) {
   const provided = Array.isArray(modelResult.evidence_basis)
     ? modelResult.evidence_basis
     : [];
-  const lines = (provided.length ? provided : evidence).map((item, index) => {
-    const title = cleanText(item.title, 160) || "馆藏记录";
-    const page = cleanText(item.page, 160) || "项目记录";
+  const matched = provided.map(item => {
+    const origin = evidence.find(record => item.fragmentId === record.fragmentId) ||
+      evidence.find(record => item.title === record.title && item.page === record.page);
+    return origin ? {...origin, statement: item.statement} : null;
+  }).filter(Boolean);
+  // 页码、等级和核验状态取自数据库；模型不能创造来源或提升OCR等级。
+  const lines = (matched.length ? matched : evidence.slice(0, 3)).map((item, index) => {
     const statement = cleanText(item.statement || item.summary || item.evidenceText, 600);
-    const grade = cleanText(item.grade, 4) || "C";
-    return `${index + 1}｜${title}｜${page}\n${statement}\n证据 ${grade}`;
+    return `${index + 1}｜${item.title}｜${item.page}\n${statement}\n证据 ${item.grade} · ${item.verificationStatus || "待复核"}`;
   });
   return lines.join("\n\n");
 }
@@ -400,9 +407,23 @@ function formatModelAnswer(modelResult, evidence) {
   return `结论\n${conclusion}\n\n文献依据\n${evidenceLines(modelResult, evidence)}\n\n证据等级\n${cleanText(modelResult.evidence_grade, 500) || "请结合各条证据卡所标注的 A/B/C 等级与核验状态阅读。"}\n\n证据边界\n本材料能证明什么：${cleanText(modelResult.can_prove, 700) || "仅能证明上述片段明确记录的内容。"}\n本材料不能证明什么：${cleanText(modelResult.cannot_prove, 700) || "不能超出片段范围作推断。"}${insufficient ? `\n仍缺材料：${missing}` : ""}`;
 }
 
-function rawEvidenceAnswer(evidence) {
+function evidenceSources(evidence) {
+  return evidence.map(({fragmentId, title, page, grade, verificationStatus, sourceType}) =>
+    ({fragmentId, title, page, grade, verificationStatus, sourceType}));
+}
+
+function evidenceExcerpt(item, tokens = []) {
+  const text = cleanText(item.evidenceText || item.summary, 1000);
+  if (!item.verificationStatus.includes("OCR") || text.length <= 240) return text;
+  // 固定240字窗口，只选取原文，不生成摘要；优先保留问题中较长的词附近的文字。
+  const term = tokens.filter(token => text.includes(token)).sort((a, b) => b.length - a.length)[0];
+  const start = term ? Math.max(0, Math.min(text.indexOf(term) - 60, text.length - 240)) : 0;
+  return `${start ? "……" : ""}${text.slice(start, start + 240)}${start + 240 < text.length ? "……" : ""}（片段节选）`;
+}
+
+function rawEvidenceAnswer(evidence, tokens) {
   const lines = evidence.map((item, index) =>
-    `${index + 1}｜${item.title}｜${item.page}\n${cleanText(item.evidenceText || item.summary, item.verificationStatus.includes("OCR") ? 240 : 1000)}${item.verificationStatus.includes("OCR") && (item.evidenceText || item.summary).length > 240 ? "……（片段节选）" : ""}\n证据 ${item.grade} · ${item.verificationStatus}`
+    `${index + 1}｜${item.title}｜${item.page}\n${evidenceExcerpt(item, tokens)}\n证据 ${item.grade} · ${item.verificationStatus}`
   ).join("\n\n");
   return `结论\n当前仅返回馆藏原文依据。模型服务暂时不可用，本次不生成综合结论。\n\n文献依据\n${lines}\n\n证据等级\n请依据每条证据标注的 A/B/C 等级与核验状态判断。\n\n证据边界\n本材料能证明什么：仅能确认下列馆藏记录所明确记载的要点。\n本材料不能证明什么：在模型恢复或馆员进一步核验前，不据此扩展为新的历史结论。`;
 }
@@ -420,6 +441,7 @@ async function saveCache({
   answer,
   evidence,
   usage,
+  model,
   revision,
   sourceScope
 }) {
@@ -434,10 +456,11 @@ async function saveCache({
     decision: modelResult.decision,
     answer,
     evidenceIds: evidence.map((item) => item.fragmentId).filter(Boolean),
+    evidenceSources: evidenceSources(evidence),
     evidenceCount: evidence.length,
     status: "unverified",
     provider: PROVIDER_CONFIG.providerName,
-    model: PROVIDER_CONFIG.modelId,
+    model: model || PROVIDER_CONFIG.modelId,
     usage: usage || null,
     usageCount: 1,
     createdAt: db.serverDate(),
@@ -520,14 +543,15 @@ exports.main = async (event = {}) => {
           content: JSON.stringify({
             question_data: question,
             point_context: retrieval.pointId || null,
-            evidence_records_json: retrieval.evidence
+            evidence_records_json: retrieval.evidence.map(({summary, ...item}) => item)
           })
         }
       ]);
     } catch (error) {
       console.warn("model unavailable, returning evidence", {
         code: error?.code,
-        message: error?.message
+        message: error?.message,
+        providerCode: error?.providerCode
       });
 
       return {
@@ -535,9 +559,19 @@ exports.main = async (event = {}) => {
         requestId,
         route: "raw-evidence",
         decision: "model-unavailable",
+        retryable: !["MODEL_AUTH_FAILED", "MODEL_NOT_CONFIGURED", "MODEL_QUOTA_EXCEEDED", "MODEL_CONTENT_FILTERED"].includes(error?.code),
+        modelStatus: {
+          code: error?.code || "MODEL_UNAVAILABLE",
+          providerCode: error?.providerCode || "",
+          message: error?.code === "MODEL_BUSY" ? "模型当前访问量较大，可稍后重试；文献依据已保留。"
+            : error?.code === "MODEL_QUOTA_EXCEEDED" ? "模型服务额度受限，需管理员处理；文献依据已保留。"
+            : error?.code === "MODEL_CONTENT_FILTERED" ? "模型服务未通过本次内容检查；以下仅展示检索到的馆藏依据。"
+            : "本次未完成文字生成；可先查阅下面的文献依据。"
+        },
         sourceLabel: "馆藏依据直出",
         notice: "当前仅返回馆藏原文依据",
-        answer: rawEvidenceAnswer(retrieval.evidence),
+        answer: rawEvidenceAnswer(retrieval.evidence, retrieval.tokens),
+        evidenceSources: evidenceSources(retrieval.evidence),
         evidenceIds: retrieval.evidence.map((item) => item.fragmentId),
         evidenceCount: retrieval.evidence.length,
         timing: {
@@ -558,9 +592,11 @@ exports.main = async (event = {}) => {
         requestId,
         route: "raw-evidence",
         decision: "model-output-invalid",
+        retryable: true,
         sourceLabel: "馆藏依据直出",
         notice: "当前仅返回馆藏原文依据",
-        answer: rawEvidenceAnswer(retrieval.evidence),
+        answer: rawEvidenceAnswer(retrieval.evidence, retrieval.tokens),
+        evidenceSources: evidenceSources(retrieval.evidence),
         evidenceIds: retrieval.evidence.map((item) => item.fragmentId),
         evidenceCount: retrieval.evidence.length,
         timing: {
@@ -584,6 +620,7 @@ exports.main = async (event = {}) => {
         answer,
         evidence: retrieval.evidence,
         usage: modelResponse.usage,
+        model: modelResponse.model,
         revision: retrieval.revision,
         sourceScope: retrieval.sourceScope
       });
@@ -598,8 +635,9 @@ exports.main = async (event = {}) => {
       route: insufficient ? "insufficient-evidence" : "realtime-model",
       decision: modelResult.decision,
       sourceLabel: "实时检索生成",
-      model: PROVIDER_CONFIG.modelId,
+      model: modelResponse.model || PROVIDER_CONFIG.modelId,
       answer,
+      evidenceSources: evidenceSources(retrieval.evidence),
       evidenceIds: retrieval.evidence.map((item) => item.fragmentId),
       evidenceCount: retrieval.evidence.length,
       cacheHit: false,

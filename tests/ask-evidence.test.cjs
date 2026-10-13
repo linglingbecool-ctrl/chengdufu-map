@@ -23,6 +23,36 @@ function harness(code) {
   vm.runInNewContext(fs.readFileSync('cloud-functions/askEvidenceQuestion/provider.js','utf8'),providerContext);
   await assert.rejects(providerContext.module.exports.callModel([]),{code:'MODEL_BUSY'});
   assert.equal(calls,1);assert.equal(cleared,1);
+  // 1305容量不足才能切换同平台免费模型；额度、鉴权、异地接口均不能切换。
+  async function providerCase(code, options = {}) {
+    const models=[],timers=[]; let clock=1000;
+    const ctx={module:{exports:{}},process:{env:{ZHIPU_API_KEY:'test-only',...options.env}},AbortController,
+      Date:{now:()=>clock},setTimeout:(fn,ms)=>{timers.push(ms);return 1},clearTimeout(){},
+      fetch:async(url,request)=>{models.push(JSON.parse(request.body).model);clock+=options.elapsed || 500;
+        if(models.length===1)return {status:options.status || 429,ok:false,text:async()=>JSON.stringify({error:{code}})};
+        return {ok:true,json:async()=>({choices:[{message:{content:'test'}}]})};}};
+    vm.runInNewContext(fs.readFileSync('cloud-functions/askEvidenceQuestion/provider.js','utf8'),ctx);
+    let result,error;try{result=await ctx.module.exports.callModel([])}catch(e){error=e}
+    return {models,timers,result,error};
+  }
+  const fallback=await providerCase('1305');
+  assert.deepEqual(fallback.models,['glm-4.7-flash','glm-4-flash-250414']);
+  assert.equal(fallback.result.model,'glm-4-flash-250414');
+  assert.deepEqual(fallback.timers,[15000,14500]);
+  for(const code of ['1113','1308','1309','1310']) {
+    const r=await providerCase(code);assert.equal(r.models.length,1);assert.equal(r.error.code,'MODEL_QUOTA_EXCEEDED');
+  }
+  for(const options of [{elapsed:14000},{env:{MODEL_API_URL:'https://other.invalid/chat'}},{env:{MODEL_ID:'different'}}]) {
+    assert.equal((await providerCase('1305',options)).models.length,1);
+  }
+  const filtered=await providerCase('1301',{status:400});
+  assert.equal(filtered.models.length,1);assert.equal(filtered.error.code,'MODEL_CONTENT_FILTERED');
+  assert.equal((await providerCase('1302')).models.length,1);
+  assert.equal((await providerCase('auth',{status:401})).error.code,'MODEL_AUTH_FAILED');
+  const busy=await harness('MODEL_BUSY')({question:'武侯祠攻心联由谁撰写？'});
+  assert.equal(busy.retryable,true);assert.equal(busy.modelStatus.code,'MODEL_BUSY');
+  assert.equal(busy.evidenceSources[0].fragmentId,'wuhouci_1');
+  assert.equal((await harness('MODEL_AUTH_FAILED')({question:'武侯祠攻心联由谁撰写？'})).retryable,false);
   // 前端本地回退只引用已有记录，不将网络失败等同于没有史料。
   const ui = fs.readFileSync('ai-guide.js','utf8');
   const start=ui.indexOf('  function localEvidenceFallback('),end=ui.indexOf('  async function sendQuestion(',start);
@@ -32,5 +62,5 @@ function harness(code) {
   assert.match(local.localEvidenceFallback('武侯祠攻心联是谁写的','jiuyanqiao'),/赵藩/);
   assert.match(local.localEvidenceFallback('火星天气','wuhouci'),/不代表问题没有答案/);
   assert.doesNotMatch(local.localEvidenceFallback('火星天气','wuhouci'),/赵藩/);
-  console.log('PASS: 7 model failure routes, scope/input boundaries, single bounded request, local evidence fallback');
+  console.log('PASS: 7 model failure routes, scope/input boundaries, bounded free fallback, quota/auth/filter isolation, local evidence fallback');
 })().catch(e=>{console.error(e);process.exitCode=1});
