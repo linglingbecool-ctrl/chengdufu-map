@@ -59,7 +59,7 @@ function harness(code) {
   const local={window:{}};vm.runInNewContext(fs.readFileSync('evidence-data.js','utf8'),local);
   local.pointQuestions={wuhouci:{name:'武侯祠'},jiuyanqiao:{name:'九眼桥'}};
   vm.runInNewContext(ui.slice(start,end),local);
-  assert.match(local.localEvidenceFallback('武侯祠攻心联是谁写的','jiuyanqiao'),/赵藩/);
+  assert.match(local.localEvidenceFallback('武侯祠攻心联是谁写的','jiuyanqiao'),/《成都街巷志》/);
   assert.match(local.localEvidenceFallback('火星天气','wuhouci'),/不代表问题没有答案/);
   assert.doesNotMatch(local.localEvidenceFallback('火星天气','wuhouci'),/赵藩/);
   console.log('PASS: 7 model failure routes, scope/input boundaries, bounded free fallback, quota/auth/filter isolation, local evidence fallback');

@@ -247,53 +247,6 @@
       .replace(/\bneeds_research\b/gi, "仍需补充研究");
   }
 
-  function normalizeHeading(text) {
-    return String(text ?? "")
-      .replace(/^#{1,4}\s*/, "")
-      .replace(/^\*\*/, "")
-      .replace(/\*\*$/, "")
-      .replace(/^【/, "")
-      .replace(/】$/, "")
-      .replace(/[：:]$/, "")
-      .trim();
-  }
-
-  function isSectionHeading(text) {
-    const value = String(text ?? "").trim();
-
-    if (/^#{1,4}\s+/.test(value)) {
-      return true;
-    }
-
-    if (/^\*\*.+\*\*$/.test(value)) {
-      return true;
-    }
-
-    if (/^【.+】$/.test(value)) {
-      const heading = normalizeHeading(value);
-
-      return [
-        "结论",
-        "文献依据",
-        "证据边界",
-        "文献记载",
-        "待核实信息",
-        "后人研究",
-        "关系判定",
-        "提示",
-        "小结"
-      ].includes(heading);
-    }
-
-    return /^(结论|文献依据|证据边界|文献记载|待核实信息|后人研究|关系判定|提示|小结)(?:（[^）]+）)?[：:]?$/.test(
-      value
-    );
-  }
-
-  // ========================================================
-  // 证据卡
-  // ========================================================
-
   function parseSourceHeader(text) {
     const match = String(text ?? "")
       .trim()
@@ -327,73 +280,6 @@
       title,
       page
     };
-  }
-
-  function sourceCardHeader(source, evidenceSources = []) {
-    const origin = evidenceSources.find(item =>
-      escapeHtml(item.title) === source.title && escapeHtml(item.page) === source.page);
-    // 新OCR只能展示自己的定位与待核状态，不借用同名旧版本的核验卡。
-    const evidenceRecord = origin?.sourceType === "user-provided-ocr"
-      ? null : resolveEvidenceRecord(source);
-
-    return `
-      <div class="ai-evidence-card-head">
-
-        <span class="ai-evidence-number">
-          ${escapeHtml(source.number)}
-        </span>
-
-        <div class="ai-evidence-source">
-
-          <strong>
-            ${inlineMarkup(source.title)}
-          </strong>
-
-          ${
-            source.page
-              ? `
-                <small>
-                  ${inlineMarkup(source.page)}
-                </small>
-              `
-              : ""
-          }
-
-        </div>
-
-      </div>
-
-      <div class="ai-evidence-card-tools">
-        ${
-          evidenceRecord
-            ? `
-              <span class="ai-evidence-grade ai-evidence-grade--${escapeHtml(
-                String(evidenceRecord.grade || "C").toLowerCase()
-              )}">
-                证据 ${escapeHtml(evidenceRecord.grade || "C")}
-              </span>
-
-              <span class="ai-evidence-verification">
-                ${escapeHtml(evidenceRecord.verification || "待复核")}
-              </span>
-
-              <button
-                type="button"
-                data-open-evidence="${escapeHtml(evidenceRecord.id)}"
-              >
-                ${evidenceRecord.sourceType === "in-copyright" ? "查看引用式证据卡" : evidenceRecord.pages?.length ? "查看原页" : "查看核验记录"} ↗
-              </button>
-            `
-            : `
-              <span class="ai-evidence-verification">
-                ${origin ? escapeHtml(`证据 ${origin.grade} · ${origin.verificationStatus || "待复核"}`) : "来源尚未匹配核验卡"}
-              </span>
-            `
-        }
-      </div>
-
-      <div class="ai-evidence-card-body">
-    `;
   }
 
   function normalizeSourceTitle(value) {
@@ -479,208 +365,50 @@
   // 回答渲染
   // ========================================================
 
-  function renderAnswer(text, evidenceSources = []) {
+  function renderAnswer(text, evidenceSources = [], notice = "") {
     sourceEvidenceQueues.clear();
-
-    const safeText = escapeHtml(
-      publicFacingText(text)
-    );
-
-    const lines = safeText.split(/\r?\n/);
-
-    const html = [];
-
-    let unorderedListOpen = false;
-    let orderedListOpen = false;
-
-    let currentSection = "";
-    let evidenceCardOpen = false;
-
-    function closeLists() {
-      if (unorderedListOpen) {
-        html.push("</ul>");
-        unorderedListOpen = false;
-      }
-
-      if (orderedListOpen) {
-        html.push("</ol>");
-        orderedListOpen = false;
-      }
-    }
-
-    function closeEvidenceCard() {
-      closeLists();
-
-      if (evidenceCardOpen) {
-        html.push("</div></article>");
-        evidenceCardOpen = false;
-      }
-    }
-
-    lines.forEach((line) => {
+    const paragraphs = [];
+    const references = [];
+    let section = "结论";
+    // 兼容已缓存及预置答案：读者只看一段正文和书目定位，核验数据留在后台。
+    for (const line of publicFacingText(text).split(/\r?\n/)) {
       const trimmed = line.trim();
-
-      if (!trimmed) {
-        closeLists();
-        return;
+      if (!trimmed) continue;
+      if (/^(结论|文献依据|证据等级|证据边界|OCR来源定位)/.test(trimmed)) {
+        section = trimmed.replace(/[：:]$/, "");
+        continue;
       }
-
-      // ----------------------------------------
-      // 结论 / 文献依据 / 证据边界
-      // ----------------------------------------
-
-      if (isSectionHeading(trimmed)) {
-        closeEvidenceCard();
-
-        const heading = normalizeHeading(trimmed);
-        currentSection = heading;
-
-        let sectionClass = "";
-
-        if (heading === "结论") {
-          sectionClass =
-            " ai-answer-heading--conclusion";
-        }
-
-        if (heading === "文献依据") {
-          sectionClass =
-            " ai-answer-heading--evidence";
-        }
-
-        if (heading === "证据边界") {
-          sectionClass =
-            " ai-answer-heading--boundary";
-        }
-
-        html.push(
-          `<h4 class="ai-answer-heading${sectionClass}">
-            ${inlineMarkup(heading)}
-          </h4>`
-        );
-
-        return;
+      if (section === "结论") paragraphs.push(trimmed.replace(/^[-•]\s*/, ""));
+      else if (section === "文献依据") {
+        const source = parseSourceHeader(trimmed);
+        if (source) references.push(source);
       }
-
-      // ----------------------------------------
-      // 文献依据中的 1｜2｜3｜自动生成证据卡
-      // ----------------------------------------
-
-      const source =
-        parseSourceHeader(trimmed);
-
-      if (
-        currentSection === "文献依据" &&
-        source
-      ) {
-        closeEvidenceCard();
-
-        evidenceCardOpen = true;
-
-        html.push(
-          `<article class="ai-evidence-card">`
-        );
-
-        html.push(
-          sourceCardHeader(source, evidenceSources)
-        );
-
-        return;
-      }
-
-      // ----------------------------------------
-      // 无序列表
-      // ----------------------------------------
-
-      const bulletMatch =
-        trimmed.match(/^[-•]\s+(.+)$/);
-
-      if (bulletMatch) {
-        if (orderedListOpen) {
-          html.push("</ol>");
-          orderedListOpen = false;
-        }
-
-        if (!unorderedListOpen) {
-          html.push("<ul>");
-          unorderedListOpen = true;
-        }
-
-        html.push(
-          `<li>${inlineMarkup(
-            bulletMatch[1]
-          )}</li>`
-        );
-
-        return;
-      }
-
-      // ----------------------------------------
-      // 普通编号列表
-      // ----------------------------------------
-
-      const numberedMatch =
-        trimmed.match(/^\d+[.)、]\s*(.+)$/);
-
-      if (numberedMatch) {
-        if (unorderedListOpen) {
-          html.push("</ul>");
-          unorderedListOpen = false;
-        }
-
-        if (!orderedListOpen) {
-          html.push("<ol>");
-          orderedListOpen = true;
-        }
-
-        html.push(
-          `<li>${inlineMarkup(
-            numberedMatch[1]
-          )}</li>`
-        );
-
-        return;
-      }
-
-      closeLists();
-
-      // ----------------------------------------
-      // 证据卡正文
-      // ----------------------------------------
-
-      if (evidenceCardOpen) {
-        html.push(
-          `<p>${inlineMarkup(trimmed)}</p>`
-        );
-
-        return;
-      }
-
-      // ----------------------------------------
-      // 证据边界视觉块
-      // ----------------------------------------
-
-      if (currentSection === "证据边界") {
-        html.push(
-          `<p class="ai-boundary-text">
-            ${inlineMarkup(trimmed)}
-          </p>`
-        );
-
-        return;
-      }
-
-      // ----------------------------------------
-      // 普通正文
-      // ----------------------------------------
-
-      html.push(
-        `<p>${inlineMarkup(trimmed)}</p>`
-      );
-    });
-
-    closeEvidenceCard();
-    closeLists();
-
+    }
+    let answer = notice || paragraphs.join(" ");
+    if (answer.startsWith("当前仅返回馆藏原文依据")) {
+      answer = "本次暂未生成回答，下面是已检索到的参考资料，可稍后重试。";
+    }
+    const html = [`<p class="ai-answer-paragraph">${inlineMarkup(escapeHtml(answer))}</p>`];
+    const seen = new Set();
+    const items = [];
+    for (const source of references) {
+      const origin = evidenceSources.find(item => item.title === source.title && item.page === source.page);
+      const rawTitle = origin?.title || source.title;
+      const book = rawTitle.match(/《[^》]+》/);
+      // 项目内部研究记录不是参考文献；古图题名仍可作为图像依据。
+      if (!book && !rawTitle.includes("古图")) continue;
+      const title = book ? rawTitle.split(/[｜|]/)[0] : "馆藏《成都府图》";
+      const page = (origin?.page || source.page).match(/PDF\s*第\s*\d+(?:\s*[—-]\s*\d+)?\s*页(?:（[左右]页）)?/)?.[0]
+        || (book ? "页码待核" : "古图题名");
+      const label = `${title} · ${page}`;
+      if (seen.has(label)) continue;
+      seen.add(label);
+      const record = origin?.sourceType === "user-provided-ocr" ? null : resolveEvidenceRecord(source);
+      items.push(`<li>${record
+        ? `<button type="button" class="ai-reference-link" data-open-evidence="${escapeHtml(record.id)}">${escapeHtml(label)}</button>`
+        : escapeHtml(label)}</li>`);
+    }
+    if (items.length) html.push(`<div class="ai-answer-references"><h4>参考依据</h4><ul>${items.join("")}</ul></div>`);
     return html.join("");
   }
 
@@ -746,7 +474,8 @@
     article,
     text,
     status = "刚刚",
-    evidenceSources = []
+    evidenceSources = [],
+    notice = ""
   ) {
     const body =
       article.querySelector(
@@ -762,7 +491,7 @@
 
     if (text) {
       body.innerHTML =
-        renderAnswer(text, evidenceSources);
+        renderAnswer(text, evidenceSources, notice);
     } else {
       body.innerHTML = `
         <div class="ai-thinking">
@@ -1202,8 +931,8 @@
     const ranked = records.map((record) => ({record, score: tokens.filter((token) =>
       `${record.excerpt} ${record.proves}`.includes(token)).length
     })).sort((a, b) => b.score - a.score).slice(0, 3);
-    return intro + `下面是${pointQuestions[selected].name}已有的本地查阅材料，尚未判定能否回答本次问题。\n\n` +
-      ranked.map(({record}) => `${record.title} · ${record.pageLabel}\n${record.excerpt}\n可证明：${record.proves}\n边界：${record.limits}`).join("\n\n");
+    return `结论\n${intro}下面列出${pointQuestions[selected].name}的参考资料，尚未判定能否回答本次问题。\n\n文献依据\n` +
+      ranked.map(({record}, index) => `${index + 1}｜${record.title}｜${record.pageLabel}`).join("\n");
   }
 
   function addRetryButton(article, question, pointId) {
@@ -1349,34 +1078,15 @@
               : result.route === "raw-evidence"
                 ? "仅返回馆藏依据"
                 : "实时检索完成",
-        result.evidenceSources || []
+        result.evidenceSources || [],
+        result.modelStatus?.message || ""
       );
 
       assistantArticle.dataset.answerRoute =
         result.route || "realtime-model";
 
-      const sourceNote =
-        document.createElement("div");
-      sourceNote.className =
-        "ai-result-source-note";
-      sourceNote.innerHTML = `
-        <strong>${escapeHtml(result.sourceLabel || "实时检索生成")}</strong>
-        <span>
-          ${Number(result.evidenceCount) || 0} 条馆藏依据 · 来源可复核
-        </span>
-      `;
-      assistantArticle
-        .querySelector(".ai-message-body")
-        ?.appendChild(sourceNote);
-
       if (result.route === "raw-evidence" && result.retryable !== false) {
         addRetryButton(assistantArticle, cleanedQuestion, pointId);
-      }
-      if (result.modelStatus?.message) {
-        const notice = document.createElement("p");
-        notice.className = "ai-result-source-note";
-        notice.textContent = result.modelStatus.message;
-        assistantArticle.querySelector(".ai-message-body")?.prepend(notice);
       }
       setStatus(
         result.route === "insufficient-evidence"

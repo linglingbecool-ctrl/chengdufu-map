@@ -44,9 +44,9 @@ window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolat
  await page.evaluate(()=>window.__askTest.mode='raw');
  await input.fill('请查找新增文献中的武侯祠');await send.click();
  await latest.getByRole('button',{name:'重试这一问'}).waitFor();
- assert.match(await latest.locator('.ai-evidence-source small').innerText(),/PDF第9页（右页）/);
- assert.equal(await latest.locator('.ai-evidence-source strong').innerText(),'《成都街巷志》');
- assert.match(await latest.innerText(),/证据 C · OCR待核/);
+ assert.match(await latest.locator('.ai-answer-references').innerText(),/《成都街巷志》 · PDF第9页（右页）/);
+ assert.equal(await latest.locator('.ai-answer-paragraph').count(),1);
+ assert.doesNotMatch(await latest.innerText(),/OCR|证据 C|录入原文/);
  assert.equal(await latest.locator('[data-open-evidence]').count(),0);
  await input.fill('原文回退重试也保留草稿');await page.evaluate(()=>window.__askTest.mode='success');
  await latest.getByRole('button',{name:'重试这一问'}).click();
@@ -56,7 +56,7 @@ window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolat
    await page.evaluate(mode=>window.__askTest.mode=mode,mode);
    await input.fill('武侯祠的攻心联是什么时候出现的？');await send.click();
    await latest.getByRole('button',{name:'重试这一问'}).waitFor();
-   assert.match(await latest.innerText(),/赵藩/);
+   assert.match(await latest.innerText(),/《成都街巷志》/);
    assert.match(await latest.innerText(),/尚未判定能否回答/);
    assert.equal(await input.isEnabled(),true);
  }

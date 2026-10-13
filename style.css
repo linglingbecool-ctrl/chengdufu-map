@@ -7564,3 +7564,12 @@ body.scene-overlay-open {
   .map-ai-drawer .ai-point-index, .map-ai-drawer .ai-messages { padding-inline: 12px; }
   .map-ai-drawer .ai-ask-form { margin-inline: 12px; }
 }
+
+/* 问图回答：一段正文，后附简洁的书名与页码。 */
+.map-ai-drawer .ai-answer-paragraph { line-height: 1.85; margin: 0 0 18px; }
+.ai-answer-references { border-top: 1px solid rgba(53, 95, 87, .2); padding-top: 12px; font-size: .82rem; color: var(--qing-deep); }
+.ai-answer-references h4 { margin: 0 0 8px; font-size: .85rem; font-weight: 600; }
+.ai-answer-references ul { margin: 0; padding-left: 1.2em; }
+.ai-answer-references li { margin: 6px 0; line-height: 1.65; }
+.ai-reference-link { border: 0; background: transparent; padding: 0; color: inherit; text-align: left; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.ai-reference-link:focus-visible { outline: 2px solid var(--qing-deep); outline-offset: 3px; }
