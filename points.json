@@ -14,7 +14,9 @@
     "extended": "九眼桥位于成都东南角，横跨锦江，是成都近代市区内保存年代较古、规模宏大的石拱桥梁，长期享有成都“东南形胜”之誉。桥址所在锦江河段自唐宋以来即为成都重要的水运码头，舟楫往来、商旅辐辏。明万历二十一年（1593年），四川布政使余一龙主持在此建桥，历时五年竣工；因地处两河汇流之下、江面宽阔，初名洪济桥。桥为九孔石拱结构，纵四十丈、横四十尺，天启年间改名锁江桥。清乾隆五十三年（1788年），李世杰主持补修，因桥下有九个桥洞，民间久称“九眼桥”，此名遂沿袭至今。旧桥长约90米、宽约10米，1953年大修增修引桥、降低拱背坡度并铺设沥青，后经多次维修拓宽。1986年，新九眼桥于旧桥上游约14米处建成通车；旧桥因失去交通功能且桥墩被认为不利于泄洪，于1992年拆除。2001年，仿古九眼桥在距原址约1.9公里处落成，仍取九孔石拱之形，以仿古青石砌筑。九眼桥南岸一带长期为锦江水码头，建国初年尚有运输木柴的船只停泊，改革开放后一度形成劳务市场。九眼桥之名因此不仅指涉一座桥梁，更连接着水运、交通、谋生与城市更新的多重历史记忆。",
     "routeNote": "从府城东南水路切入，观察桥梁、河道与现代街区的重叠。",
     "oldImage": "jiuyanqiao-old.png",
+    "oldImagePreview": "media/optimized/jiuyanqiao-old.webp",
     "currentImage": "jiuyanqiao-current.jpg",
+    "currentImagePreview": "media/optimized/jiuyanqiao-current.webp",
     "detailLevel": "core",
     "source": "《成都府图·六个重点点位官方介绍》；参考《成都通览》《成都街巷志》整理。"
   },
@@ -34,6 +36,7 @@
     "routeNote": "从九眼桥南侧进入望江校区，记录校园与城市共同生长的生活片段。",
     "oldImage": "",
     "currentImage": "sichuandaxue-current.jpeg",
+    "currentImagePreview": "media/optimized/sichuandaxue-current.webp",
     "detailLevel": "campus",
     "source": "今地点位；依据四川大学望江校区与九眼桥的今日空间关系设置。"
   },
@@ -53,6 +56,7 @@
     "routeNote": "从府城南门外向锦江南岸延伸，在万里桥以东一带寻找今日华西坝的城市记忆。",
     "oldImage": "",
     "currentImage": "huaxiba-current.png",
+    "currentImagePreview": "media/optimized/huaxiba-current.webp",
     "detailLevel": "campus",
     "source": "今地点位；依据四川大学档案馆《诗咏华西坝》及四川大学官方华西校区地址资料作概略定位。"
   },
@@ -71,7 +75,9 @@
     "extended": "武侯祠位于成都锦官城外，始建于章武三年（223年），最初为纪念蜀汉丞相诸葛亮（谥号忠武侯）的专祠，亦称孔明庙、诸葛祠、丞相祠。诸葛亮初亡，蜀人追思，百姓遇节朔私祭于道上，李雄称王时始为庙于少城内，历经唐宋明清不断修缮，明初与昭烈庙合并，形成独一无二的“君臣合祀”格局——刘备殿在前，诸葛亮殿在后，关羽、张飞等蜀汉文臣武将塑像列侍其间。道光二十九年（1849年），成都学者刘沅主持调整并重塑祠内塑像，今日所见四十七尊塑像之格局即由此奠定。光绪二十八年（1902年），赵藩撰写“能攻心则反侧自消，从古知兵非好战；不审势即宽严皆误，后来治蜀要深思”名联，悬挂于诸葛亮殿前，成为武侯祠最受关注的历史文物之一。祠内古柏参天，杜甫名句“丞相祠堂何处寻，锦官城外柏森森”即咏此景。1961年，成都武侯祠被国务院列为首批全国重点文物保护单位，现为全国最负盛名的诸葛亮、刘备纪念地和全国最大的三国遗迹博物馆。历经近两千年风雨，武侯祠承载着诸葛亮“鞠躬尽瘁，死而后已”的忠义精神与蜀汉君臣“如鱼得水”的千古佳话，是探寻三国文化、感受千年文脉的必至之所。",
     "routeNote": "进入三国记忆核心区，阅读祠庙空间如何转化为城市文化名片。",
     "oldImage": "wuhouci-old.png",
+    "oldImagePreview": "media/optimized/wuhouci-old.webp",
     "currentImage": "wuhouci-current.jpg",
+    "currentImagePreview": "media/optimized/wuhouci-current.webp",
     "detailLevel": "core",
     "source": "《成都府图·六个重点点位官方介绍》；参考《成都通览》《成都街巷志》整理。"
   },
@@ -90,7 +96,9 @@
     "extended": "文殊院位于成都城北，是清代成都四大寺院之一，其影响通过进香路线与街名深刻融入老城北部的城市空间。清代时，今酱园公所街、五岳宫街与文殊院街由东向西连成一条街，总称“头福街”——由北门入城的朝香拜庙者经此街可往白云寺、五岳宫和文殊院等寺院，当地人认为此街最先得到福佑，故以为名。后因咸丰年间修建酱园公所，东段改称酱园公所街；民国时期中段、西段分别因五岳宫、文殊院而改称五岳宫街、文殊院街。寺院名称与街道名称相互关联，使文殊院的影响超出寺院院墙，延伸至老城北部居民的出行、礼佛与地方认同之中。文殊院兼具宗教仪式、僧团生活与城市公共活动的多重性质，是成都佛教文化与城市生活交融的重要见证。",
     "routeNote": "向老城北部行走，感受寺院、街巷与日常生活的并置。",
     "oldImage": "wenshuyuan-old.png",
+    "oldImagePreview": "media/optimized/wenshuyuan-old.webp",
     "currentImage": "wenshuyuan-current.jpg",
+    "currentImagePreview": "media/optimized/wenshuyuan-current.webp",
     "detailLevel": "core",
     "source": "《成都府图·六个重点点位官方介绍》；参考《成都通览》《成都街巷志》整理。"
   },
@@ -109,7 +117,9 @@
     "extended": "青羊宫位于成都城西，是成都最著名的道教宫观。相传汉代已有青羊肆，后世由此衍生出老子化青羊降临成都的传说；后来有青羊观、玄中观，唐僖宗中和三年（883年）扩建后正式称为青羊宫。现存建筑经清代康熙、乾隆、嘉庆、同治四朝多次重建和扩建。主殿三清殿前有八卦亭，以木石结构斗榫衔接，外檐石柱镂空滚龙抱柱，工艺精湛。三清殿内供有一对铜羊：单角铜羊由张鹏翮于清雍正元年（1723年）自北京购得赠予青羊宫，其形象被解释为十二生肖之合体；双角铜羊则于道光九年（1829年）在成都铸造。老成都民间长期流传抚摸铜羊可以祛病、求子的信念，使这对铜羊成为宫观信仰与民俗实践的结合点。青羊宫又是成都重要的游览、灯会与花会空间。花会由唐宋时期的花市传统、清代青羊宫庙会逐渐发展而来，兼具踏青游赏、商贸展销、风味饮食与群众文体活动；清末的商业劝工会、劝业会亦曾在此连续举行，使青羊宫从道教宫观进一步成为成都公共节庆和近代商业展示的重要场所。",
     "routeNote": "沿城西文化带展开，观察宫观、花会与公共游憩的关系。",
     "oldImage": "qingyanggong-old.png",
+    "oldImagePreview": "media/optimized/qingyanggong-old.webp",
     "currentImage": "qingyanggong-current.jpg",
+    "currentImagePreview": "media/optimized/qingyanggong-current.webp",
     "detailLevel": "core",
     "source": "《成都府图·六个重点点位官方介绍》；参考《成都通览》《成都街巷志》整理。"
   },
@@ -128,7 +138,9 @@
     "extended": "清代康熙五十七年（1718年），清政府安排满蒙八旗官兵长期驻防成都；康熙六十年（1721年）起，在四川巡抚年羹尧奏请下开始修筑驻防新城，工程延续二十余年，后称满城，亦称少城。满城位于成都大城西部，城墙周长约2.7公里，东至今东城根街，南至君平街，北至西大街，西侧与大城城墙相合，形成大城之内“城中之城”的独特格局。长顺街横贯南北，两侧分列官街与胡同，驻防将军衙门居其一端，整体形态被形容为蜈蚣——将军帅府居蜈蚣之头，大街直达北门如蜈蚣之身，各胡同左右排列如蜈蚣之足。满城有独立城门，清代相对封闭，城内不设一般商店、茶楼和酒肆，人口密度较低，树木花草繁茂，形成安静、绿荫浓厚的居住环境。辛亥革命后，满城不再作为封闭驻防城保留，城墙自1912年起陆续拆除，至1935年最后一段拆完；原有胡同也按成都街巷命名习惯改名为街、巷。井巷子原名如意胡同、明德胡同，民国初年因巷中水井而定名；宽巷子、窄巷子与之并列，三者后作为市中心民俗文化街区整体改造。今日宽巷子、窄巷子和井巷子可作为观察清代满城街巷遗存的窗口，承载着成都驻防历史与城市记忆的独特肌理。",
     "routeNote": "在街巷尺度中阅读满城遗痕，看制度空间如何转为公共文化街区。",
     "oldImage": "mancheng-old.png",
+    "oldImagePreview": "media/optimized/mancheng-old.webp",
     "currentImage": "mancheng-current.jpg",
+    "currentImagePreview": "media/optimized/mancheng-current.webp",
     "detailLevel": "core",
     "source": "《成都府图·六个重点点位官方介绍》；参考《成都通览》《成都街巷志》整理。"
   },
@@ -147,6 +159,7 @@
     "extended": "红牌楼位于成都南郊，是成都南门外重要的地理坐标与区域名称。明嘉靖年间，蜀王为迎接从西藏前来向朝廷送贡礼的官员和接待来成都经商的藏族同胞，在进入成都的必经之地南郊修建了东西两座三门式牌楼。牌楼前开辟场地，两座牌楼之间建有一座接待住宿的驿馆，整体建筑通体刷以朱砂红，既彰显朝廷“朱门”威仪，又符合藏族“尚红”礼俗。西藏来的僧俗朝贡团队至此须下马，进行换文、验贡、领赏等一系列政治确认活动；牌坊前的场地也自然成为汉藏“茶马互市”的经济活动场所。这片区域随后逐渐形成郊区集市，被称为“红牌楼”。明末清初战乱中，原牌楼与驿馆被毁，但地名保留至今。民国《华阳县志》特为此作了解释：成都方言本称“牌坊”而不称“牌楼”，因当时府衙沿用了北方称谓，故老百姓一直称为“红牌楼”。民国初期，当地士绅为祝愿五谷丰登，报官府批准，将已形成场镇的这一地区正式命名为“永丰场”。此后传统“红牌楼”地名与正式“永丰场”地名长期并行使用，这一历史渊源也解释了今红牌楼附近大道称“永丰大道”、南二环立交称“永丰立交桥”的由来。民国时期的川康公路及新中国的老川藏公路均以红牌楼为起点；今日二环路、地铁3号线与10号线亦在此交汇，使其成为成都南郊重要的交通枢纽。2025年，二环路红牌楼立交大修，恢复“正统朱红”（即中国红）色泽，桥体化为长条形红牌楼，成为一处看得见历史的立交桥。红牌楼的中国红，从明朝一直红到了现在，承载着汉藏交往、民族融合的深厚历史记忆。",
     "routeNote": "抵达城南方向，理解城外节点如何被城市扩张重新包裹。",
     "oldImage": "hongpailou-old.png",
+    "oldImagePreview": "media/optimized/hongpailou-old.webp",
     "currentImage": "hongpailou-current.svg",
     "detailLevel": "core",
     "source": "《成都府图·六个重点点位官方介绍》；参考《成都通览》《成都街巷志》整理。"
@@ -166,6 +179,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "jiulidi-old.png",
+    "oldImagePreview": "media/optimized/jiulidi-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -185,7 +199,9 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "zhaojuesi-old.png",
+    "oldImagePreview": "media/optimized/zhaojuesi-old.webp",
     "currentImage": "zhaojuesi-current.jpg",
+    "currentImagePreview": "media/optimized/zhaojuesi-current.webp",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic",
     "imageAttribution": "昭觉寺，Fxqf 摄，CC BY-SA 3.0，Wikimedia Commons。",
@@ -207,6 +223,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "tianhuizhen-old.png",
+    "oldImagePreview": "media/optimized/tianhuizhen-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -226,6 +243,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "shahepu-old.png",
+    "oldImagePreview": "media/optimized/shahepu-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -245,6 +263,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "damianpu-old.png",
+    "oldImagePreview": "media/optimized/damianpu-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -264,6 +283,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "simaqiao-old.png",
+    "oldImagePreview": "media/optimized/simaqiao-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -283,6 +303,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "tianyashi-old.png",
+    "oldImagePreview": "media/optimized/tianyashi-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -302,6 +323,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "huayangxian-old.png",
+    "oldImagePreview": "media/optimized/huayangxian-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -321,6 +343,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "wannianchang-old.png",
+    "oldImagePreview": "media/optimized/wannianchang-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic",
@@ -341,6 +364,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "chengdufuwenmiao-old.png",
+    "oldImagePreview": "media/optimized/chengdufuwenmiao-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -360,7 +384,9 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "anshunqiao-old.png",
+    "oldImagePreview": "media/optimized/anshunqiao-old.webp",
     "currentImage": "anshunqiao-current.jpg",
+    "currentImagePreview": "media/optimized/anshunqiao-current.webp",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic",
     "imageAttribution": "成都安顺桥，螺钉 摄，CC BY-SA 4.0，Wikimedia Commons。",
@@ -382,6 +408,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "wanliqiao-old.png",
+    "oldImagePreview": "media/optimized/wanliqiao-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -401,6 +428,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "huanhuaxi-old.png",
+    "oldImagePreview": "media/optimized/huanhuaxi-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -420,6 +448,7 @@
     "extended": "杜甫于759年冬抵达成都，次年春在浣花溪边营建草堂。草堂此后历经重建、修葺与扩建，如今为成都杜甫草堂博物馆，保存着杜甫纪念建筑与诗意园林。读者可从古图“少陵草堂”出发，留下游览、读诗、学习或与浣花溪有关的个人记忆。",
     "routeNote": "",
     "oldImage": "dufucaotang-old.png",
+    "oldImagePreview": "media/optimized/dufucaotang-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏古图“少陵草堂”标注；成都杜甫草堂博物馆《草堂简介》（https://www.cddfct.cn/go-c11.htm）。",
     "detailLevel": "basic"
@@ -438,6 +467,7 @@
     "note": "点位标在古图薛涛井的井形符号处，用作古图阅读和公众记忆征集入口；不将古井符号等同于今日整个公园的范围，也不作为现代精确测绘坐标。",
     "source": "望江楼公园官网《望江楼简介》《薛涛井》；古图位置经原始扫描图核对。https://www.wangjianglou.com/about.html https://www.wangjianglou.com/build/201804/178.html",
     "oldImage": "wangjianglou-old.jpg",
+    "oldImagePreview": "media/optimized/wangjianglou-old.webp",
     "currentImage": "",
     "confidence": "古图题名与今日纪念遗迹相关，园区范围另作区分",
     "evidence": "原始古图薛涛井题名及井形符号；望江楼公园官网薛涛井介绍。"
@@ -457,6 +487,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "zongduyamen-old.png",
+    "oldImagePreview": "media/optimized/zongduyamen-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -476,6 +507,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "dongjiaochang-old.png",
+    "oldImagePreview": "media/optimized/dongjiaochang-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -495,6 +527,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "beijiaochang-old.png",
+    "oldImagePreview": "media/optimized/beijiaochang-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -514,6 +547,7 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "zhijishi-old.png",
+    "oldImagePreview": "media/optimized/zhijishi-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"
@@ -533,7 +567,9 @@
     "extended": "资料整理中。后续将依据地方志、历史地图及馆藏文献补充点位介绍；公众仍可提交与此地有关的照片、故事或口述线索。",
     "routeNote": "",
     "oldImage": "dacisi-old.png",
+    "oldImagePreview": "media/optimized/dacisi-old.webp",
     "currentImage": "dacisi-current.jpg",
+    "currentImagePreview": "media/optimized/dacisi-current.webp",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic",
     "imageAttribution": "大慈寺，EditQ 摄，CC0，Wikimedia Commons。",
@@ -556,6 +592,7 @@
     "extended": "古图以“五塊石”题名和石形图像记录这一地标，旁有“净土寺”题名。此处提供相关照片、故事与口述线索的投稿入口；与今日塔子山公园一带的对应关系仍待进一步核实。",
     "routeNote": "",
     "oldImage": "wukuaishi-old.png",
+    "oldImagePreview": "media/optimized/wukuaishi-old.webp",
     "currentImage": "",
     "source": "四川大学图书馆馆藏《清初四川通省山川形胜全图》；基础历史资料整理中。",
     "detailLevel": "basic"

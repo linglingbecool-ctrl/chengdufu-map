@@ -16,10 +16,14 @@ const points=JSON.parse(fs.readFileSync('points.json'));const old=JSON.parse(req
 // 地图下架不删除投稿；保留点位 ID、坐标及其余历史资料。
 const removedIds=new Set(['dafosi','chengduxianwenmiao','wenchanggong']);
 const renamed={tianyashi:'天涯石',mancheng:'满城（宽窄巷子、人民公园一带）',huayangxian:'华阳县治所（正府街一带）',chengdufuwenmiao:'成都府文庙（文翁路一带）'};
+// Image additions/previews are maintained separately; keep the historical text,
+// IDs and coordinates invariant against the original point-removal release.
+const imageFields=new Set(['oldImage','currentImage','oldImagePreview','currentImagePreview','oldImageCaption','imageAttribution','imageSourceUrl','imageLicenseUrl']);
+const withoutImages=p=>Object.fromEntries(Object.entries(p).filter(([key])=>!imageFields.has(key)));
 for(const previous of old){
  const current=points.find(p=>p.id===previous.id);
  if(removedIds.has(previous.id)){assert.equal(current,undefined);continue;}
- assert.deepEqual(current,{...previous,nameModern:renamed[previous.id]||previous.nameModern});
+ assert.deepEqual(withoutImages(current),withoutImages({...previous,nameModern:renamed[previous.id]||previous.nameModern}));
 }
 assert.equal(new Set(points.map(p=>p.id)).size,points.length);
 assert.equal(points.find(p=>p.id==='wangjianglou').nameAncient,'薛涛井');

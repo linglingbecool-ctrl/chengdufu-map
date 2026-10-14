@@ -23,8 +23,16 @@ const points = JSON.parse(fs.readFileSync('points.json', 'utf8'));
         assert.doesNotMatch(await card.innerText(), /资料说明/);
         assert.equal(await card.locator('.point-media img').count(), Number(!!point.oldImage)+Number(!!point.currentImage));
         await card.locator('.point-media img').evaluateAll(async images => {
-          await Promise.all(images.map(async img => { img.loading='eager'; await img.decode(); if(!img.naturalWidth) throw Error(img.src); }));
+          let timer;
+          try {
+            await Promise.race([
+              Promise.all(images.map(async img => { img.loading='eager'; await img.decode(); if(!img.naturalWidth) throw Error(img.src); })),
+              new Promise((_, reject) => { timer = setTimeout(() => reject(Error('Point image loading timed out')), 15000); })
+            ]);
+          } finally { clearTimeout(timer); }
         });
+        const sources = await card.locator('.point-media img').evaluateAll(images => images.map(img => new URL(img.src).pathname));
+        for (const key of ['oldImage', 'currentImage']) if (point[key]) assert(sources.some(src => src.endsWith('/' + (point[key + 'Preview'] || point[key]))));
         if (point.imageAttribution) assert.equal(await card.locator('.point-media a').count(), 2);
       }
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));

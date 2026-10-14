@@ -650,6 +650,7 @@
   async function callEvidenceQuestion(
     question, pointId = activePointId
   ) {
+    await window.tuhuiEnsureCloudBase();
     const app = getCloudApp();
 
     if (
@@ -1427,6 +1428,11 @@
         "等待 CloudBase SDK",
         "working"
       );
+      window.tuhuiEnsureCloudBase().then(() => {
+        if (!busy) setStatus("馆藏知识库待命", "ready");
+      }).catch(() => {
+        if (!busy) setStatus("云服务暂未连接，可提问重试", "working");
+      });
     }
   }
 

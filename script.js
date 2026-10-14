@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20261014-points03";
+const APP_VERSION = "20261014-speed01";
 
 // 与 CloudBase source_fragments 完成哈希去重后的实数同步。
 const KNOWLEDGE_CORPUS_METRICS = Object.freeze({
@@ -289,21 +289,35 @@ const mapHubElements = {};
    CloudBase 初始化
    =============================================== */
 
+// Share one async SDK request between memories and Q&A. Map browsing never waits
+// for it. Failed requests are cleared so the next question can retry.
+let cloudSdkPromise = null;
+window.tuhuiEnsureCloudBase = function () {
+  if (typeof window.cloudbase?.init === "function") return Promise.resolve();
+  if (cloudSdkPromise) return cloudSdkPromise;
+  cloudSdkPromise = new Promise((resolve, reject) => {
+    const sdk = document.createElement("script");
+    sdk.src = "https://static.cloudbase.net/cloudbase-js-sdk/3.7.1/cloudbase.full.js";
+    sdk.async = true;
+    const finish = error => {
+      clearTimeout(timer);
+      sdk.onload = sdk.onerror = null;
+      if (error) {
+        sdk.remove();
+        reject(error);
+      } else resolve();
+    };
+    const timer = setTimeout(() => finish(new Error("云服务脚本加载超时，请稍后重试")), 15000);
+    sdk.onload = () => finish(typeof window.cloudbase?.init === "function" ? null : new Error("云服务脚本不可用"));
+    sdk.onerror = () => finish(new Error("云服务脚本下载失败，请稍后重试"));
+    document.head.append(sdk);
+  }).catch(error => { cloudSdkPromise = null; throw error; });
+  return cloudSdkPromise;
+};
+
 async function initCloudBase() {
-  if (
-    !window.cloudbase ||
-    typeof window.cloudbase.init !== "function"
-  ) {
-    cloudReady = false;
-
-    console.error(
-      "CloudBase SDK 未加载。请检查 index.html 中 cloudbase.full.js 的地址。"
-    );
-
-    return false;
-  }
-
   try {
+    await window.tuhuiEnsureCloudBase();
     const cloudbaseOptions = {
       env: CLOUDBASE_ENV_ID,
       region: CLOUDBASE_REGION
@@ -544,7 +558,7 @@ function renderPointMedia(point) {
   const figures = [];
   const isCampusPoint =
     point.detailLevel === "campus";
-  const oldImage = point.oldImage;
+  const oldImage = point.oldImagePreview || point.oldImage;
 
   if (oldImage) {
     figures.push(`
@@ -557,6 +571,7 @@ function renderPointMedia(point) {
             point.nameAncient
           )}古图局部图"
           loading="lazy"
+          decoding="async"
         >
 
         <figcaption>
@@ -571,12 +586,13 @@ function renderPointMedia(point) {
       <figure>
         <img
           src="./${escapeHtml(
-            point.currentImage
+            point.currentImagePreview || point.currentImage
           )}"
           alt="${escapeHtml(
             point.nameModern
           )}今日影像"
           loading="lazy"
+          decoding="async"
         >
 
         ${
@@ -3443,7 +3459,7 @@ function renderPostCover(memory, point = {}) {
   const place=memory.pointName || point.nameModern || "成都";
   // A temporarily unavailable uploaded photo must not be mistaken for a text-only contribution.
   const textOnly=!actual && !(memory.imageFileIds?.length || Number(memory.imageCount)) && Boolean(content);
-  const image=actual || (textOnly ? memoryTextCover(content,place) : `./${point.oldImage || "chengdu-map-original.jpg"}`);
+  const image=actual || (textOnly ? memoryTextCover(content,place) : `./${point.oldImagePreview || point.oldImage || "media/optimized/chengdu-map-original.webp"}`);
   const label=actual || textOnly ? "" : "古图配图";
   return `<div class="memory-post-cover${textOnly ? " is-text-cover" : actual ? "" : " is-illustration"}"><img src="${escapeHtml(image)}" alt="${escapeHtml(place)}${textOnly ? "文字封面" : label || "记忆照片"}" loading="lazy">${label ? `<span>${label}</span>` : ""}</div>`;
 }
@@ -4012,7 +4028,7 @@ function renderEvidenceViewer(record) {
     `
       : `
       <section class="evidence-note-preview">
-        <img src="./chengdu-map-original.jpg" alt="馆藏成都府图" loading="eager">
+        <img src="./media/optimized/chengdu-map-original.webp" alt="馆藏成都府图" loading="eager" decoding="async">
         <div>
           <span>RESEARCH NOTE</span>
           <strong>此条为项目核验记录</strong>
@@ -7308,7 +7324,7 @@ async function loadPoints() {
         method: "GET",
 
         cache:
-          "no-store",
+          "default",
 
         headers: {
           Accept:

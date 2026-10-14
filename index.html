@@ -30,19 +30,16 @@
 
     <link
       rel="stylesheet"
-      href="./style.css?v=20261014-points03"
+      href="./style.css?v=20261014-speed01"
     />
 
-    <script src="./config.js?v=20260927-ask02"></script>
+    <link rel="preload" as="image" href="./media/optimized/chengdu-map-original.webp" fetchpriority="high" />
+    <link rel="preload" as="fetch" href="./points.json?v=20261014-speed01" crossorigin />
+    <link rel="preconnect" href="https://static.cloudbase.net" crossorigin />
 
-    <script src="./evidence-data.js?v=20260927-ask02"></script>
+    <script defer src="./config.js?v=20260927-ask02"></script>
 
-    <!-- CloudBase Web SDK 3.x：数据库、公众投稿与 Agent 流式问答共用 -->
-    <script
-      src="https://static.cloudbase.net/cloudbase-js-sdk/3.7.1/cloudbase.full.js"
-      onload="console.log('CloudBase SDK 3.7.1 加载成功')"
-      onerror="console.error('CloudBase SDK 3.7.1 加载失败')"
-    ></script>
+    <script defer src="./evidence-data.js?v=20260927-ask02"></script>
   </head>
 
   <body>
@@ -293,7 +290,8 @@
               <div class="map-sheet">
                 <img
                   class="map-image"
-                  src="./chengdu-map-original.jpg"
+                  src="./media/optimized/chengdu-map-original.webp"
+                  width="2400" height="2049" fetchpriority="high" decoding="async"
                   alt="四川大学图书馆馆藏成都府图原图"
                 />
 
@@ -1011,7 +1009,7 @@
       <div class="walk-scene__layout">
         <div class="walk-map" id="walkMap">
           <div class="walk-map-sheet">
-            <img src="./chengdu-map-original.jpg" alt="成都府古图路线底图" />
+            <img src="./media/optimized/chengdu-map-original.webp" alt="成都府古图路线底图" width="2400" height="2049" loading="lazy" decoding="async" />
             <svg class="walk-route-svg" id="walkRouteSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               <polyline id="walkRouteBase" points=""></polyline>
               <polyline id="walkRouteProgress" points=""></polyline>
@@ -1040,16 +1038,16 @@
 
 
     <!--
-      script.js 必须放在 CloudBase SDK 之后。
+      本地脚本按顺序 defer 执行；CloudBase 由 script.js 异步加载，不阻塞地图。
       版本号用于避免浏览器继续读取旧缓存。
     -->
 
-    <script src="./account.js?v=20260927-ask02"></script>
-    <script src="./contribution-images.js?v=20260927-ask02"></script>
-    <script src="./script.js?v=20261014-points03"></script>
+    <script defer src="./account.js?v=20260927-ask02"></script>
+    <script defer src="./contribution-images.js?v=20260927-ask02"></script>
+    <script defer src="./script.js?v=20261014-speed01"></script>
 
     <script
-      src="./ai-guide.js?v=20261014-points03"
+      defer src="./ai-guide.js?v=20261014-speed01"
     ></script>
   </body>
 </html>
