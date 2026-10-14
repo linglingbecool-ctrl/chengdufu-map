@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20261014-knowledge01";
+const APP_VERSION = "20261014-points02";
 
 // 与 CloudBase source_fragments 完成哈希去重后的实数同步。
 const KNOWLEDGE_CORPUS_METRICS = Object.freeze({
@@ -544,13 +544,18 @@ function renderPointMedia(point) {
   const figures = [];
   const isCampusPoint =
     point.detailLevel === "campus";
+  const oldImage =
+    point.oldImage ||
+    (point.detailLevel === "basic"
+      ? `${point.id}-old.png`
+      : "");
 
-  if (point.oldImage) {
+  if (oldImage) {
     figures.push(`
       <figure>
         <img
           src="./${escapeHtml(
-            point.oldImage
+            oldImage
           )}"
           alt="${escapeHtml(
             point.nameAncient
@@ -582,7 +587,19 @@ function renderPointMedia(point) {
           isCampusPoint
             ? ""
             : `<figcaption>
-                今日影像
+                今日影像${
+                  point.imageAttribution
+                    ? ` · ${escapeHtml(point.imageAttribution)}`
+                    : ""
+                }${
+                  point.imageSourceUrl
+                    ? ` <a href="${escapeHtml(point.imageSourceUrl)}" target="_blank" rel="noopener noreferrer">来源</a>`
+                    : ""
+                }${
+                  point.imageLicenseUrl
+                    ? ` <a href="${escapeHtml(point.imageLicenseUrl)}" target="_blank" rel="noopener noreferrer">许可</a>`
+                    : ""
+                }
               </figcaption>`
         }
       </figure>
@@ -3556,14 +3573,12 @@ function renderDetail(point, shouldScroll = false) {
   const knowledge = CORE_POINT_KNOWLEDGE[point.id];
   const meta = `<div class="meta-grid">${renderOptionalRow("点位类型", point.type)}${renderOptionalRow("点位状态", getStatusLabel(point))}${renderOptionalRow("古图标注", point.nameAncient)}${renderOptionalRow("今日名称", point.nameModern)}</div>`;
   const timeline = knowledge?.timeline?.length ? `<details class="detail-facts"><summary>时间变化</summary><ol class="detail-timeline">${knowledge.timeline.map(([period, content]) => `<li><time>${escapeHtml(period)}</time><p>${escapeHtml(content)}</p></li>`).join("")}</ol></details>` : "";
-  const caution = knowledge?.caution || point.note;
   detailEl.innerHTML = `<article class="point-card point-card--compact">
     <span class="type-pill">官方点位介绍</span><h3>${escapeHtml(point.nameModern || point.nameAncient)}</h3>
     <label class="detail-point-select">切换点位<select id="detailPointSelect" aria-label="选择点位查看介绍">${pointSelectOptions()}</select></label>
     <details class="detail-facts"><summary>地点信息</summary>${meta}</details>${timeline}
     ${renderPointMedia(point)}
     <section class="official-intro"><h4>历史导读</h4>${renderParagraphs(point.extended || point.quick || "基础历史资料正在整理中，欢迎留下与此地有关的真实记忆。")}</section>
-    ${caution ? `<p class="detail-caution"><strong>资料说明</strong>${escapeHtml(caution)}</p>` : ""}
     <button type="button" class="memory-btn" data-memory-button>留下我的城市记忆</button>
     ${renderMemorySection(point)}
   </article>`;
