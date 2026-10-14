@@ -19,6 +19,7 @@ function harness(records, cache = []) {
   const h=harness(records);const r=await h.main({question:'支矶石街的名称由来',pointId:'wuhouci'});
   assert.equal(r.ok,true);assert.ok(r.evidenceIds.includes('ocr_test'),'records after page one are searched');
   assert.match(r.answer,/OCR原文件第101—109行/);assert.match(r.answer,/OCR待核/);assert.doesNotMatch(r.answer,/PDF第101/);
+  assert.match(r.evidenceSources[0].quote,/支矶石街的名称来自支矶石/);
   assert.ok(h.getPayload().evidence_records_json.some(x=>x.evidenceText.includes('来自支矶石')));
   const revision=(await h.ctx.loadCorpus()).revision;
   assert.notEqual(revision,(await harness([...records,{...ocr,_id:'new',source_sha256:'v2'}]).ctx.loadCorpus()).revision);

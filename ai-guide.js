@@ -369,8 +369,9 @@
     sourceEvidenceQueues.clear();
     const paragraphs = [];
     const references = [];
+    let activeReference = null;
     let section = "结论";
-    // 兼容已缓存及预置答案：读者只看一段正文和书目定位，核验数据留在后台。
+    // 兼容已缓存及预置答案：正文保持一段，参考依据显示书目定位和一条短句。
     for (const line of publicFacingText(text).split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed) continue;
@@ -381,7 +382,12 @@
       if (section === "结论") paragraphs.push(trimmed.replace(/^[-•]\s*/, ""));
       else if (section === "文献依据") {
         const source = parseSourceHeader(trimmed);
-        if (source) references.push(source);
+        if (source) {
+          activeReference = source;
+          references.push(source);
+        } else if (activeReference && !activeReference.quote && !/^证据\s+[ABC]\b/.test(trimmed)) {
+          activeReference.quote = trimmed;
+        }
       }
     }
     let answer = notice || paragraphs.join(" ");
@@ -404,9 +410,10 @@
       if (seen.has(label)) continue;
       seen.add(label);
       const record = origin?.sourceType === "user-provided-ocr" ? null : resolveEvidenceRecord(source);
+      const quote = String(origin?.quote || source.quote || "").replace(/^…|…$/g, "").trim();
       items.push(`<li>${record
         ? `<button type="button" class="ai-reference-link" data-open-evidence="${escapeHtml(record.id)}">${escapeHtml(label)}</button>`
-        : escapeHtml(label)}</li>`);
+        : escapeHtml(label)}${quote ? `<small>“${escapeHtml(quote)}”</small>` : ""}</li>`);
     }
     if (items.length) html.push(`<div class="ai-answer-references"><h4>参考依据</h4><ul>${items.join("")}</ul></div>`);
     return html.join("");

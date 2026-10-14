@@ -4,7 +4,14 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20261010-points03";
+const APP_VERSION = "20261014-knowledge01";
+
+// 与 CloudBase source_fragments 完成哈希去重后的实数同步。
+const KNOWLEDGE_CORPUS_METRICS = Object.freeze({
+  sources: 6,
+  fragments: 2237,
+  grades: Object.freeze({ A: 20, B: 3, C: 2214 })
+});
 
 const CLOUDBASE_ENV_ID =
   window.TUHUI_CONFIG?.envId ||
@@ -1021,20 +1028,10 @@ function updateMapMemoryLayerCounts() {
 }
 
 function updateArchiveMetrics() {
-  const records =
-    window.TUHUI_EVIDENCE
-      ?.records || [];
-
   const values = {
     "[data-archive-map-count]": 1,
-    "[data-archive-source-count]": new Set(
-      records
-        .filter((record) =>
-          record.sourceKey !== "project"
-        )
-        .map((record) => record.title)
-    ).size,
-    "[data-archive-fragment-count]": records.length,
+    "[data-archive-source-count]": KNOWLEDGE_CORPUS_METRICS.sources,
+    "[data-archive-fragment-count]": KNOWLEDGE_CORPUS_METRICS.fragments,
     "[data-archive-profile-count]": citywalkOrder.length,
     "[data-archive-point-count]": allPoints.length
   };
@@ -1051,10 +1048,7 @@ function updateArchiveMetrics() {
 
   ["A", "B", "C"]
     .forEach((grade) => {
-      const count = records.filter(
-        (record) =>
-          record.grade === grade
-      ).length;
+      const count = KNOWLEDGE_CORPUS_METRICS.grades[grade];
 
       document
         .querySelectorAll(

@@ -9,7 +9,7 @@ window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolat
  if(name!=='askEvidenceQuestion')return {result:{ok:true,memories:[]}};
  const test=window.__askTest;test.calls.push(data);
  if(test.mode==='raw')return {result:{ok:true,route:'raw-evidence',retryable:true,evidenceCount:1,
-   evidenceSources:[{title:'《成都街巷志》',page:'PDF第9页（右页）',sourceType:'user-provided-ocr',grade:'C',verificationStatus:'OCR待核'}],
+   evidenceSources:[{title:'《成都街巷志》',page:'PDF第9页（右页）',sourceType:'user-provided-ocr',grade:'C',verificationStatus:'OCR待核',quote:'支矶石街原文节选。'}],
    answer:'结论\\n仅返回文献依据。\\n\\n文献依据\\n1｜《成都街巷志》｜PDF第9页（右页）\\n录入原文，待核验。'}};
  if(test.mode==='network')throw new Error('network request error');
  if(test.mode==='timeout')return new Promise(()=>{});
@@ -46,7 +46,9 @@ window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolat
  await latest.getByRole('button',{name:'重试这一问'}).waitFor();
  assert.match(await latest.locator('.ai-answer-references').innerText(),/《成都街巷志》 · PDF第9页（右页）/);
  assert.equal(await latest.locator('.ai-answer-paragraph').count(),1);
- assert.doesNotMatch(await latest.innerText(),/OCR|证据 C|录入原文/);
+ const rawText=await latest.innerText();
+ assert.doesNotMatch(rawText,/OCR|证据 C|录入原文/);
+ assert.match(rawText,/支矶石街原文节选/);
  assert.equal(await latest.locator('[data-open-evidence]').count(),0);
  await input.fill('原文回退重试也保留草稿');await page.evaluate(()=>window.__askTest.mode='success');
  await latest.getByRole('button',{name:'重试这一问'}).click();

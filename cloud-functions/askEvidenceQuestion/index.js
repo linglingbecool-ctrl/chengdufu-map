@@ -215,7 +215,7 @@ function safeEvidenceRecord(record) {
   };
 }
 
-// 当前私有语料不足两千片段，分页读取并在单实例内缓存一分钟。
+// 当前私有语料约两千余片段，分页读取并在单实例内缓存一分钟。
 // 达到一万片段时应迁移到服务端全文/向量检索；超限报错，不能静默漏检后面的书。
 let corpusCache = null;
 async function loadCorpus() {
@@ -407,9 +407,17 @@ function formatModelAnswer(modelResult, evidence) {
   return `结论\n${conclusion}\n\n文献依据\n${evidenceLines(modelResult, evidence)}\n\n证据等级\n${cleanText(modelResult.evidence_grade, 500) || "请结合各条证据卡所标注的 A/B/C 等级与核验状态阅读。"}\n\n证据边界\n本材料能证明什么：${cleanText(modelResult.can_prove, 700) || "仅能证明上述片段明确记录的内容。"}\n本材料不能证明什么：${cleanText(modelResult.cannot_prove, 700) || "不能超出片段范围作推断。"}${insufficient ? `\n仍缺材料：${missing}` : ""}`;
 }
 
-function evidenceSources(evidence) {
-  return evidence.map(({fragmentId, title, page, grade, verificationStatus, sourceType}) =>
-    ({fragmentId, title, page, grade, verificationStatus, sourceType}));
+function evidenceSources(evidence, tokens = []) {
+  return evidence.map((item) => ({
+    fragmentId: item.fragmentId,
+    title: item.title,
+    page: item.page,
+    grade: item.grade,
+    verificationStatus: item.verificationStatus,
+    sourceType: item.sourceType,
+    // 直接从检索片段截取短句，供前端展示“哪本书的哪句话”；不由模型编造。
+    quote: cleanText(evidenceExcerpt(item, tokens).replace(/（片段节选）$/, ""), 90)
+  }));
 }
 
 function evidenceExcerpt(item, tokens = []) {
@@ -456,7 +464,7 @@ async function saveCache({
     decision: modelResult.decision,
     answer,
     evidenceIds: evidence.map((item) => item.fragmentId).filter(Boolean),
-    evidenceSources: evidenceSources(evidence),
+    evidenceSources: evidenceSources(evidence, questionTokens),
     evidenceCount: evidence.length,
     status: "unverified",
     provider: PROVIDER_CONFIG.providerName,
@@ -571,7 +579,7 @@ exports.main = async (event = {}) => {
         sourceLabel: "馆藏依据直出",
         notice: "当前仅返回馆藏原文依据",
         answer: rawEvidenceAnswer(retrieval.evidence, retrieval.tokens),
-        evidenceSources: evidenceSources(retrieval.evidence),
+        evidenceSources: evidenceSources(retrieval.evidence, retrieval.tokens),
         evidenceIds: retrieval.evidence.map((item) => item.fragmentId),
         evidenceCount: retrieval.evidence.length,
         timing: {
@@ -596,7 +604,7 @@ exports.main = async (event = {}) => {
         sourceLabel: "馆藏依据直出",
         notice: "当前仅返回馆藏原文依据",
         answer: rawEvidenceAnswer(retrieval.evidence, retrieval.tokens),
-        evidenceSources: evidenceSources(retrieval.evidence),
+        evidenceSources: evidenceSources(retrieval.evidence, retrieval.tokens),
         evidenceIds: retrieval.evidence.map((item) => item.fragmentId),
         evidenceCount: retrieval.evidence.length,
         timing: {
@@ -637,7 +645,7 @@ exports.main = async (event = {}) => {
       sourceLabel: "实时检索生成",
       model: modelResponse.model || PROVIDER_CONFIG.modelId,
       answer,
-      evidenceSources: evidenceSources(retrieval.evidence),
+      evidenceSources: evidenceSources(retrieval.evidence, retrieval.tokens),
       evidenceIds: retrieval.evidence.map((item) => item.fragmentId),
       evidenceCount: retrieval.evidence.length,
       cacheHit: false,

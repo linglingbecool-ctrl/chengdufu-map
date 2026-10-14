@@ -7571,5 +7571,6 @@ body.scene-overlay-open {
 .ai-answer-references h4 { margin: 0 0 8px; font-size: .85rem; font-weight: 600; }
 .ai-answer-references ul { margin: 0; padding-left: 1.2em; }
 .ai-answer-references li { margin: 6px 0; line-height: 1.65; }
+.ai-answer-references li small { display: block; margin-top: 2px; color: var(--ink-soft); font-size: .78rem; line-height: 1.65; }
 .ai-reference-link { border: 0; background: transparent; padding: 0; color: inherit; text-align: left; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .ai-reference-link:focus-visible { outline: 2px solid var(--qing-deep); outline-offset: 3px; }
