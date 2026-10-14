@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20261014-points02";
+const APP_VERSION = "20261014-points03";
 
 // 与 CloudBase source_fragments 完成哈希去重后的实数同步。
 const KNOWLEDGE_CORPUS_METRICS = Object.freeze({
@@ -544,11 +544,7 @@ function renderPointMedia(point) {
   const figures = [];
   const isCampusPoint =
     point.detailLevel === "campus";
-  const oldImage =
-    point.oldImage ||
-    (point.detailLevel === "basic"
-      ? `${point.id}-old.png`
-      : "");
+  const oldImage = point.oldImage;
 
   if (oldImage) {
     figures.push(`
@@ -564,7 +560,7 @@ function renderPointMedia(point) {
         >
 
         <figcaption>
-          古图局部
+          ${escapeHtml(point.oldImageCaption || "古图局部")}
         </figcaption>
       </figure>
     `);
