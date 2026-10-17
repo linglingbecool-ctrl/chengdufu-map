@@ -460,11 +460,12 @@
         <div class="ai-reading-desk">
           <aside
             class="ai-point-index"
-            aria-label="六个点位索引"
+            aria-label="馆藏问答查询范围"
           >
             <label class="ai-point-picker" for="aiPointSelect">
               <span>查阅地点</span>
               <select id="aiPointSelect">
+                <option value="all">所有点位（全库检索）</option>
                 <option value="jiuyanqiao">九眼桥</option>
                 <option value="wuhouci">武侯祠</option>
                 <option value="wenshuyuan">文殊院</option>
@@ -552,7 +553,7 @@
 
                 <div class="ai-message-body">
                   <p>
-                    想了解这个地点的什么？直接输入问题，回答会附上馆藏依据。
+                    可选择“所有点位”查询全部馆藏文献，也可选择重点地点。请输入具体地名或历史问题，回答会附上文献依据。
                   </p>
                 </div>
               </article>
@@ -1045,7 +1046,7 @@
     <script defer src="./script.js?v=20261015-title-location01"></script>
 
     <script
-      defer src="./ai-guide.js?v=20261014-speed01"
+      defer src="./ai-guide.js?v=20261017-all-points01"
     ></script>
   </body>
 </html>

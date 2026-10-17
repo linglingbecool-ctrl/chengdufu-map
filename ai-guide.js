@@ -10,6 +10,10 @@
   const THREAD_KEY = "tuhui_agent_thread_id";
 
   const pointQuestions = {
+    all: {
+      name: "所有点位",
+      questions: []
+    },
     jiuyanqiao: {
       name: "九眼桥",
       questions: [
@@ -668,7 +672,8 @@
       name: "askEvidenceQuestion",
       data: {
         question,
-        pointId,
+        // 全库查询不带入六个重点地点之一；后端仍可从问题识别具体地名。
+        pointId: pointId === "all" ? "" : pointId,
         requestId: createId("evidence")
       },
       parse: true
@@ -752,7 +757,7 @@
 
     if (elements.pointSelect) elements.pointSelect.value = activePointId;
 
-    if (notifyMap) {
+    if (notifyMap && pointId !== "all") {
       document.dispatchEvent(
         new CustomEvent(
           "tuhui:ai-point-selected",
@@ -767,7 +772,9 @@
 
     if (elements.input) {
       elements.input.placeholder =
-        `向馆藏 AI 询问${pointQuestions[pointId].name}……`;
+        pointId === "all"
+          ? "输入地点或历史问题，检索全部馆藏文献……"
+          : `向馆藏 AI 询问${pointQuestions[pointId].name}……`;
     }
 
     if (shouldScroll) {
@@ -1197,7 +1204,7 @@
         <div class="ai-message-body">
 
           <p>
-            对话已清空。选择地点，输入想了解的问题。
+            对话已清空。可选择“所有点位”检索全部文献，或选择重点地点提问。
           </p>
 
         </div>

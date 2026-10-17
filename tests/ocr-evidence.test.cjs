@@ -32,6 +32,12 @@ function harness(records, cache = []) {
   assert.deepEqual(Array.from(result.evidence,x=>x.fragmentId),['photo_book']);
   assert.equal(result.evidence[0].page,'PDF第11页（右页）');
   assert.ok(!result.tokens.includes('成都百年影像'));
+  // 全库入口传空地点：仍能跨分页找到六个重点地点之外的OCR材料。
+  const allPoints = await h.ctx.retrieveEvidence('支矶石街的名称由来','');
+  assert.ok(allPoints.evidence.some(item=>item.fragmentId==='ocr_test'));
+  assert.notEqual(allPoints.pointId,'wuhouci');
+  const allBooks = await fresh.ctx.retrieveEvidence('大慈寺有什么记载？','');
+  assert.ok(allBooks.evidence.some(item=>item.fragmentId==='photo_book'));
   const wrongBookCache={answer:'另一本书的回答',corpusRevision:result.revision,sourceScope:'成都街巷志',questionTokens:Array.from(result.tokens)};
   assert.equal(await harness([ocr,newBook],[wrongBookCache]).ctx.findCachedAnswer('', 'different-normalized-question', result.tokens, result.revision, result.sourceScope),null);
 

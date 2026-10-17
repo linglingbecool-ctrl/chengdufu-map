@@ -39,6 +39,20 @@ window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('isolat
  assert.equal(await page.evaluate(()=>window.__askTest.calls.length),0);
  await send.click();await latest.getByText('武侯祠攻心联由赵藩撰写。',{exact:true}).waitFor();
  assert.equal(await page.evaluate(()=>window.__askTest.calls[0].pointId),'wuhouci');
+ // 全库模式不携带原先的武侯祠上下文，也不跳到其他地图点位。
+ await page.locator('#aiPointSelect').selectOption('all');
+ assert.match(await input.getAttribute('placeholder'),/全部馆藏文献/);
+ assert.match(await page.locator('#pointPickerCurrent').innerText(),/武侯祠/);
+ await input.fill('大慈寺有哪些历史记载？');await send.click();
+ await latest.getByText('武侯祠攻心联由赵藩撰写。',{exact:true}).waitFor();
+ assert.equal(await page.evaluate(()=>window.__askTest.calls.at(-1).pointId),'');
+ assert.equal(await page.evaluate(()=>window.__askTest.calls.at(-1).question),'大慈寺有哪些历史记载？');
+ await page.locator('#aiClearConversation').click();
+ assert.equal(await page.locator('#aiPointSelect').inputValue(),'all');
+ await page.locator('#aiPointSelect').selectOption('wuhouci');
+ await input.fill('武侯祠攻心联是谁写的？');await send.click();
+ await latest.getByText('武侯祠攻心联由赵藩撰写。',{exact:true}).waitFor();
+ assert.equal(await page.evaluate(()=>window.__askTest.calls.at(-1).pointId),'wuhouci');
  // 原页入口仍可用。
  assert.ok(await latest.locator('[data-open-evidence]').count()>0);
  await page.evaluate(()=>window.__askTest.mode='raw');
