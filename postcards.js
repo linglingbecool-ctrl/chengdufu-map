@@ -173,8 +173,7 @@
       const view = document.createElement("dialog");
       view.className = "postcard-dialog postcard-save-dialog";
       view.setAttribute("aria-labelledby", "postcardSaveTitle");
-      view.innerHTML = `<header class="postcard-head"><div><p>把这份记忆留在相册里</p><h2 id="postcardSaveTitle">长按图片，保存到相册</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭保存图片">关闭 ×</button></header>
-        <p class="postcard-save-help">在微信中长按下方图片，选择“保存图片”。其他浏览器中可能叫“存储图像”或“保存图像”。</p>
+      view.innerHTML = `<header class="postcard-head"><div><h2 id="postcardSaveTitle">把这份记忆留在相册里</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭保存图片">关闭 ×</button></header>
         <p role="status">正在准备图片……</p><img hidden alt="可长按保存的完整明信片">
         <p class="postcard-save-help">若没有保存选项，请从微信右上角菜单选择在 Safari 中打开，再生成明信片并保存。</p>`;
       document.body.append(view); saveDialog = view;
