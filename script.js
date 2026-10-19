@@ -2352,61 +2352,12 @@ function ensureMyMemoryPanel() {
     );
 }
 
-function renderMyMemoryPanel() {
-  const contentElement =
-    document.querySelector(
-      "#myMemoryPanelContent"
-    );
-
-  if (!contentElement) {
-    return;
-  }
-
-  if (!myContributionData) {
-    contentElement.innerHTML = `<h2 id="myMemoryPanelTitle">我的城市记忆</h2>
-      ${window.tuhuiAccount?.markup() || ""}
-      <div class="my-memory-empty" role="status"><strong>暂时无法读取你的记忆</strong>
-      <p>旧投稿仍然保留，不需要重新投稿。请稍后重试读取。</p>
-      <button type="button" class="btn ghost" data-retry-my-memory>重试读取</button></div>`;
-    contentElement.querySelector("[data-retry-my-memory]").onclick = openMyMemoryPanel;
-    return;
-  }
-
-  const summary =
-    myContributionData
-      ?.summary ||
-    {
-      total: 0,
-      processing: 0,
-      approved: 0,
-      rejected: 0,
-      litPoints: 0,
-      isContributor: false
-    };
-
-  const badges =
-    myContributionData
-      ?.badges ||
-    {};
-
-  const items =
-    Array.isArray(
-      myContributionData?.items
-    )
-      ? myContributionData.items
-      : [];
-
-  const approvedCount =
-    Number(summary.approved) ||
-    items.filter(
-      (item) =>
-        item?.status === "approved"
-    ).length;
-
-  const isContributor =
-    summary.isContributor === true ||
-    approvedCount > 0;
-
+// Shared by the badge panel and postcard export: never award a badge during rendering.
+function getMyBadgeDefinitions(data = myContributionData) {
+  const summary = data?.summary || {};
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const badges = data?.badges || {};
+  const approvedCount = Number(summary.approved) || items.filter(item => item?.status === "approved").length;
   const firstLightUnlocked =
     approvedCount > 0;
 
@@ -2458,23 +2409,6 @@ function renderMyMemoryPanel() {
     getFirstPublicMemoryDate(
       familyMemoryItems
     );
-
-  const litPointCount =
-    getMyLitPointCount();
-
-  const identityTitle =
-    isContributor
-      ? "成都城市记忆共建者"
-      : summary.total > 0
-        ? "城市记忆参与者"
-        : "等待你的第一份城市记忆";
-
-  const identityText =
-    isContributor
-      ? "这些照片与故事，记录着与成都的相遇。"
-      : summary.total > 0
-        ? "你的记忆已经被记录，可以在下方查看。"
-        : "选择一个古图点位，留下照片、地名线索或口述故事，从第一份城市记忆开始。";
 
   const badgeDefinitions = [
     {
@@ -2616,6 +2550,93 @@ function renderMyMemoryPanel() {
     }
   ];
 
+  return badgeDefinitions.map(badge => ({...badge,
+    unlocked: typeof badge.unlocked === "boolean" ? badge.unlocked : badges[badge.key] === true
+  }));
+}
+
+function openMemoryPostcard(item, files = [], data = myContributionData) {
+  window.tuhuiPostcards.open({
+    item: {pointId: item.pointId, pointName: item.pointName, approximateTime: item.approximateTime,
+      imageUrls: item.imageUrls || [], imageCount: item.imageCount || 0},
+    text: memoryDisplayText(item), files, badges: getMyBadgeDefinitions(data)
+  });
+}
+
+function renderMyMemoryPanel() {
+  const contentElement =
+    document.querySelector(
+      "#myMemoryPanelContent"
+    );
+
+  if (!contentElement) {
+    return;
+  }
+
+  if (!myContributionData) {
+    contentElement.innerHTML = `<h2 id="myMemoryPanelTitle">我的城市记忆</h2>
+      ${window.tuhuiAccount?.markup() || ""}
+      <div class="my-memory-empty" role="status"><strong>暂时无法读取你的记忆</strong>
+      <p>旧投稿仍然保留，不需要重新投稿。请稍后重试读取。</p>
+      <button type="button" class="btn ghost" data-retry-my-memory>重试读取</button></div>`;
+    contentElement.querySelector("[data-retry-my-memory]").onclick = openMyMemoryPanel;
+    return;
+  }
+
+  const summary =
+    myContributionData
+      ?.summary ||
+    {
+      total: 0,
+      processing: 0,
+      approved: 0,
+      rejected: 0,
+      litPoints: 0,
+      isContributor: false
+    };
+
+  const badges =
+    myContributionData
+      ?.badges ||
+    {};
+
+  const items =
+    Array.isArray(
+      myContributionData?.items
+    )
+      ? myContributionData.items
+      : [];
+
+  const approvedCount =
+    Number(summary.approved) ||
+    items.filter(
+      (item) =>
+        item?.status === "approved"
+    ).length;
+
+  const isContributor =
+    summary.isContributor === true ||
+    approvedCount > 0;
+
+  const litPointCount =
+    getMyLitPointCount();
+
+  const identityTitle =
+    isContributor
+      ? "成都城市记忆共建者"
+      : summary.total > 0
+        ? "城市记忆参与者"
+        : "等待你的第一份城市记忆";
+
+  const identityText =
+    isContributor
+      ? "这些照片与故事，记录着与成都的相遇。"
+      : summary.total > 0
+        ? "你的记忆已经被记录，可以在下方查看。"
+        : "选择一个古图点位，留下照片、地名线索或口述故事，从第一份城市记忆开始。";
+
+  const badgeDefinitions = getMyBadgeDefinitions();
+
   const badgesHtml =
     badgeDefinitions
       .map(
@@ -2693,7 +2714,7 @@ function renderMyMemoryPanel() {
     filteredItems.length
       ? filteredItems
           .map(
-            (item) => {
+            (item, index) => {
               return `
                 <article
                   class="my-footprint-card"
@@ -2714,6 +2735,7 @@ function renderMyMemoryPanel() {
 
                   ${(item.imageUrls || []).length ? `<div class="my-memory-photos">${item.imageUrls.map(url => `<button type="button" data-my-image="${escapeHtml(url)}" aria-label="放大查看记忆照片"><img src="${escapeHtml(url)}" alt="${escapeHtml(item.pointName || "记忆")}照片" loading="lazy"></button>`).join("")}</div>` : Number(item.imageCount) > 0 ? '<p>照片暂未加载，可关闭后重新打开重试。</p>' : ""}
                   ${memoryDisplayText(item) ? `<section class="my-footprint-text"><p>${escapeHtml(memoryDisplayText(item))}</p></section>` : ""}
+                  ${myMemoryFilter !== "liked" && ["pending", "processing", "approved"].includes(item.status) ? `<button type="button" class="btn ghost" data-my-postcard="${index}">生成明信片</button>` : ""}
 
                   <div
                     class="my-footprint-card__meta"
@@ -2886,6 +2908,10 @@ function renderMyMemoryPanel() {
       </div>
     </section>
   `;
+  contentElement.querySelectorAll("[data-my-postcard]").forEach(button => button.onclick = () => {
+    const item = filteredItems[Number(button.dataset.myPostcard)];
+    if (item) openMemoryPostcard(item);
+  });
   contentElement.querySelectorAll("[data-my-filter]").forEach(button => button.onclick = () => {
     myMemoryFilter = button.dataset.myFilter;
     renderMyMemoryPanel();
@@ -7260,8 +7286,15 @@ async function handleContributionSubmit(
     const modal=document.querySelector("#contributionModal");
     modal.querySelector("#contributionForm").hidden=true;
     const success=modal.querySelector("#memorySubmissionSuccess");success.hidden=false;
-    success.innerHTML=`<h3 tabindex="-1">记忆已保存，已点亮${escapeHtml(submittedPoint.nameModern)}</h3><p>无需重复投稿，馆员审核后会出现在公众记忆。</p>${window.tuhuiAccount?.markup() || ""}<button type="button" class="btn primary" data-memory-finish>返回地图</button>`;
+    success.innerHTML=`<h3 tabindex="-1">记忆已保存，已点亮${escapeHtml(submittedPoint.nameModern)}</h3><p>无需重复投稿，馆员审核后会出现在公众记忆。</p>${window.tuhuiAccount?.markup() || ""}<button type="button" class="btn primary" data-memory-postcard>生成专属明信片</button><button type="button" class="btn ghost" data-memory-finish>返回地图</button>`;
     success.querySelector("[data-memory-finish]").onclick=()=>{closeContributionModal();focusPersonalLitPoint(submittedPoint);showPersonalLightCelebration(submittedPoint,processingStarted);};
+    // Local files let the newly saved contribution export even if temporary cloud URLs are not ready.
+    const postcardItem = myContributionData?.items?.find(item => (item.id || item._id) === submissionId) || {
+      id: submissionId, pointId: submittedPoint.id, pointName: submittedPoint.nameModern, approximateTime,
+      originalContent: content, collaborativeDraft, collaborativeDraftAccepted, status: "pending", imageCount: files.length
+    };
+    const postcardData = {...myContributionData, items: [...(myContributionData?.items || []).filter(item => (item.id || item._id) !== submissionId), postcardItem]};
+    success.querySelector("[data-memory-postcard]").onclick = () => openMemoryPostcard(postcardItem, files, postcardData);
     selectedContributionFiles=[];
 
   }
