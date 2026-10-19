@@ -23,6 +23,10 @@
 .postcard-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .postcard-actions .btn { flex: 1 1 auto; text-align: center; justify-content: center; }
 .postcard-actions [aria-disabled=true] { opacity: .45; pointer-events: none; }
+.postcard-actions button:disabled { opacity: .45; cursor: wait; }
+.postcard-save-dialog { width: min(1000px, calc(100vw - 32px)); }
+.postcard-save-dialog img { display: block; width: 100%; height: auto; -webkit-touch-callout: default; user-select: auto; -webkit-user-select: auto; }
+.postcard-save-help, .postcard-save-dialog [role=status] { font-size: .9rem; line-height: 1.8; margin: 12px 0; }
 .postcard-dialog :focus-visible { outline: 3px solid #9a3e2d; outline-offset: 3px; }
 @media (max-width: 860px) {
   .postcard-dialog { padding: 18px; width: calc(100vw - 20px); max-height: calc(100dvh - 20px); }

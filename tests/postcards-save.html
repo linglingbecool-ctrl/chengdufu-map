@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="../">
+<title>明信片保存自检</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="postcards.css">
+<script src="postcards.js"></script>
+<button id="run">运行保存流程自检</button>
+<pre id="result" role="status">使用本地测试内容，不连接云服务。</pre>
+<script>
+const $ = selector => document.querySelector(selector);
+const assert = (condition, message) => {if (!condition) throw new Error(message);};
+const wait = async predicate => {
+  const deadline = Date.now() + 20000;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error('等待超时');
+    await new Promise(resolve => setTimeout(resolve, 30));
+  }
+};
+$('#run').onclick = async () => {
+  const NativeReader = window.FileReader;
+  $('#run').disabled = true;
+  $('#result').textContent = '检查中……';
+  try {
+    tuhuiPostcards.open({item:{pointName:'保存测试'}, text:'校园树影与城市记忆。'});
+    await wait(() => !$('[data-save]').disabled);
+    $('[data-save]').click();
+    await wait(() => $('.postcard-save-dialog img')?.naturalWidth);
+    const picture = $('.postcard-save-dialog img');
+    assert(picture.src.startsWith('data:image/png;base64,'), '应显示可长按的 PNG 图片');
+    assert(picture.naturalWidth === 2400 && picture.naturalHeight === 1600, '应保留完整导出尺寸');
+    $('.postcard-save-dialog [data-close]').click();
+    await wait(() => !$('.postcard-save-dialog'));
+    assert(!picture.hasAttribute('src'), '关闭后应释放图片引用');
+    assert(document.activeElement === $('[data-save]'), '应恢复按钮焦点');
+
+    const title = $('[name=title]');
+    title.value = ''; title.dispatchEvent(new Event('input', {bubbles:true}));
+    assert($('[data-save]').disabled && !$('[data-download]').hasAttribute('href'), '编辑后应立即禁用旧图导出');
+    await wait(() => $('.postcard-status').textContent.includes('请填写'));
+    assert($('[data-save]').disabled, '生成失败不应允许保存旧图');
+    title.value = '重新生成'; title.dispatchEvent(new Event('input', {bubbles:true}));
+    await wait(() => !$('[data-save]').disabled);
+
+    let reader, aborted = false;
+    window.FileReader = class {
+      static LOADING = 1;
+      constructor() {reader = this;}
+      readAsDataURL() {this.readyState = 1;}
+      abort() {aborted = true; this.readyState = 2;}
+    };
+    $('[data-save]').click();
+    reader.onerror();
+    assert($('.postcard-save-dialog [role=status]').textContent.includes('准备失败'), '读取失败应有重试提示');
+    $('.postcard-save-dialog [data-close]').click();
+    await wait(() => !$('.postcard-save-dialog'));
+    assert(aborted && !reader.onload && !reader.onerror, '关闭时应取消未完成读取并清理回调');
+    $('[data-save]').click();
+    window.dispatchEvent(new Event('tuhui:account-changed'));
+    await wait(() => !$('.postcard-dialog'));
+    $('#result').textContent = 'PASS：原尺寸 PNG、关闭释放、焦点恢复、编辑禁用旧图、失败提示、取消读取、账号切换关闭。';
+  } catch (error) {
+    $('#result').textContent = 'FAIL：' + error.message;
+  } finally {
+    window.FileReader = NativeReader;
+    document.querySelectorAll('.postcard-dialog').forEach(dialog => dialog.close());
+    $('#run').disabled = false;
+  }
+};
+</script>
+</html>

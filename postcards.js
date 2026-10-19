@@ -149,12 +149,13 @@
       <label data-text-field>明信片文字<textarea name="story" rows="8" maxlength="10000"></textarea><small>初始载入完整记忆。这里只编辑明信片，原投稿不变；超出篇幅时需自行确认摘录。</small></label>
       <label>右上角徽章<select name="badge" aria-describedby="postcardBadgeNote"></select><small id="postcardBadgeNote"></small></label>
       <p class="postcard-status" role="status" aria-live="polite"></p>
-      <div class="postcard-actions"><button type="submit" class="btn ghost">重新生成预览</button><a class="btn primary" data-download aria-disabled="true" tabindex="-1">下载电子明信片</a></div>
-      <small>PNG 图片 · 2400 × 1600。手机也可长按预览图保存。</small></form></div>`;
+      <div class="postcard-actions"><button type="button" class="btn primary" data-save disabled>保存到手机</button><a class="btn ghost" data-download aria-disabled="true" tabindex="-1">下载 PNG</a><button type="submit" class="btn ghost">重新生成预览</button></div>
+      <small>PNG 图片 · 2400 × 1600。手机请点“保存到手机”，长按大图保存到相册。</small></form></div>`;
     document.body.append(dialog); activeDialog = dialog;
     const form = dialog.querySelector("form"), fields = form.elements;
     const img = dialog.querySelector(".postcard-paper img"), placeholder = dialog.querySelector("[data-placeholder]");
     const status = dialog.querySelector(".postcard-status"), download = dialog.querySelector("[data-download]");
+    const save = dialog.querySelector("[data-save]");
     fields.title.value = `${(item.pointName || "成都").replace(/（[^）]*）|\([^)]*\)/g, "")}的记忆`;
     fields.place.value = item.pointName || "成都"; fields.time.value = item.approximateTime || "";
     fields.story.value = text;
@@ -166,7 +167,36 @@
     fields.badge.add(new Option("不显示徽章", ""));
     fields.badge.value = earned[0]?.key || "";
     dialog.querySelector("#postcardBadgeNote").textContent = earned.length ? "只显示你已获得的徽章，可选择其中一枚。" : "暂未解锁徽章；获得后可从“我的记忆”重新生成。";
-    let revision = 0, timer, previewUrl = "", closed = false;
+    let revision = 0, timer, previewUrl = "", closed = false, exportBlob = null, saveDialog = null;
+    save.onclick = () => {
+      if (!exportBlob || saveDialog) return;
+      const view = document.createElement("dialog");
+      view.className = "postcard-dialog postcard-save-dialog";
+      view.setAttribute("aria-labelledby", "postcardSaveTitle");
+      view.innerHTML = `<header class="postcard-head"><div><p>把这份记忆留在相册里</p><h2 id="postcardSaveTitle">长按图片，保存到相册</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭保存图片">关闭 ×</button></header>
+        <p class="postcard-save-help">在微信中长按下方图片，选择“保存图片”。其他浏览器中可能叫“存储图像”或“保存图像”。</p>
+        <p role="status">正在准备图片……</p><img hidden alt="可长按保存的完整明信片">
+        <p class="postcard-save-help">若没有保存选项，请从微信右上角菜单选择在 Safari 中打开，再生成明信片并保存。</p>`;
+      document.body.append(view); saveDialog = view;
+      const picture = view.querySelector("img"), message = view.querySelector('[role="status"]');
+      const reader = new FileReader();
+      // Only encode on demand: a 2400 × 1600 PNG may add ~8 MB as a data URL.
+      // Use a plain image for native long-press menus; release it when the dialog closes.
+      reader.onload = () => {if (view.open) picture.src = reader.result;};
+      reader.onerror = () => {message.textContent = "图片准备失败，请关闭后重试，或返回选择“下载 PNG”。";};
+      picture.onload = () => {picture.hidden = false; message.textContent = "图片已准备好，请长按下方图片保存。";};
+      picture.onerror = () => {message.textContent = "图片加载失败，请关闭后重试，或返回选择“下载 PNG”。";};
+      view.querySelector("[data-close]").onclick = () => view.close();
+      view.addEventListener("keydown", event => event.stopPropagation());
+      view.addEventListener("close", () => {
+        reader.onload = reader.onerror = null;
+        if (reader.readyState === FileReader.LOADING) reader.abort();
+        picture.onload = picture.onerror = null; picture.removeAttribute("src");
+        view.remove(); if (saveDialog === view) saveDialog = null;
+        if (!closed && save.isConnected) save.focus({preventScroll: true});
+      }, {once: true});
+      view.showModal(); reader.readAsDataURL(exportBlob);
+    };
     const images = new Map();
     const getImage = src => {
       if (!images.has(src)) images.set(src, loadImage(src).catch(error => {images.delete(src); throw error;}));
@@ -174,6 +204,7 @@
     };
     function invalidate() {
       revision++; clearTimeout(timer);
+      exportBlob = null; save.disabled = true; saveDialog?.close();
       download.removeAttribute("href"); download.setAttribute("aria-disabled", "true"); download.tabIndex = -1;
       img.hidden = true; placeholder.hidden = false; placeholder.textContent = "正在生成预览……";
       status.textContent = "正在生成预览……";
@@ -194,6 +225,7 @@
         if (closed || current !== revision) return;
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         previewUrl = URL.createObjectURL(blob); img.src = previewUrl; img.hidden = false; placeholder.hidden = true;
+        exportBlob = blob; save.disabled = false;
         download.href = previewUrl; download.download = `舆上成都-${(state.place || "城市记忆").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").slice(0, 40)}-${state.mode === "photo" ? "照片" : "文字"}明信片.png`;
         download.setAttribute("aria-disabled", "false"); download.tabIndex = 0;
         status.textContent = state.mode === "photo" ? "预览已更新，照片完整呈现，可下载保存。" : "预览已更新，当前文字完整排入，可下载保存。";
@@ -212,6 +244,7 @@
     dialog.addEventListener("keydown", event => event.stopPropagation());
     dialog.addEventListener("close", () => {
       closed = true; revision++; clearTimeout(timer);
+      exportBlob = null; saveDialog?.close();
       localUrls.forEach(url => URL.revokeObjectURL(url));
       if (previewUrl) {const lastUrl = previewUrl; setTimeout(() => URL.revokeObjectURL(lastUrl), 60000);}
       dialog.remove(); if (activeDialog === dialog) activeDialog = null;
