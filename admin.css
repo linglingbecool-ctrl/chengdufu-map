@@ -195,6 +195,15 @@ button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible
 }
 
 .record-filters{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}
+.analytics-overview{margin-bottom:32px;padding-bottom:28px;border-bottom:2px solid var(--line)}
+.analytics-note,#analyticsStatus{color:var(--ink-soft);font-size:.85rem;line-height:1.7}
+.analytics-days summary{cursor:pointer;color:var(--qing-dark);padding:10px 0;font-weight:600}
+.analytics-table-wrap{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.analytics-days table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.88rem}
+.analytics-days th,.analytics-days td{padding:10px 16px;text-align:right;border-bottom:1px solid var(--line)}
+.analytics-days th:first-child,.analytics-days td:first-child{text-align:left}
+.analytics-days thead{position:sticky;top:0;background:var(--panel)}
+.analytics-days summary:focus-visible,.analytics-table-wrap:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .review-outcome{padding:12px 16px;border-left:3px solid var(--qing-dark);background:#e5eee8;color:var(--qing-dark)}
 .review-record{display:grid;gap:8px;margin:0 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .review-record div{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px}

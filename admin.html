@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>馆员审核台｜舆上·成都</title>
   <meta name="description" content="“舆上蜀”系列之“舆上·成都”公众城市记忆馆员审核台：查看自动登记结果并进行馆员人工审核。">
-  <link rel="stylesheet" href="./admin.css?v=20260911-memory01">
+  <link rel="stylesheet" href="./admin.css?v=20261019-analytics01">
   <script
     src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"
     onload="console.log('CloudBase SDK 2.27.1 加载成功')"
@@ -37,6 +37,25 @@
     </section>
 
     <section class="dashboard" id="dashboard" hidden>
+      <section class="analytics-overview" aria-labelledby="analyticsTitle">
+        <div class="overview-heading">
+          <div><p class="section-label">Website Visits</p><h2 id="analyticsTitle">网站访问统计</h2></div>
+          <button class="btn ghost" id="refreshAnalytics" type="button">刷新访问数据</button>
+        </div>
+        <p id="analyticsStatus" role="status">正在读取访问数据…</p>
+        <div class="stats-grid">
+          <article class="stat-card stat-total"><span>累计浏览次数 · PV</span><strong id="analyticsPv">—</strong><small>公众页面打开或刷新次数</small></article>
+          <article class="stat-card stat-pass"><span>累计访客数 · UV</span><strong id="analyticsUv">—</strong><small>按匿名浏览器标识去重</small></article>
+          <article class="stat-card stat-review"><span>今日浏览次数</span><strong id="analyticsToday">—</strong><small id="analyticsTodayUv">今日访客 —</small></article>
+        </div>
+        <p class="analytics-note">从启用时开始累计，不含历史阅读量及审核台访问。馆员账号自动排除；换设备或清除浏览器数据会被计为新访客。未成功上报的访问不计入。</p>
+        <p class="analytics-note" id="analyticsPages"></p>
+        <details class="analytics-days"><summary>查看最近30天每日数据（北京时间；— 表示尚未启用）</summary>
+          <div class="analytics-table-wrap" tabindex="0" role="region" aria-label="最近30天每日访问数据">
+            <table><thead><tr><th scope="col">日期</th><th scope="col">浏览次数 PV</th><th scope="col">访客数 UV</th></tr></thead><tbody id="analyticsDays"></tbody></table>
+          </div>
+        </details>
+      </section>
       <section class="submission-overview" aria-labelledby="overviewTitle">
         <div class="overview-heading">
           <div><p class="section-label">Submission Overview</p><h2 id="overviewTitle">投稿总览</h2></div>
@@ -164,6 +183,6 @@
     </article>
   </template>
 
-  <script src="./admin.js?v=20260909-history01"></script>
+  <script src="./admin.js?v=20261019-analytics01"></script>
 </body>
 </html>

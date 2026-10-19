@@ -1,0 +1,1 @@
+{"envId":"chengdufu-map-d4g459au02132689e","functionRoot":".","functions":[{"name":"siteAnalytics","handler":"index.main","runtime":"Nodejs20.19","timeout":30,"memorySize":256,"installDependency":true}]}

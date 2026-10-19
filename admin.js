@@ -40,6 +40,42 @@ const newSubmissions = document.querySelector("#newSubmissions");
 const viewNewButton = document.querySelector("#viewNewButton");
 const scopeButtons = Array.from(document.querySelectorAll("[data-scope]"));
 const reviewOutcome = document.querySelector("#reviewOutcome");
+let analyticsLoading = false;
+let analyticsLoadedAt = 0;
+async function loadAnalytics() {
+  if (!adminVerified || analyticsLoading) return;
+  analyticsLoading = true;
+  const button = document.querySelector("#refreshAnalytics");
+  const status = document.querySelector("#analyticsStatus");
+  button.disabled = true;
+  try {
+    const result = normalizeFunctionResult(await cloudApp.callFunction({ name: "siteAnalytics", data: { action: "summary" }, parse: true }));
+    if (!result?.ok || !Number.isSafeInteger(result.pv) || !Number.isSafeInteger(result.uv) || !Array.isArray(result.days)) throw new Error("unavailable");
+    document.querySelector("#analyticsPv").textContent = result.pv.toLocaleString("zh-CN");
+    document.querySelector("#analyticsUv").textContent = result.uv.toLocaleString("zh-CN");
+    const today = result.days[result.days.length - 1] || { pv: 0, uv: 0 };
+    document.querySelector("#analyticsToday").textContent = today.pv.toLocaleString("zh-CN");
+    document.querySelector("#analyticsTodayUv").textContent = `今日访客 ${today.uv.toLocaleString("zh-CN")}`;
+    const formatTime = value => new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false });
+    status.textContent = result.startedAt ? `统计起于 ${formatTime(result.startedAt)} · 更新于 ${formatTime(result.updatedAt)}` : "统计已接入，等待第一位公众访客。历史阅读量未记录。";
+    const tbody = document.querySelector("#analyticsDays");
+    tbody.replaceChildren();
+    for (const day of [...result.days].reverse()) {
+      const tr = document.createElement("tr");
+      for (const value of [day.day, day.tracked === false ? "—" : day.pv, day.tracked === false ? "—" : day.uv]) {
+        const td = document.createElement("td");
+        td.textContent = typeof value === "number" ? value.toLocaleString("zh-CN") : value;
+        tr.append(td);
+      }
+      tbody.append(tr);
+    }
+    document.querySelector("#analyticsPages").textContent = (result.pages || []).map(page => `${page.label}：${page.pv.toLocaleString("zh-CN")} 次`).join(" · ");
+    analyticsLoadedAt = Date.now();
+  } catch {
+    status.textContent = "访问统计暂时读取失败；现有数字未更新，请稍后刷新。";
+  } finally { analyticsLoading = false; button.disabled = false; }
+}
+document.querySelector("#refreshAnalytics").addEventListener("click", loadAnalytics);
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -250,6 +286,7 @@ async function checkSubmissionStats() {
     // 手动刷新开始后，丢弃此前发出的自动检查结果，避免旧计数引发重复提醒。
     if (loadingQueue || generation !== queueGeneration || !adminVerified) return;
     renderStats(result.stats, true);
+    if (Date.now() - analyticsLoadedAt > 60000) void loadAnalytics();
     setConnectionState("ok", "CloudBase 已连接 · 馆员身份验证通过", `待审核 ${stats?.awaiting ?? "—"} 条；页面自动检查新投稿。`);
   } catch {
     if (adminVerified) document.querySelector("#statsUpdated").textContent = "自动更新失败，显示上次成功统计；稍后自动重试。";
@@ -290,7 +327,10 @@ async function loadReviewQueue({ append = false, scope = recordScope } = {}) {
     queueOffset = offset + incoming.length;
     hasMore = result.hasMore === true;
     adminVerified = true;
+    // This browser's own public-page checks should not inflate readership.
+    try { localStorage.setItem("tuhui-analytics-excluded-v1", "1"); } catch {}
     dashboard.hidden = false;
+    void loadAnalytics();
     renderStats(result.stats, append);
     if (!append) {
       unseenCount = 0;
