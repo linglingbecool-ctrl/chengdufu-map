@@ -2374,20 +2374,16 @@ function getMyBadgeDefinitions(data = myContributionData) {
           "sichuandaxue",
           "huaxiba"
         ].includes(item?.pointId) &&
-        [
-          "pending",
-          "processing",
-          "approved"
-        ].includes(item?.status)
+        item?.status === "approved"
     );
 
   const sichuanUniversityUnlocked =
-    sichuanUniversityItems.length > 0;
+    Boolean(data?.badgeNumbers?.scuMemoryKeeper);
 
   const sichuanUniversityUnlockDate =
-    getFirstContributionDate(
-      sichuanUniversityItems
-    );
+    data?.badgeNumbers?.scuMemoryKeeper?.earnedAt
+      ? new Date(data.badgeNumbers.scuMemoryKeeper.earnedAt)
+      : getFirstContributionDate(sichuanUniversityItems);
 
   const familyMemoryItems =
     items.filter(
@@ -2447,7 +2443,7 @@ function getMyBadgeDefinitions(data = myContributionData) {
         "川大拾光者",
 
       note:
-        "在川大或华西坝点位提交一份城市记忆",
+        "在川大或华西坝点位的城市记忆经馆员审核通过",
 
       unlocked:
         sichuanUniversityUnlocked,
@@ -2551,13 +2547,25 @@ function getMyBadgeDefinitions(data = myContributionData) {
   ];
 
   return badgeDefinitions.map(badge => ({...badge,
-    unlocked: typeof badge.unlocked === "boolean" ? badge.unlocked : badges[badge.key] === true
+    unlocked: typeof badge.unlocked === "boolean" ? badge.unlocked : badges[badge.key] === true,
+    numberLabel: badge.key === "scuMemoryKeeper" ? data?.badgeNumbers?.scuMemoryKeeper?.label || "" : ""
   }));
 }
 
-function openMemoryPostcard(item, files = [], data = myContributionData) {
+async function openMemoryPostcard(item, files = [], data = myContributionData) {
+  const epoch = personalReadEpoch;
+  if (!/^CD-\d{6,}$/.test(item.memoryNumber || "")) {
+    const latest = await loadMyContributions();
+    if (epoch !== personalReadEpoch) return;
+    const saved = latest?.items?.find(saved => saved.id === (item.id || item._id));
+    if (!saved?.memoryNumber) {
+      window.alert("投稿仍然保留，记忆编号暂未同步。请稍后从“我的记忆”重新生成，无需重复投稿。");
+      return;
+    }
+    item = {...item, ...saved}; data = latest;
+  }
   window.tuhuiPostcards.open({
-    item: {pointId: item.pointId, pointName: item.pointName, approximateTime: item.approximateTime,
+    item: {pointId: item.pointId, pointName: item.pointName, approximateTime: item.approximateTime, memoryNumber: item.memoryNumber,
       imageUrls: item.imageUrls || [], imageCount: item.imageCount || 0},
     text: memoryDisplayText(item), files, badges: getMyBadgeDefinitions(data)
   });
@@ -2682,6 +2690,7 @@ function renderMyMemoryPanel() {
                     badge.title
                   )}
                 </strong>
+                ${badge.numberLabel && unlocked ? `<p class="my-badge__number">${escapeHtml(badge.numberLabel)}</p>` : ""}
 
                 <p>
                   ${escapeHtml(

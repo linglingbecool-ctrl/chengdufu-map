@@ -69,7 +69,7 @@
     }
   }
 
-  function drawPostcard(canvas, {map, photo, mode, title, text, place, time, badge}) {
+  function drawPostcard(canvas, {map, photo, mode, title, text, place, time, badge, memoryNumber}) {
     canvas.width = W * SCALE; canvas.height = H * SCALE;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("浏览器暂时无法生成明信片，请稍后重试。");
@@ -91,6 +91,7 @@
       const glyph = {chengduLamplighter:"✦", scuMemoryKeeper:"川", familyMemoryKeeper:"童", imageRecorder:"影", placeNameExplorer:"名", oralHistorian:"述", cityWalker:"行"}[badge.key] || "记";
       ctx.textAlign = "center"; ctx.font = `32px ${SERIF}`; ctx.fillText(glyph, cx, cy - 18);
       ctx.font = `23px ${SERIF}`; ctx.fillText(badge.title, cx, 108);
+      if (badge.numberLabel) { ctx.font = `14px ${SERIF}`; ctx.fillText(badge.numberLabel, cx, 134); }
       ctx.textAlign = "left";
     }
 
@@ -124,6 +125,10 @@
     ctx.fillStyle = INK; ctx.font = `18px ${SERIF}`;
     ctx.fillText("舆上·成都 ｜《四川全图》· 成都府图 ｜ 四川大学图书馆", 40, 951);
     ctx.textAlign = "right"; ctx.fillText("tuhuichengdu.cn", 1500, 951); ctx.textAlign = "left";
+    if (/^CD-\d{6,}$/.test(memoryNumber || "")) {
+      ctx.font = `15px ${SERIF}`;
+      ctx.fillText(`记忆编号 ${memoryNumber}`, 1030, 951);
+    }
     ctx.beginPath(); ctx.moveTo(34, 982); ctx.lineTo(1502, 982); ctx.stroke();
     return canvas;
   }
@@ -150,12 +155,15 @@
       <label>右上角徽章<select name="badge" aria-describedby="postcardBadgeNote"></select><small id="postcardBadgeNote"></small></label>
       <p class="postcard-status" role="status" aria-live="polite"></p>
       <div class="postcard-actions"><button type="button" class="btn primary" data-save disabled>保存到手机</button><a class="btn ghost" data-download aria-disabled="true" tabindex="-1">下载 PNG</a><button type="submit" class="btn ghost">重新生成预览</button></div>
+      <small data-memory-number></small>
       <small>PNG 图片 · 2400 × 1600。手机请点“保存到手机”，长按大图保存到相册。</small></form></div>`;
     document.body.append(dialog); activeDialog = dialog;
     const form = dialog.querySelector("form"), fields = form.elements;
     const img = dialog.querySelector(".postcard-paper img"), placeholder = dialog.querySelector("[data-placeholder]");
     const status = dialog.querySelector(".postcard-status"), download = dialog.querySelector("[data-download]");
     const save = dialog.querySelector("[data-save]");
+    dialog.querySelector("[data-memory-number]").textContent = /^CD-\d{6,}$/.test(item.memoryNumber || "")
+      ? `记忆编号 ${item.memoryNumber} · 换版式、换照片或再次下载，编号不变。` : "";
     fields.title.value = `${(item.pointName || "成都").replace(/（[^）]*）|\([^)]*\)/g, "")}的记忆`;
     fields.place.value = item.pointName || "成都"; fields.time.value = item.approximateTime || "";
     fields.story.value = text;
@@ -219,7 +227,7 @@
         if (!state.title) throw new Error("请填写明信片标题。");
         const [map, photo] = await Promise.all([getImage("./chengdu-map-original.jpg"), state.mode === "photo" ? getImage(sources[Number(fields.photo.value)]) : null]);
         if (closed || current !== revision) return;
-        canvas = drawPostcard(document.createElement("canvas"), {...state, map, photo});
+        canvas = drawPostcard(document.createElement("canvas"), {...state, map, photo, memoryNumber: item.memoryNumber});
         const blob = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("图片导出失败，请重试。")), "image/png"));
         if (closed || current !== revision) return;
         if (previewUrl) URL.revokeObjectURL(previewUrl);
