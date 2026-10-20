@@ -4,6 +4,9 @@
   const W = 1536, H = 1024, SCALE = 2400 / W;
   const SERIF = '"Songti SC", "STSong", "SimSun", serif';
   const INK = "#4b2913", RED = "#9a3e2d", RULE = "#bd9471";
+  // Display only: keep the server-issued memory identifier unchanged.
+  const displayMemoryNumber = value => /^CD-\d{6,}$/.test(value || "")
+    ? `CD—${value.slice(3).replace(/^0+(?=\d)/, "")}` : "";
 
   function wrapText(ctx, text, width) {
     const lines = [];
@@ -127,7 +130,7 @@
     ctx.textAlign = "right"; ctx.fillText("tuhuichengdu.cn", 1500, 951); ctx.textAlign = "left";
     if (/^CD-\d{6,}$/.test(memoryNumber || "")) {
       ctx.font = `15px ${SERIF}`;
-      ctx.fillText(`记忆编号 ${memoryNumber}`, 1030, 951);
+      ctx.fillText(`记忆编号 ${displayMemoryNumber(memoryNumber)}`, 1030, 951);
     }
     ctx.beginPath(); ctx.moveTo(34, 982); ctx.lineTo(1502, 982); ctx.stroke();
     return canvas;
@@ -163,7 +166,7 @@
     const status = dialog.querySelector(".postcard-status"), download = dialog.querySelector("[data-download]");
     const save = dialog.querySelector("[data-save]");
     dialog.querySelector("[data-memory-number]").textContent = /^CD-\d{6,}$/.test(item.memoryNumber || "")
-      ? `记忆编号 ${item.memoryNumber} · 换版式、换照片或再次下载，编号不变。` : "";
+      ? `记忆编号 ${displayMemoryNumber(item.memoryNumber)} · 对应这份记忆，换版式、换照片或再次下载，编号不变。` : "";
     fields.title.value = `${(item.pointName || "成都").replace(/（[^）]*）|\([^)]*\)/g, "")}的记忆`;
     fields.place.value = item.pointName || "成都"; fields.time.value = item.approximateTime || "";
     fields.story.value = text;

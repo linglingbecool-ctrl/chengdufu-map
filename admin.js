@@ -330,6 +330,7 @@ async function loadReviewQueue({ append = false, scope = recordScope } = {}) {
     // This browser's own public-page checks should not inflate readership.
     try { localStorage.setItem("tuhui-analytics-excluded-v1", "1"); } catch {}
     dashboard.hidden = false;
+    window.tuhuiComments?.mountAdmin(document.querySelector("#commentReview"),cloudApp);
     void loadAnalytics();
     renderStats(result.stats, append);
     if (!append) {
