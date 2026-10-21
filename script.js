@@ -1043,7 +1043,9 @@ function updateArchiveMetrics() {
     "[data-archive-map-count]": 1,
     "[data-archive-source-count]": KNOWLEDGE_CORPUS_METRICS.sources,
     "[data-archive-fragment-count]": KNOWLEDGE_CORPUS_METRICS.fragments,
-    "[data-archive-profile-count]": citywalkOrder.length,
+    // Count the six core guides and the approved 19-place guide from their source records.
+    "[data-archive-profile-count]": allPoints.filter(point => point.extended?.trim() &&
+      (point.detailLevel === "core" || point.source?.includes("《【舆上·成都】19处待考点历史导读》"))).length,
     "[data-archive-point-count]": allPoints.length
   };
 
