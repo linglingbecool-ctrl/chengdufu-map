@@ -117,36 +117,41 @@
       if (badge.numberLabel) { ctx.font = `14px ${SERIF}`; ctx.fillText(badge.numberLabel, cx, 140); }
       ctx.textAlign = "left";
     }
-    ctx.drawImage(map, ...containRect(map.naturalWidth, map.naturalHeight, 112, 204, 748, 654));
+    // Keep an even paper mat around the complete map, like the printed reference.
+    const mapRect = containRect(map.naturalWidth, map.naturalHeight, 112, 228, 736, 648);
+    const frameTop = mapRect[1] - 32, frameHeight = mapRect[3] + 64;
+    const contentTop = frameTop + 32, contentBottom = frameTop + frameHeight - 32;
+    ctx.strokeStyle = RULE; ctx.lineWidth = 1.4;
+    ctx.strokeRect(mapRect[0] - 32, frameTop, mapRect[2] + 64, frameHeight);
+    ctx.strokeRect(920, frameTop, 536, frameHeight);
+    ctx.drawImage(map, ...mapRect);
     if (mode === "photo") {
       if (!photo) throw new Error("请先选择一张可读取的投稿照片，或切换文字版。");
-      const heading = fitText(ctx, title, 466, 68, 30, 22, 1.2);
-      const detail = fitText(ctx, metadata, 466, 44, 20, 16, 1.25);
+      const heading = fitText(ctx, title, 472, 68, 30, 22, 1.2);
+      const detail = fitText(ctx, metadata, 472, 44, 20, 16, 1.25);
       if (!heading || !detail) throw new Error("标题或地点、年代过长，请在编辑区调整后再生成。");
-      const photoHeight = Math.min(536, 466 * photo.naturalHeight / photo.naturalWidth);
+      const photoHeight = Math.min(500, 472 * photo.naturalHeight / photo.naturalWidth);
       const headingHeight = heading.lines.length * heading.lineHeight;
       const detailHeight = detail.lines.length * detail.lineHeight;
-      const groupTop = 204 + (654 - photoHeight - 28 - headingHeight - 18 - detailHeight) / 2;
-      ctx.drawImage(photo, ...containRect(photo.naturalWidth, photo.naturalHeight, 958, groupTop, 466, photoHeight));
+      const groupTop = frameTop + (frameHeight - photoHeight - 28 - headingHeight - 18 - detailHeight) / 2;
+      ctx.drawImage(photo, ...containRect(photo.naturalWidth, photo.naturalHeight, 952, groupTop, 472, photoHeight));
       ctx.textAlign = "center";
-      drawLines(ctx, heading, 1191, groupTop + photoHeight + 28);
-      drawLines(ctx, detail, 1191, groupTop + photoHeight + 28 + headingHeight + 18, "#807461");
+      drawLines(ctx, heading, 1188, groupTop + photoHeight + 28);
+      drawLines(ctx, detail, 1188, groupTop + photoHeight + 28 + headingHeight + 18, "#807461");
       ctx.textAlign = "left";
     } else {
       if (!text.trim()) throw new Error("请填写要放在明信片上的文字，或选择照片版。");
-      const detail = fitText(ctx, metadata, 466, 50, 20, 16, 1.25);
-      const heading = fitText(ctx, title, 466, 84, 34, 26, 1.2);
+      const detail = fitText(ctx, metadata, 472, 50, 20, 16, 1.25);
+      const heading = fitText(ctx, title, 472, 84, 34, 26, 1.2);
       if (!detail || !heading) throw new Error("标题或地点、年代过长，请在编辑区调整后再生成。");
-      drawLines(ctx, detail, 958, 206, RED);
-      const titleTop = 224 + detail.lines.length * detail.lineHeight;
-      drawLines(ctx, heading, 958, titleTop);
+      drawLines(ctx, detail, 952, contentTop, RED);
+      const titleTop = contentTop + 18 + detail.lines.length * detail.lineHeight;
+      drawLines(ctx, heading, 952, titleTop);
       const bodyTop = titleTop + heading.lines.length * heading.lineHeight + 28;
-      const body = text.length <= 10000 && fitText(ctx, text, 466, 896 - bodyTop, 24, 22, 1.42);
+      const body = text.length <= 10000 && fitText(ctx, text, 472, contentBottom - bodyTop, 24, 21, 1.42);
       if (!body) throw new Error("全文超出这张明信片的容量。请在文字框自行选择、确认摘录后再生成；原投稿全文仍保留。");
-      drawLines(ctx, body, 958, bodyTop);
+      drawLines(ctx, body, 952, bodyTop);
     }
-    ctx.strokeStyle = RULE; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(112, 910); ctx.lineTo(152, 910); ctx.stroke();
     ctx.fillStyle = "#807461"; ctx.font = `16px ${SERIF}`;
     ctx.fillText("《四川全图》· 成都府图 ｜ 四川大学图书馆", 112, 935);
     if (numbered) {ctx.font = `15px ${SERIF}`; ctx.fillText(`记忆编号 ${memoryNumber}`, 958, 935);}
