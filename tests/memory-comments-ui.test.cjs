@@ -12,13 +12,13 @@ function result(name,data,admin){
   if(name==='memoryComments'){
     if(data.action==='submit'){
       attempts.push(data.requestId);
-      if(!saved.some(c=>c.requestId===data.requestId))saved.push({...data,id:'1792483000000-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',status:'pending',createdAt:1792483000000});
+      if(!saved.some(c=>c.requestId===data.requestId))saved.push({...data,id:'1792483000000-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',status:'approved',createdAt:1792483000000});
       if(lostOnce){lostOnce=false;throw Error('模拟响应中断');}
-      return {ok:true};
+      return {ok:true,status:'approved',message:'评论已发表。'};
     }
     if(data.action==='list')return {ok:true,items:saved.filter(c=>c.status==='approved'),nextCursor:null};
-    if(data.action==='queue'){assert(admin);return {ok:true,items:saved.filter(c=>c.status===data.status).map(c=>({...c,pointName:'四川大学',parentPublic:true,parentText:'用于本地自检的原帖正文。'})),nextCursor:null};}
-    if(data.action==='review'){assert(admin);saved.find(c=>c.id===data.id).status=data.decision;return {ok:true};}
+    if(data.action==='queue'){assert(admin);return {ok:true,items:saved.filter(c=>data.status==='all'||c.status===data.status).map(c=>({...c,pointName:'四川大学',parentPublic:true,parentText:'用于本地自检的原帖正文。'})),nextCursor:null};}
+    if(data.action==='delete'){assert(admin);saved.find(c=>c.id===data.id).status='deleted';return {ok:true,status:'deleted'};}
   }
   if(name==='getReviewQueue')return {ok:true,items:[],stats:{total:0,published:0,notPublished:0,awaiting:0,rejected:0,other:0},matchingCount:0};
   if(name==='siteAnalytics')return {ok:true,pv:0,uv:0,days:[],pages:[]};
@@ -46,13 +46,13 @@ function result(name,data,admin){
     const text='这段记忆让我想到自己的校园生活。<img src=x onerror=alert(1)>';
     await page.locator('.memory-comment-form textarea').fill(text);
     await page.locator('[name=consent]').check();
-    await page.getByRole('button',{name:'提交评论，等待审核'}).click();
+    await page.getByRole('button',{name:'发表评论'}).click();
     await page.waitForFunction(()=>document.querySelector('[data-comment-result]').textContent.includes('模拟响应中断'));
     assert.equal(await page.locator('.memory-comment-form textarea').inputValue(),text);
-    await page.getByRole('button',{name:'提交评论，等待审核'}).click();
-    await page.waitForFunction(()=>document.querySelector('[data-comment-result]').textContent.includes('无需重复提交'));
-    assert.equal(attempts[0],attempts[1]);assert.equal(saved.length,1);assert.equal(await page.locator('.memory-comment').count(),0);
-    // Moderator sees pending text and the original post, and approves it.
+    await page.getByRole('button',{name:'发表评论'}).click();
+    await page.waitForFunction(()=>document.querySelector('[data-comment-result]').textContent.includes('评论已发表'));
+    assert.equal(attempts[0],attempts[1]);assert.equal(saved.length,1);await page.locator('.memory-comment').waitFor();assert.equal(await page.locator('.memory-comment').count(),1);
+    // Curator sees every submitted comment immediately, with original-post context.
     const admin=await browser.newPage({viewport:{width:1440,height:1000}});
     admin.on('pageerror',e=>errors.push(e.message));
     await admin.exposeFunction('commentTestCall',({name,data})=>({result:result(name,data,true)}));
@@ -66,8 +66,9 @@ function result(name,data,admin){
     await admin.setViewportSize({width:390,height:844});
     assert(await admin.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await admin.screenshot({path:'/private/tmp/tuhui-comments-admin-mobile.png'});
-    await admin.getByRole('button',{name:'通过并公开',exact:true}).click();
-    await admin.getByText('评论已审核通过并公开。',{exact:true}).waitFor();
+    assert.equal(await admin.locator('[data-comment-filter]').inputValue(),'all');
+    assert.equal(await admin.getByRole('button',{name:'通过并公开',exact:true}).count(),0);
+    assert.equal(await admin.getByRole('button',{name:'删除评论',exact:true}).count(),1);
     await page.getByRole('button',{name:'刷新评论',exact:true}).click();
     await page.locator('.memory-comment').waitFor();
     assert.equal(await page.locator('.memory-comment p').textContent(),text);
@@ -79,16 +80,21 @@ function result(name,data,admin){
     await page.locator('.memory-comments').scrollIntoViewIfNeeded();
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:'/private/tmp/tuhui-comments-public-mobile.png'});
-    // Reject/retract preserves the record but removes it from the public query.
-    await admin.locator('[data-comment-filter]').selectOption('approved');
-    await admin.getByRole('button',{name:'撤回公开'}).waitFor();
+    // Deleting hides the public comment while preserving its entry in the all/deleted lists.
+    await admin.getByRole('button',{name:'删除评论'}).waitFor();
     admin.once('dialog',d=>d.accept());
-    await admin.getByRole('button',{name:'撤回公开'}).click();
-    await admin.getByText('评论已设为不予公开；原文和审核记录保留。',{exact:true}).waitFor();
+    await admin.getByRole('button',{name:'删除评论'}).click();
+    await admin.getByText('评论已删除，公众不再可见，后台记录保留。',{exact:true}).waitFor();
     await page.getByRole('button',{name:'刷新评论',exact:true}).click();
     await page.getByText('暂无公开评论，欢迎留下你的感受。',{exact:true}).waitFor();
-    assert.equal(saved[0].status,'rejected');assert.deepEqual(errors,[]);
-    console.log('PASS: post entry, pending invisibility, preserved draft/retry nonce, curator context/approval/retraction, escaped text, desktop/mobile layouts and no page errors.');
+    assert.equal(saved[0].status,'deleted');
+    assert.equal(await admin.locator('.comment-review-card').count(),1);
+    assert.equal(await admin.getByRole('button',{name:'删除评论'}).count(),0);
+    await admin.locator('[data-comment-filter]').selectOption('deleted');
+    await admin.locator('.comment-review-card').waitFor();
+    assert.equal(await admin.locator('.comment-review-text').textContent(),text);
+    assert.deepEqual(errors,[]);
+    console.log('PASS: post entry, immediate visibility, preserved draft/retry nonce, curator all-comments context/deletion and retained history, escaped text, desktop/mobile layouts and no page errors.');
     await page.evaluate(()=>{
       tuhuiPostcards.open({item:{pointName:'四川大学',pointId:'sichuandaxue',memoryNumber:'CD-000123'},
         text:'编号布局测试，不会提交或公开。',
