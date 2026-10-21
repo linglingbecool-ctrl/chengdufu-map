@@ -33,13 +33,13 @@ const points = JSON.parse(fs.readFileSync('points.json', 'utf8'));
         });
         const sources = await card.locator('.point-media img').evaluateAll(images => images.map(img => new URL(img.src).pathname));
         for (const key of ['oldImage', 'currentImage']) if (point[key]) assert(sources.some(src => src.endsWith('/' + (point[key + 'Preview'] || point[key]))));
-        if (point.imageAttribution) assert.equal(await card.locator('.point-media a').count(), 2);
+        if (point.currentImage) assert.equal((await card.locator('.point-media figure').last().locator('figcaption').innerText()).trim(), '今日影像');
       }
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
       await page.locator('#detailPointSelect').selectOption('zhaojuesi');
       await page.locator('.point-card--compact').screenshot({path:`/tmp/chengdu-point-media-${width}.png`});
     }
     assert.deepEqual(errors, []);
-    console.log('PASS: 29 point descriptions preserved; images decode; attribution links; no source-note section; desktop/mobile layouts.');
+    console.log('PASS: 29 point descriptions preserved; images decode; current-image captions; no source-note section; desktop/mobile layouts.');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

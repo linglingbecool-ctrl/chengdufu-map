@@ -595,25 +595,7 @@ function renderPointMedia(point) {
           decoding="async"
         >
 
-        ${
-          isCampusPoint
-            ? ""
-            : `<figcaption>
-                今日影像${
-                  point.imageAttribution
-                    ? ` · ${escapeHtml(point.imageAttribution)}`
-                    : ""
-                }${
-                  point.imageSourceUrl
-                    ? ` <a href="${escapeHtml(point.imageSourceUrl)}" target="_blank" rel="noopener noreferrer">来源</a>`
-                    : ""
-                }${
-                  point.imageLicenseUrl
-                    ? ` <a href="${escapeHtml(point.imageLicenseUrl)}" target="_blank" rel="noopener noreferrer">许可</a>`
-                    : ""
-                }
-              </figcaption>`
-        }
+        <figcaption>今日影像</figcaption>
       </figure>
     `);
   }
