@@ -136,7 +136,7 @@ exports.main = async () => {
         isContributor: approvedItems.length > 0
       },
       badges,
-      badgeNumbers: {scuMemoryKeeper: numbered.badge},
+      badgeNumbers: numbered.badges,
       items
     };
   } catch (error) {

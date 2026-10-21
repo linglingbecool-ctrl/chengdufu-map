@@ -4,6 +4,9 @@
   const W = 1536, H = 1024, SCALE = 2400 / W;
   const SERIF = '"Songti SC", "STSong", "SimSun", serif';
   const INK = "#4b2913", RED = "#9a3e2d", RULE = "#bd9471";
+  // Display only: keep the server-issued memory identifier unchanged.
+  const displayMemoryNumber = value => /^CD-\d{6,}$/.test(value || "")
+    ? `CD—${value.slice(3).replace(/^0+(?=\d)/, "")}` : "";
 
   function wrapText(ctx, text, width) {
     const lines = [];
@@ -97,7 +100,7 @@
       if (!detail) throw new Error("地点、年代过长，请调整后再生成背面。");
       drawLines(ctx, detail, 112, 930, "#807461");
       ctx.fillStyle = "#807461"; ctx.font = `15px ${SERIF}`; ctx.textAlign = "right";
-      if (numbered) ctx.fillText(`记忆编号 ${memoryNumber}`, 1424, 904);
+      if (numbered) ctx.fillText(`记忆编号 ${displayMemoryNumber(memoryNumber)}`, 1424, 904);
       ctx.fillText("tuhuichengdu.cn", 1424, 938); ctx.textAlign = "left";
       return canvas;
     }
@@ -154,7 +157,7 @@
     }
     ctx.fillStyle = "#807461"; ctx.font = `16px ${SERIF}`;
     ctx.fillText("《四川全图》· 成都府图 ｜ 四川大学图书馆", 112, 935);
-    if (numbered) {ctx.font = `15px ${SERIF}`; ctx.fillText(`记忆编号 ${memoryNumber}`, 958, 935);}
+    if (numbered) {ctx.font = `15px ${SERIF}`; ctx.fillText(`记忆编号 ${displayMemoryNumber(memoryNumber)}`, 958, 935);}
     ctx.font = `16px ${SERIF}`; ctx.textAlign = "right";
     ctx.fillText("tuhuichengdu.cn", 1424, 962); ctx.textAlign = "left";
     return canvas;
@@ -192,7 +195,7 @@
     const status = dialog.querySelector(".postcard-status"), download = dialog.querySelector("[data-download]");
     const save = dialog.querySelector("[data-save]");
     dialog.querySelector("[data-memory-number]").textContent = /^CD-\d{6,}$/.test(item.memoryNumber || "")
-      ? `记忆编号 ${item.memoryNumber} · 换版式、换照片或再次下载，编号不变。` : "";
+      ? `记忆编号 ${displayMemoryNumber(item.memoryNumber)} · 对应这份记忆，换版式、换照片或再次下载，编号不变。` : "";
     fields.title.value = `${(item.pointName || "成都").replace(/（[^）]*）|\([^)]*\)/g, "")}的记忆`;
     fields.place.value = item.pointName || "成都"; fields.time.value = item.approximateTime || "";
     fields.story.value = text;

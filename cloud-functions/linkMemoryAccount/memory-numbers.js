@@ -4,6 +4,50 @@ const COLLECTION="memoryNumberRegistry", DOCUMENT="main";
 const key=value=>createHash("sha256").update(String(value)).digest("hex");
 const campus=item=>["sichuandaxue","huaxiba"].includes(item.pointId);
 const approved=item=>item.status==="approved" && item.consentToPublish===true && item.rightsConfirmed===true && item.humanReview?.decision==="approved";
+const EXTRA_BADGES=["chengduLamplighter","familyMemoryKeeper","imageRecorder","placeNameExplorer","oralHistorian","cityWalker"];
+function reviewTime(item){
+  let value=item.humanReviewedAt||item.humanReview?.reviewedAt;
+  if(value?.$date)value=value.$date;
+  if(value?.$numberLong)value=Number(value.$numberLong);
+  const time=new Date(value).getTime();return Number.isFinite(time)&&time>0?time:null;
+}
+function awardKind(state,kind,uid,earnedAt){
+  const registry=state.badgeKinds[kind],id=canonical(state,uid);
+  if(!registry.awards[id])registry.awards[id]={number:sequence(registry.next++),earnedAt,ranked:registry.reliable===true};
+}
+function recordApproved(state,uid,item,time){
+  if(!state.badgeKinds)fail("NUMBER_MAINTENANCE","徽章编号正在更新，请稍后重试审核；原投稿仍保留。");
+  const id=canonical(state,uid),points=state.badgeProgress[id]||[];
+  if(item.pointId&&!points.includes(item.pointId))points.push(item.pointId);
+  state.badgeProgress[id]=points;
+  const tags=Array.isArray(item.contributionTags)?item.contributionTags:[];
+  const earned={
+    chengduLamplighter:true,
+    familyMemoryKeeper:item.writingStyleId==="childvoice"||item.writingStyleName==="童言童语",
+    imageRecorder:Number(item.imageCount)>0,
+    placeNameExplorer:item.memoryType==="place_name"||tags.includes("place_name"),
+    oralHistorian:item.memoryType==="oral_history"||tags.includes("oral_history"),
+    cityWalker:points.length>=3
+  };
+  for(const kind of EXTRA_BADGES)if(earned[kind])awardKind(state,kind,uid,time);
+}
+// One-time backfill takes a complete, bounded metadata snapshot. Existing campus
+// and memory allocations are not touched. Production applies the result with CAS.
+function initializeAdditionalBadges(state,items){
+  if(state.badgeKinds)fail("BADGES_ALREADY_INITIALIZED");
+  state.badgeKinds=Object.fromEntries(EXTRA_BADGES.map(kind=>[kind,{next:1,awards:{},retired:[],reliable:false}]));
+  state.badgeProgress={};
+  const eligible=items.filter(approved).sort((a,b)=>(reviewTime(a)||Infinity)-(reviewTime(b)||Infinity)||a._id.localeCompare(b._id));
+  for(const item of eligible){
+    const uid=item.userId||item._openid;if(!uid)fail("NUMBER_OWNER_MISSING");
+    recordApproved(state,uid,item,reviewTime(item));
+  }
+  for(const registry of Object.values(state.badgeKinds)){
+    const awards=Object.values(registry.awards),times=awards.map(b=>b.earnedAt);
+    registry.reliable=times.every(Boolean)&&new Set(times).size===times.length;
+    for(const b of awards)b.ranked=registry.reliable;
+  }
+}
 function fail(code,message){throw Object.assign(new Error(message||code),{code});}
 function checked(result){if(!result||result.code)fail("NUMBER_DATABASE_ERROR");return result;}
 function row(result){checked(result);return Array.isArray(result.data)?result.data[0]:result.data;}
@@ -37,12 +81,23 @@ function merge(state,sourceUid,targetUid){
   if(a&&(!b||a.number<b.number))state.badges[target]=a;
   if(a&&b)state.retired.push(Math.max(a.number,b.number));
   delete state.badges[source];state.aliases[source]=target;
+  if(state.badgeKinds){
+    for(const registry of Object.values(state.badgeKinds)){
+      const a=registry.awards[source],b=registry.awards[target];
+      if(a&&(!b||a.number<b.number))registry.awards[target]=a;
+      if(a&&b)registry.retired.push(Math.max(a.number,b.number));
+      delete registry.awards[source];
+    }
+    state.badgeProgress[target]=[...new Set([...(state.badgeProgress[source]||[]),...(state.badgeProgress[target]||[])])];
+    delete state.badgeProgress[source];
+    if(state.badgeProgress[target].length>=3)awardKind(state,"cityWalker",targetUid,Date.now());
+  }
 }
-function publicBadge(state,uid){
-  const b=state.badges[canonical(state,uid)];
+function publicBadge(state,uid,kind="scuMemoryKeeper"){
+  const id=canonical(state,uid),b=kind==="scuMemoryKeeper"?state.badges[id]:state.badgeKinds?.[kind]?.awards[id];
   if(!b)return null;
   const number=sequence(b.number),digits=String(number).padStart(3,"0");
-  return {number,label:b.ranked?`第${digits}位`:`拾光编号${digits}`,ranked:b.ranked===true,earnedAt:b.earnedAt};
+  return {number,label:`No.${digits}`,ranked:b.ranked===true,earnedAt:b.earnedAt};
 }
 async function load(tx){
   const state=row(await tx.collection(COLLECTION).doc(DOCUMENT).get());
@@ -69,6 +124,7 @@ async function withRegistry(db,work){
 async function decorate(db,uid,items){
   return withRegistry(db,async(tx,state)=>({
     badge:publicBadge(state,uid),
+    badges:Object.fromEntries(["scuMemoryKeeper",...EXTRA_BADGES].map(kind=>[kind,publicBadge(state,uid,kind)])),
     numbers:Object.fromEntries(items.map(item=>[item._id,ensureMemory(state,item._id)]))
   }));
 }
@@ -85,10 +141,13 @@ async function review(db,id,reviewer,decision,note){
     if(link?.targetUid)merge(state,owner,link.targetUid);
     const now=Date.now(),status=decision==="needs_review"?"processing":decision;
     const memoryNumber=ensureMemory(state,id);
-    if(status==="approved"&&campus(item))award(state,owner,now);
+    if(status==="approved"){
+      recordApproved(state,owner,item,now);
+      if(campus(item))award(state,owner,now);
+    }
     checked(await ref.update({status,humanReview:{decision,note,reviewedBy:reviewer,reviewedAt:new Date(now)},
       humanReviewedAt:new Date(now),humanReviewRequired:decision==="needs_review",reviewVersion:"librarian-review-number-v2"}));
     return {status,memoryNumber};
   });
 }
-module.exports={COLLECTION,DOCUMENT,key,canonical,campus,approved,checked,row,ensureMemory,award,merge,publicBadge,load,save,withRegistry,decorate,review};
+module.exports={COLLECTION,DOCUMENT,key,canonical,campus,approved,checked,row,ensureMemory,award,merge,publicBadge,load,save,withRegistry,decorate,review,EXTRA_BADGES,initializeAdditionalBadges,recordApproved};

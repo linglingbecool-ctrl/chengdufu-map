@@ -2548,7 +2548,7 @@ function getMyBadgeDefinitions(data = myContributionData) {
 
   return badgeDefinitions.map(badge => ({...badge,
     unlocked: typeof badge.unlocked === "boolean" ? badge.unlocked : badges[badge.key] === true,
-    numberLabel: badge.key === "scuMemoryKeeper" ? data?.badgeNumbers?.scuMemoryKeeper?.label || "" : ""
+    numberLabel: data?.badgeNumbers?.[badge.key]?.label || ""
   }));
 }
 
@@ -3256,6 +3256,7 @@ ${imageHtml || renderPostCover(memory, point)}
 
 
             ${allPoints.some(item => item.id === memory.pointId) ? `<button type="button" class="public-archive-map-link" data-public-map-point="${escapeHtml(memory.pointId)}">在地图查看此地点</button>` : ""}
+            ${window.tuhuiComments?.markup(memory.id) || ""}
           </article>
         `;
       }
@@ -3375,6 +3376,14 @@ function ensurePublicMemoryPanel() {
     }
     const likeButton = event.target.closest("[data-public-like]");
     if (likeButton) { void setPublicMemoryLike(likeButton); return; }
+    const commentButton = event.target.closest("[data-public-comments]");
+    if (commentButton) {
+      showPublicMemoryPost(commentButton.dataset.publicComments);
+      const section=panel.querySelector(".memory-comments");
+      section?.scrollIntoView({block:"start",behavior:"smooth"});
+      section?.querySelector("textarea")?.focus({preventScroll:true});
+      return;
+    }
     const postButton = event.target.closest("[data-public-post]");
     if (postButton) { showPublicMemoryPost(postButton.dataset.publicPost); return; }
     if (event.target.closest("[data-feed-contribute]")) {
@@ -3422,7 +3431,7 @@ function ensurePublicMemoryPanel() {
     }
     if (event.key !== "Tab") return;
     const focusRoot = viewer.hidden ? panel.querySelector(".public-memory-panel__dialog") : viewer;
-    const items = Array.from(focusRoot.querySelectorAll("button:not([disabled]), a[href], select")).filter(item => item.getClientRects().length);
+    const items = Array.from(focusRoot.querySelectorAll("button:not([disabled]), a[href], select:not([disabled]), input:not([disabled]), textarea:not([disabled]), summary")).filter(item => item.getClientRects().length);
     const first = items[0], last = items[items.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -3508,6 +3517,7 @@ function renderPublicPostCards(memories) {
         ${renderPostCover(memory, point)}<div class="memory-post-copy"><h3>${escapeHtml(text.slice(0,56))}${text.length>56 ? "…" : ""}</h3><span>${escapeHtml(memory.pointName || point.nameModern || "成都")}</span></div>
       </button>
       <div class="public-memory-like-row"><small>${escapeHtml(memory.approximateTime || "城市记忆")}</small><button type="button" class="public-memory-like" data-public-like="${escapeHtml(memory.id)}" aria-pressed="${memory.likedByMe === true}" ${publicLikePending.has(memory.id) ? "disabled" : ""}>${publicLikeLabel(memory)}</button><span data-like-status role="status" aria-live="polite"></span></div>
+      <button type="button" class="memory-post-comment-link" data-public-comments="${escapeHtml(memory.id)}">查看 / 留下评论</button>
     </article>`;
   });
   return `<div class="memory-feed-grid">${[0,1].map(column=>`<div class="memory-feed-column">${cards.filter((card,index)=>index%2===column).join("")}</div>`).join("")}</div>`;
@@ -3542,6 +3552,7 @@ function showPublicMemoryPost(id) {
   panel.querySelector("#publicMemoryPanelSummary").textContent = "一段真实经历，一份成都记忆";
   content.innerHTML = renderPublicArchiveCards(allPoints.find(p=>p.id===memory.pointId) || {nameModern:memory.pointName}, [memory]);
   content.scrollTop = 0; back.focus();
+  window.tuhuiComments?.mount(content.querySelector(".memory-comments"),cloudApp);
 }
 
 
