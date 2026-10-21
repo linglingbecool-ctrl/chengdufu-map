@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20261015-title-location01";
+const APP_VERSION = "20261021-history19-01";
 
 // 与 CloudBase source_fragments 完成哈希去重后的实数同步。
 const KNOWLEDGE_CORPUS_METRICS = Object.freeze({
