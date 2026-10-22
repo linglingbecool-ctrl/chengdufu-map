@@ -1,9 +1,9 @@
 /* Personal postcard export. Original images stay original; edits here never update a contribution. */
 (() => {
   "use strict";
-  const W = 1536, H = 1024, SCALE = 2400 / W;
+  const W = 1536, H = 1024, SCALE = 3600 / W;
   const SERIF = '"Songti SC", "STSong", "SimSun", serif';
-  const INK = "#4b2913", RED = "#9a3e2d", RULE = "#bd9471";
+  const INK = "#4b2913", RED = "#792d20", RULE = "#bd9471";
   // Display only: keep the server-issued memory identifier unchanged.
   const displayMemoryNumber = value => /^CD-\d{6,}$/.test(value || "")
     ? `CD—${value.slice(3).replace(/^0+(?=\d)/, "")}` : "";
@@ -25,12 +25,12 @@
     return lines;
   }
 
-  function fitText(ctx, text, width, height, maxSize, minSize, lineFactor = 1.45) {
+  function fitText(ctx, text, width, height, maxSize, minSize, lineFactor = 1.45, weight = "") {
     for (let size = maxSize; size >= minSize; size--) {
-      ctx.font = `${size}px ${SERIF}`;
+      ctx.font = `${weight ? weight + " " : ""}${size}px ${SERIF}`;
       const lines = wrapText(ctx, text, width), lineHeight = size * lineFactor;
       const usedHeight = lines.reduce((sum, line) => sum + lineHeight * (line === "" ? .45 : 1), 0);
-      if (usedHeight <= height) return {lines, size, lineHeight};
+      if (usedHeight <= height) return {lines, size, lineHeight, weight};
     }
     return null;
   }
@@ -65,7 +65,7 @@
   }
 
   function drawLines(ctx, layout, x, y, color = INK) {
-    ctx.font = `${layout.size}px ${SERIF}`; ctx.fillStyle = color;
+    ctx.font = `${layout.weight ? layout.weight + " " : ""}${layout.size}px ${SERIF}`; ctx.fillStyle = color;
     for (const line of layout.lines) {
       ctx.fillText(line, x, y);
       y += layout.lineHeight * (line === "" ? .45 : 1);
@@ -77,6 +77,7 @@
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("浏览器暂时无法生成明信片，请稍后重试。");
     ctx.scale(SCALE, SCALE); ctx.textBaseline = "top";
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
     ctx.fillStyle = "#faf8f2"; ctx.fillRect(0, 0, W, H);
     const numbered = /^CD-\d{6,}$/.test(memoryNumber || "");
     const metadata = [place, time].filter(Boolean).join(" · ");
@@ -87,8 +88,8 @@
       for (let i = 0; i < 6; i++) ctx.strokeRect(112 + i * 54, 104, 42, 50);
       ctx.strokeStyle = "#b4ad9e"; ctx.setLineDash([3, 5]);
       ctx.strokeRect(1252, 104, 172, 208); ctx.setLineDash([]);
-      ctx.fillStyle = "#9b9385"; ctx.textAlign = "center";
-      ctx.font = `18px ${SERIF}`; ctx.fillText("贴邮票处", 1338, 196); ctx.textAlign = "left";
+      ctx.fillStyle = INK; ctx.textAlign = "center";
+      ctx.font = `600 20px ${SERIF}`; ctx.fillText("贴邮票处", 1338, 196); ctx.textAlign = "left";
       ctx.strokeStyle = "#d4cdbf"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(842, 212); ctx.lineTo(842, 842); ctx.stroke();
       ctx.strokeStyle = "#b6ad9e"; ctx.setLineDash([4, 5]);
@@ -96,10 +97,10 @@
       for (const y of [508, 628, 748]) {ctx.moveTo(922, y); ctx.lineTo(1424, y);}
       ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = INK; ctx.font = `26px ${SERIF}`; ctx.fillText("舆上·成都", 112, 886);
-      const detail = fitText(ctx, metadata, 690, 42, 18, 14, 1.2);
+      const detail = fitText(ctx, metadata, 690, 48, 21, 17, 1.2, "600");
       if (!detail) throw new Error("地点、年代过长，请调整后再生成背面。");
-      drawLines(ctx, detail, 112, 930, "#807461");
-      ctx.fillStyle = "#807461"; ctx.font = `15px ${SERIF}`; ctx.textAlign = "right";
+      drawLines(ctx, detail, 112, 930, INK);
+      ctx.fillStyle = INK; ctx.font = `600 19px ${SERIF}`; ctx.textAlign = "right";
       if (numbered) ctx.fillText(`记忆编号 ${displayMemoryNumber(memoryNumber)}`, 1424, 904);
       ctx.fillText("tuhuichengdu.cn", 1424, 938); ctx.textAlign = "left";
       return canvas;
@@ -108,16 +109,16 @@
     // Wide unprinted margins and uncropped images keep the front close to an art postcard.
     ctx.fillStyle = INK; ctx.font = 'bold 40px "STKaiti", "KaiTi", ' + SERIF;
     ctx.fillText("舆上·成都", 112, 66);
-    ctx.fillStyle = "#887a66"; ctx.font = `19px ${SERIF}`;
+    ctx.fillStyle = INK; ctx.font = `600 23px ${SERIF}`;
     ctx.fillText("你的专属城市记忆", 114, 120);
     if (badge) {
       const cx = 1378, cy = 82, radius = 25;
-      ctx.strokeStyle = RED; ctx.fillStyle = RED; ctx.lineWidth = 1.3;
+      ctx.strokeStyle = RED; ctx.fillStyle = RED; ctx.lineWidth = 1.6;
       for (const r of [radius, radius - 4]) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); }
       const glyph = {chengduLamplighter:"✦", scuMemoryKeeper:"川", familyMemoryKeeper:"童", imageRecorder:"影", placeNameExplorer:"名", oralHistorian:"述", cityWalker:"行"}[badge.key] || "记";
       ctx.textAlign = "center"; ctx.font = `27px ${SERIF}`; ctx.fillText(glyph, cx, cy - 15);
-      ctx.font = `18px ${SERIF}`; ctx.fillText(badge.title, cx, 115);
-      if (badge.numberLabel) { ctx.font = `14px ${SERIF}`; ctx.fillText(badge.numberLabel, cx, 140); }
+      ctx.font = `600 22px ${SERIF}`; ctx.fillText(badge.title, cx, 115);
+      if (badge.numberLabel) { ctx.font = `600 18px ${SERIF}`; ctx.fillText(badge.numberLabel, cx, 140); }
       ctx.textAlign = "left";
     }
     // Keep an even paper mat around the complete map, like the printed reference.
@@ -131,7 +132,7 @@
     if (mode === "photo") {
       if (!photo) throw new Error("请先选择一张可读取的投稿照片，或切换文字版。");
       const heading = fitText(ctx, title, 472, 68, 30, 22, 1.2);
-      const detail = fitText(ctx, metadata, 472, 44, 20, 16, 1.25);
+      const detail = fitText(ctx, metadata, 472, 60, 23, 19, 1.25, "600");
       if (!heading || !detail) throw new Error("标题或地点、年代过长，请在编辑区调整后再生成。");
       const photoHeight = Math.min(500, 472 * photo.naturalHeight / photo.naturalWidth);
       const headingHeight = heading.lines.length * heading.lineHeight;
@@ -140,11 +141,11 @@
       ctx.drawImage(photo, ...containRect(photo.naturalWidth, photo.naturalHeight, 952, groupTop, 472, photoHeight));
       ctx.textAlign = "center";
       drawLines(ctx, heading, 1188, groupTop + photoHeight + 28);
-      drawLines(ctx, detail, 1188, groupTop + photoHeight + 28 + headingHeight + 18, "#807461");
+      drawLines(ctx, detail, 1188, groupTop + photoHeight + 28 + headingHeight + 18, INK);
       ctx.textAlign = "left";
     } else {
       if (!text.trim()) throw new Error("请填写要放在明信片上的文字，或选择照片版。");
-      const detail = fitText(ctx, metadata, 472, 50, 20, 16, 1.25);
+      const detail = fitText(ctx, metadata, 472, 60, 23, 19, 1.25, "600");
       const heading = fitText(ctx, title, 472, 84, 34, 26, 1.2);
       if (!detail || !heading) throw new Error("标题或地点、年代过长，请在编辑区调整后再生成。");
       drawLines(ctx, detail, 952, contentTop, RED);
@@ -155,10 +156,10 @@
       if (!body) throw new Error("全文超出这张明信片的容量。请在文字框自行选择、确认摘录后再生成；原投稿全文仍保留。");
       drawLines(ctx, body, 952, bodyTop);
     }
-    ctx.fillStyle = "#807461"; ctx.font = `16px ${SERIF}`;
+    ctx.fillStyle = INK; ctx.font = `600 20px ${SERIF}`;
     ctx.fillText("《四川全图》· 成都府图 ｜ 四川大学图书馆", 112, 935);
-    if (numbered) {ctx.font = `15px ${SERIF}`; ctx.fillText(`记忆编号 ${displayMemoryNumber(memoryNumber)}`, 958, 935);}
-    ctx.font = `16px ${SERIF}`; ctx.textAlign = "right";
+    if (numbered) {ctx.font = `600 19px ${SERIF}`; ctx.fillText(`记忆编号 ${displayMemoryNumber(memoryNumber)}`, 958, 935);}
+    ctx.font = `600 18px ${SERIF}`; ctx.textAlign = "right";
     ctx.fillText("tuhuichengdu.cn", 1424, 962); ctx.textAlign = "left";
     return canvas;
   }
@@ -188,7 +189,7 @@
       <p class="postcard-status" role="status" aria-live="polite"></p>
       <div class="postcard-actions"><button type="button" class="btn primary" data-save disabled>保存到手机</button><a class="btn ghost" data-download aria-disabled="true" tabindex="-1">下载 PNG</a><button type="submit" class="btn ghost">重新生成预览</button></div>
       <small data-memory-number></small>
-      <small>正反面分别保存 · PNG 图片 · 2400 × 1600。手机请点保存按钮，长按大图保存到相册。</small></form></div>`;
+      <small>正反面分别保存 · PNG 图片 · 3600 × 2400。手机请点保存按钮，长按大图保存到相册。</small></form></div>`;
     document.body.append(dialog); activeDialog = dialog;
     const form = dialog.querySelector("form"), fields = form.elements;
     const img = dialog.querySelector(".postcard-paper img"), placeholder = dialog.querySelector("[data-placeholder]");
@@ -219,7 +220,7 @@
       document.body.append(view); saveDialog = view;
       const picture = view.querySelector("img"), message = view.querySelector('[role="status"]');
       const reader = new FileReader();
-      // Only encode on demand: a 2400 × 1600 PNG may add ~8 MB as a data URL.
+      // Encode the high-resolution PNG only when saving, and release it when the dialog closes.
       // Use a plain image for native long-press menus; release it when the dialog closes.
       reader.onload = () => {if (view.open) picture.src = reader.result;};
       reader.onerror = () => {message.textContent = "图片准备失败，请关闭后重试，或返回选择“下载 PNG”。";};
@@ -264,7 +265,7 @@
       let canvas;
       try {
         if (state.side !== "back" && !state.title) throw new Error("请填写明信片标题。");
-        const [map, photo] = await Promise.all([state.side === "back" ? null : getImage("./chengdu-map-original.jpg"), state.side !== "back" && state.mode === "photo" ? getImage(sources[Number(fields.photo.value)]) : null]);
+        const [map, photo] = await Promise.all([state.side === "back" ? null : getImage("./media/postcards/chengdu-map-3600.webp"), state.side !== "back" && state.mode === "photo" ? getImage(sources[Number(fields.photo.value)]) : null]);
         if (closed || current !== revision) return;
         canvas = drawPostcard(document.createElement("canvas"), {...state, map, photo, memoryNumber: item.memoryNumber});
         const blob = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("图片导出失败，请重试。")), "image/png"));

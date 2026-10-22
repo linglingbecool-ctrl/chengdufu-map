@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
 const {wrapText, fitText, containRect, eligibleBadges, drawPostcard} = require('../postcards.js');
-const ctx = {font:'', measureText(text) { return {width:Array.from(text).length * (parseFloat(this.font) || 20)}; }};
+const ctx = {font:'', measureText(text) { return {width:Array.from(text).length * (Number(this.font.match(/(\d+)px/)?.[1]) || 20)}; }};
 const original = '这是第一段城市记忆。\n第二段保留完整文字🙂，不自动删减。';
 assert.equal(wrapText(ctx, original, 100).join(''), original.replace(/\n/g,''));
 assert.deepEqual(wrapText(ctx, '一二三四五，六七', 100), ['一二三四', '五，六七']);
@@ -26,7 +26,7 @@ const fillCalls=[], imageCalls=[];
 Object.assign(ctx, {setLineDash(){},scale(){},createLinearGradient(){return {addColorStop(){}}},fillRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},strokeRect(){},arc(){},drawImage(...args){imageCalls.push(args)},fillText(...args){fillCalls.push(args)}});
 const canvas={getContext:()=>ctx}, map={naturalWidth:2400,naturalHeight:2049}, photo={naturalWidth:100,naturalHeight:200};
 drawPostcard(canvas,{map,photo,mode:'photo',title:'荷花池边的家人',place:'四川大学',time:'1978年',memoryNumber:'CD-000123',badge:{key:'scuMemoryKeeper',title:'川大拾光者',numberLabel:'No.010'}});
-assert.equal(canvas.width,2400);assert.equal(canvas.height,1600);
+assert.equal(canvas.width,3600);assert.equal(canvas.height,2400);
 assert(fillCalls.some(([text,x,y])=>text==='川大拾光者' && x>1300 && y<150));
 assert(fillCalls.some(([text,x,y])=>text==='No.010' && x>1300 && y<150));
 assert(fillCalls.some(([text,x,y])=>text==='记忆编号 CD—123' && y>930));
@@ -37,6 +37,6 @@ console.log('PASS: full text preservation and overflow, uncropped portrait/lands
 const imageCount = imageCalls.length;
 drawPostcard(canvas,{side:'back',title:'',text:'长文'.repeat(1000),place:'四川大学',time:'2026年',memoryNumber:'CD-000123'});
 assert.equal(imageCalls.length,imageCount,'Writing reverse must not depend on loading photos or maps');
-assert.equal(canvas.width,2400);assert.equal(canvas.height,1600);
+assert.equal(canvas.width,3600);assert.equal(canvas.height,2400);
 assert(fillCalls.some(([text])=>text==='贴邮票处'));
 console.log('PASS: reverse exports without images or front text, same dimensions and memory number');

@@ -30,7 +30,7 @@ $('#run').onclick = async () => {
     await wait(() => $('.postcard-save-dialog img')?.naturalWidth);
     const picture = $('.postcard-save-dialog img');
     assert(picture.src.startsWith('data:image/png;base64,'), '应显示可长按的 PNG 图片');
-    assert(picture.naturalWidth === 2400 && picture.naturalHeight === 1600, '应保留完整导出尺寸');
+    assert(picture.naturalWidth === 3600 && picture.naturalHeight === 2400, '应保留完整导出尺寸');
     $('.postcard-save-dialog [data-close]').click();
     await wait(() => !$('.postcard-save-dialog'));
     assert(!picture.hasAttribute('src'), '关闭后应释放图片引用');
@@ -53,7 +53,7 @@ $('#run').onclick = async () => {
     assert($('[data-text-field]').hidden, '背面应留白，隐藏正面文字编辑框');
     $('[data-save]').click();
     await wait(() => $('.postcard-save-dialog img')?.naturalWidth);
-    assert($('.postcard-save-dialog img').naturalWidth === 2400, '背面也应提供原尺寸长按图片');
+    assert($('.postcard-save-dialog img').naturalWidth === 3600, '背面也应提供原尺寸长按图片');
     $('.postcard-save-dialog [data-close]').click();
     await wait(() => !$('.postcard-save-dialog'));
     const front = $('[name=side][value=front]'); front.checked = true;
