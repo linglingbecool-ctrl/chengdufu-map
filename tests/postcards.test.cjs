@@ -33,10 +33,3 @@ assert(fillCalls.some(([text,x,y])=>text==='记忆编号 CD—123' && y>930));
 assert.equal(imageCalls[1].length,5,'drawImage must contain the whole photo, not use a source crop');
 assert.throws(()=>drawPostcard(canvas,{map,mode:'text',title:'城市记忆',text:'长文'.repeat(1000),place:'成都'}), /全文超出/);
 console.log('PASS: full text preservation and overflow, uncropped portrait/landscape, badge rules shared with panel, pending/rejected boundaries, output dimensions and upper-right placement');
-
-const imageCount = imageCalls.length;
-drawPostcard(canvas,{side:'back',title:'',text:'长文'.repeat(1000),place:'四川大学',time:'2026年',memoryNumber:'CD-000123'});
-assert.equal(imageCalls.length,imageCount,'Writing reverse must not depend on loading photos or maps');
-assert.equal(canvas.width,3600);assert.equal(canvas.height,2400);
-assert(fillCalls.some(([text])=>text==='贴邮票处'));
-console.log('PASS: reverse exports without images or front text, same dimensions and memory number');

@@ -51,16 +51,35 @@
   function loadImage(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      // Anonymous CORS is necessary for downloadable canvases, including CloudBase temporary URLs.
+      const controller = new AbortController();
+      let objectUrl = "", finished = false;
       img.crossOrigin = "anonymous";
       const finish = (error) => {
+        if (finished) return;
+        finished = true;
         clearTimeout(timer); img.onload = img.onerror = null;
+        controller.abort();
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
         if (error) { img.src = ""; reject(error); } else resolve(img);
       };
       const timer = setTimeout(() => finish(new Error("图片读取超时，请重试；旧投稿照片可关闭后重新打开“我的记忆”刷新。")), 20000);
       img.onload = () => finish(img.naturalWidth && img.naturalHeight ? null : new Error("照片没有可读取的尺寸，请换一张照片。"));
       img.onerror = () => finish(new Error("图片暂时无法用于下载，请重试；旧投稿照片可关闭后重新打开“我的记忆”刷新。"));
-      img.src = src;
+      (async () => {
+        const url = new URL(src, location.href);
+        if (["https:", "http:"].includes(url.protocol) && url.origin !== location.origin) {
+          // Gallery <img> requests can cache a response without CORS headers.
+          // Fetch afresh with CORS, then decode an origin-clean blob for canvas export.
+          const response = await fetch(url.href, {mode: "cors", credentials: "omit", cache: "no-store", signal: controller.signal});
+          if (!response.ok) throw new Error("照片读取失败，请重新生成预览；若仍失败，请重新打开“我的记忆”刷新。");
+          const blob = await response.blob();
+          if (finished) return;
+          objectUrl = URL.createObjectURL(blob);
+          img.src = objectUrl;
+        } else {
+          img.src = src;
+        }
+      })().catch(() => finish(new Error("照片读取失败，请重新生成预览；若仍失败，请重新打开“我的记忆”刷新。")));
     });
   }
 
@@ -72,39 +91,15 @@
     }
   }
 
-  function drawPostcard(canvas, {map, photo, mode, side = "front", title, text, place, time, badge, memoryNumber}) {
+  function drawPostcard(canvas, {map, photo, mode, title, text, place, time, badge, memoryNumber}) {
     canvas.width = W * SCALE; canvas.height = H * SCALE;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("浏览器暂时无法生成明信片，请稍后重试。");
+    if (!ctx) throw new Error("浏览器暂时无法生成照片，请稍后重试。");
     ctx.scale(SCALE, SCALE); ctx.textBaseline = "top";
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
     ctx.fillStyle = "#faf8f2"; ctx.fillRect(0, 0, W, H);
     const numbered = /^CD-\d{6,}$/.test(memoryNumber || "");
     const metadata = [place, time].filter(Boolean).join(" · ");
-
-    if (side === "back") {
-      // A writing reverse is independent of photo loading and front-side text capacity.
-      ctx.strokeStyle = "#8da3ac"; ctx.lineWidth = 1.5;
-      for (let i = 0; i < 6; i++) ctx.strokeRect(112 + i * 54, 104, 42, 50);
-      ctx.strokeStyle = "#b4ad9e"; ctx.setLineDash([3, 5]);
-      ctx.strokeRect(1252, 104, 172, 208); ctx.setLineDash([]);
-      ctx.fillStyle = INK; ctx.textAlign = "center";
-      ctx.font = `600 20px ${SERIF}`; ctx.fillText("贴邮票处", 1338, 196); ctx.textAlign = "left";
-      ctx.strokeStyle = "#d4cdbf"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(842, 212); ctx.lineTo(842, 842); ctx.stroke();
-      ctx.strokeStyle = "#b6ad9e"; ctx.setLineDash([4, 5]);
-      ctx.beginPath();
-      for (const y of [508, 628, 748]) {ctx.moveTo(922, y); ctx.lineTo(1424, y);}
-      ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = INK; ctx.font = `26px ${SERIF}`; ctx.fillText("舆上·成都", 112, 886);
-      const detail = fitText(ctx, metadata, 690, 48, 21, 17, 1.2, "600");
-      if (!detail) throw new Error("地点、年代过长，请调整后再生成背面。");
-      drawLines(ctx, detail, 112, 930, INK);
-      ctx.fillStyle = INK; ctx.font = `600 19px ${SERIF}`; ctx.textAlign = "right";
-      if (numbered) ctx.fillText(`记忆编号 ${displayMemoryNumber(memoryNumber)}`, 1424, 904);
-      ctx.fillText("tuhuichengdu.cn", 1424, 938); ctx.textAlign = "left";
-      return canvas;
-    }
 
     // Wide unprinted margins and uncropped images keep the front close to an art postcard.
     ctx.fillStyle = INK; ctx.font = 'bold 40px "STKaiti", "KaiTi", ' + SERIF;
@@ -144,7 +139,7 @@
       drawLines(ctx, detail, 1188, groupTop + photoHeight + 28 + headingHeight + 18, INK);
       ctx.textAlign = "left";
     } else {
-      if (!text.trim()) throw new Error("请填写要放在明信片上的文字，或选择照片版。");
+      if (!text.trim()) throw new Error("请填写要放在照片上的文字，或选择照片版。");
       const detail = fitText(ctx, metadata, 472, 60, 23, 19, 1.25, "600");
       const heading = fitText(ctx, title, 472, 84, 34, 26, 1.2);
       if (!detail || !heading) throw new Error("标题或地点、年代过长，请在编辑区调整后再生成。");
@@ -153,7 +148,7 @@
       drawLines(ctx, heading, 952, titleTop);
       const bodyTop = titleTop + heading.lines.length * heading.lineHeight + 28;
       const body = text.length <= 10000 && fitText(ctx, text, 472, contentBottom - bodyTop, 24, 21, 1.42);
-      if (!body) throw new Error("全文超出这张明信片的容量。请在文字框自行选择、确认摘录后再生成；原投稿全文仍保留。");
+      if (!body) throw new Error("全文超出这张照片的容量。请在文字框自行选择、确认摘录后再生成；原投稿全文仍保留。");
       drawLines(ctx, body, 952, bodyTop);
     }
     ctx.fillStyle = INK; ctx.font = `600 20px ${SERIF}`;
@@ -175,21 +170,20 @@
     });
     const dialog = document.createElement("dialog"); dialog.className = "postcard-dialog";
     dialog.setAttribute("aria-labelledby", "postcardTitle");
-    dialog.innerHTML = `<header class="postcard-head"><div><p>一份可以带走的成都记忆</p><h2 id="postcardTitle">你的专属明信片</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭明信片">关闭 ×</button></header>
-      <div class="postcard-layout"><section class="postcard-paper" aria-label="明信片预览"><img alt="专属明信片预览，包含古地图、个人记忆及右上角所选徽章" hidden><p data-placeholder>正在生成预览……</p></section>
-      <form class="postcard-editor"><fieldset><legend>正反面</legend><label><input type="radio" name="side" value="front" checked> 正面 · 城市记忆</label><label><input type="radio" name="side" value="back"> 背面 · 手写寄语</label></fieldset>
-      <p data-back-notice hidden>邮票框、邮编格与地址横线已留好，左侧留白可在打印后手写寄语。正反面分别保存。</p>
-      <fieldset data-front-field><legend>正面版式</legend><label><input type="radio" name="layout" value="photo"> 古图＋照片</label><label><input type="radio" name="layout" value="text"> 古图＋文字</label></fieldset>
+    dialog.innerHTML = `<header class="postcard-head"><div><p>一份可以带走的成都记忆</p><h2 id="postcardTitle">你的专属照片</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭照片">关闭 ×</button></header>
+      <div class="postcard-layout"><section class="postcard-paper" aria-label="照片预览"><img alt="专属照片预览，包含古地图、个人记忆及右上角所选徽章" hidden><p data-placeholder>正在生成预览……</p></section>
+      <form class="postcard-editor">
+      <fieldset><legend>照片版式</legend><label><input type="radio" name="layout" value="photo"> 古图＋照片</label><label><input type="radio" name="layout" value="text"> 古图＋文字</label></fieldset>
       <p data-photo-notice hidden>投稿照片暂未加载，请关闭后重新打开“我的记忆”刷新；也可先生成文字版。</p>
       <label data-photo-field>投稿照片<select name="photo" aria-label="选择投稿照片"></select></label>
-      <label data-front-field>明信片标题<input name="title" maxlength="60"></label>
+      <label>照片标题<input name="title" maxlength="60"></label>
       <div class="postcard-fields"><label>记忆地点<input name="place" maxlength="80"></label><label>年代（选填）<input name="time" maxlength="60"></label></div>
-      <label data-text-field>明信片文字<textarea name="story" rows="8" maxlength="10000"></textarea><small>初始载入完整记忆。这里只编辑明信片，原投稿不变；超出篇幅时需自行确认摘录。</small></label>
-      <label data-front-field>右上角徽章<select name="badge" aria-describedby="postcardBadgeNote"></select><small id="postcardBadgeNote"></small></label>
+      <label data-text-field>照片文字<textarea name="story" rows="8" maxlength="10000"></textarea><small>初始载入完整记忆。这里只编辑照片，原投稿不变；超出篇幅时需自行确认摘录。</small></label>
+      <label>右上角徽章<select name="badge" aria-describedby="postcardBadgeNote"></select><small id="postcardBadgeNote"></small></label>
       <p class="postcard-status" role="status" aria-live="polite"></p>
       <div class="postcard-actions"><button type="button" class="btn primary" data-save disabled>保存到手机</button><a class="btn ghost" data-download aria-disabled="true" tabindex="-1">下载 PNG</a><button type="submit" class="btn ghost">重新生成预览</button></div>
       <small data-memory-number></small>
-      <small>正反面分别保存 · PNG 图片 · 3600 × 2400。手机请点保存按钮，长按大图保存到相册。</small></form></div>`;
+      <small>PNG 图片 · 3600 × 2400。手机请点保存按钮，长按大图保存到相册。</small></form></div>`;
     document.body.append(dialog); activeDialog = dialog;
     const form = dialog.querySelector("form"), fields = form.elements;
     const img = dialog.querySelector(".postcard-paper img"), placeholder = dialog.querySelector("[data-placeholder]");
@@ -215,8 +209,8 @@
       view.className = "postcard-dialog postcard-save-dialog";
       view.setAttribute("aria-labelledby", "postcardSaveTitle");
       view.innerHTML = `<header class="postcard-head"><div><h2 id="postcardSaveTitle">把这份记忆留在相册里</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭保存图片">关闭 ×</button></header>
-        <p role="status">正在准备图片……</p><img hidden alt="可长按保存的完整明信片">
-        <p class="postcard-save-help">若没有保存选项，请从微信右上角菜单选择在 Safari 中打开，再生成明信片并保存。</p>`;
+        <p role="status">正在准备图片……</p><img hidden alt="可长按保存的完整照片">
+        <p class="postcard-save-help">若没有保存选项，请从微信右上角菜单选择在 Safari 中打开，再生成照片并保存。</p>`;
       document.body.append(view); saveDialog = view;
       const picture = view.querySelector("img"), message = view.querySelector('[role="status"]');
       const reader = new FileReader();
@@ -248,24 +242,21 @@
       download.removeAttribute("href"); download.setAttribute("aria-disabled", "true"); download.tabIndex = -1;
       img.hidden = true; placeholder.hidden = false; placeholder.textContent = "正在生成预览……";
       status.textContent = "正在生成预览……";
-      const back = fields.side.value === "back";
-      dialog.querySelectorAll("[data-front-field]").forEach(el => {el.hidden = back;});
-      dialog.querySelector("[data-back-notice]").hidden = !back;
-      dialog.querySelector("[data-photo-notice]").hidden = back || sources.length > 0 || !(Number(item.imageCount) > 0);
-      dialog.querySelector("[data-photo-field]").hidden = back || fields.layout.value !== "photo";
-      dialog.querySelector("[data-text-field]").hidden = back || fields.layout.value !== "text";
-      save.textContent = back ? "保存背面到手机" : "保存正面到手机";
-      download.textContent = back ? "下载背面 PNG" : "下载正面 PNG";
-      img.alt = back ? "明信片背面：邮编格、邮票框、地址横线和手写留白" : "明信片正面：馆藏古图、个人记忆及所选徽章";
+      dialog.querySelector("[data-photo-notice]").hidden = sources.length > 0 || !(Number(item.imageCount) > 0);
+      dialog.querySelector("[data-photo-field]").hidden = fields.layout.value !== "photo";
+      dialog.querySelector("[data-text-field]").hidden = fields.layout.value !== "text";
+      save.textContent = "保存照片到手机";
+      download.textContent = "下载照片 PNG";
+      img.alt = "专属照片：馆藏古图、个人记忆及所选徽章";
     }
     async function render() {
       invalidate(); const current = revision;
-      const state = {side: fields.side.value, mode: fields.layout.value, title: fields.title.value.trim(), text: fields.story.value,
+      const state = {mode: fields.layout.value, title: fields.title.value.trim(), text: fields.story.value,
         place: fields.place.value.trim(), time: fields.time.value.trim(), badge: earned.find(b => b.key === fields.badge.value)};
       let canvas;
       try {
-        if (state.side !== "back" && !state.title) throw new Error("请填写明信片标题。");
-        const [map, photo] = await Promise.all([state.side === "back" ? null : getImage("./media/postcards/chengdu-map-3600.webp"), state.side !== "back" && state.mode === "photo" ? getImage(sources[Number(fields.photo.value)]) : null]);
+        if (!state.title) throw new Error("请填写照片标题。");
+        const [map, photo] = await Promise.all([getImage("./media/postcards/chengdu-map-3600.webp"), state.mode === "photo" ? getImage(sources[Number(fields.photo.value)]) : null]);
         if (closed || current !== revision) return;
         canvas = drawPostcard(document.createElement("canvas"), {...state, map, photo, memoryNumber: item.memoryNumber});
         const blob = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("图片导出失败，请重试。")), "image/png"));
@@ -273,9 +264,9 @@
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         previewUrl = URL.createObjectURL(blob); img.src = previewUrl; img.hidden = false; placeholder.hidden = true;
         exportBlob = blob; save.disabled = false;
-        download.href = previewUrl; download.download = `舆上成都-${(state.place || "城市记忆").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").slice(0, 40)}-${state.side === "back" ? "背面" : (state.mode === "photo" ? "照片正面" : "文字正面")}明信片.png`;
+        download.href = previewUrl; download.download = `舆上成都-${(state.place || "城市记忆").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").slice(0, 40)}-${state.mode === "photo" ? "古图与照片" : "古图与文字"}-专属照片.png`;
         download.setAttribute("aria-disabled", "false"); download.tabIndex = 0;
-        status.textContent = state.side === "back" ? "背面已生成，可保存后与正面配对使用。" : state.mode === "photo" ? "预览已更新，照片完整呈现，可下载保存。" : "预览已更新，当前文字完整排入，可下载保存。";
+        status.textContent = state.mode === "photo" ? "预览已更新，照片完整呈现，可下载保存。" : "预览已更新，当前文字完整排入，可下载保存。";
       } catch (error) {
         if (closed || current !== revision) return;
         status.textContent = error.name === "SecurityError" ? "照片暂时无法导出，请关闭后重新打开“我的记忆”刷新，或使用文字版。" : error.message;
@@ -300,7 +291,7 @@
     dialog.showModal(); render();
   }
 
-  const api = {open, wrapText, fitText, containRect, eligibleBadges, drawPostcard};
+  const api = {open, wrapText, fitText, containRect, eligibleBadges, drawPostcard, loadImage};
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else {
     window.tuhuiPostcards = api;

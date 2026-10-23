@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <base href="../">
-<title>明信片保存自检</title>
+<title>照片保存自检</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="postcards.css">
 <script src="postcards.js"></script>
@@ -44,22 +44,9 @@ $('#run').onclick = async () => {
     title.value = '重新生成'; title.dispatchEvent(new Event('input', {bubbles:true}));
     await wait(() => !$('[data-save]').disabled);
 
-    const frontUrl = $('[data-download]').href;
-    const back = $('[name=side][value=back]'); back.checked = true;
-    back.dispatchEvent(new Event('input', {bubbles:true}));
-    assert($('[data-save]').disabled && !$('[data-download]').hasAttribute('href'), '翻面应立即禁用旧图');
-    await wait(() => !$('[data-save]').disabled);
-    assert($('[data-download]').download.includes('背面') && $('[data-download]').href !== frontUrl, '背面应导出独立图片');
-    assert($('[data-text-field]').hidden, '背面应留白，隐藏正面文字编辑框');
-    $('[data-save]').click();
-    await wait(() => $('.postcard-save-dialog img')?.naturalWidth);
-    assert($('.postcard-save-dialog img').naturalWidth === 3600, '背面也应提供原尺寸长按图片');
-    $('.postcard-save-dialog [data-close]').click();
-    await wait(() => !$('.postcard-save-dialog'));
-    const front = $('[name=side][value=front]'); front.checked = true;
-    front.dispatchEvent(new Event('input', {bubbles:true}));
-    await wait(() => !$('[data-save]').disabled);
-    assert($('[name=title]').value === '重新生成', '翻回正面应保留原编辑内容');
+    assert(!$('[name=side]'), '照片编辑器不应保留正反面选择');
+    assert(!$('.postcard-dialog').textContent.includes('明信片'), '所有可见文案应统一为照片');
+    assert($('[data-download]').download.endsWith('专属照片.png'), '下载文件名应统一为照片');
 
     let reader, aborted = false;
     window.FileReader = class {

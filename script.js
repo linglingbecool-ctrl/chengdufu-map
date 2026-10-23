@@ -2728,7 +2728,7 @@ function renderMyMemoryPanel() {
 
                   ${(item.imageUrls || []).length ? `<div class="my-memory-photos">${item.imageUrls.map(url => `<button type="button" data-my-image="${escapeHtml(url)}" aria-label="放大查看记忆照片"><img src="${escapeHtml(url)}" alt="${escapeHtml(item.pointName || "记忆")}照片" loading="lazy"></button>`).join("")}</div>` : Number(item.imageCount) > 0 ? '<p>照片暂未加载，可关闭后重新打开重试。</p>' : ""}
                   ${memoryDisplayText(item) ? `<section class="my-footprint-text"><p>${escapeHtml(memoryDisplayText(item))}</p></section>` : ""}
-                  ${myMemoryFilter !== "liked" && ["pending", "processing", "approved"].includes(item.status) ? `<button type="button" class="btn ghost" data-my-postcard="${index}">生成明信片</button>` : ""}
+                  ${myMemoryFilter !== "liked" && ["pending", "processing", "approved"].includes(item.status) ? `<button type="button" class="btn ghost" data-my-postcard="${index}">生成照片</button>` : ""}
 
                   <div
                     class="my-footprint-card__meta"
@@ -7290,7 +7290,7 @@ async function handleContributionSubmit(
     const modal=document.querySelector("#contributionModal");
     modal.querySelector("#contributionForm").hidden=true;
     const success=modal.querySelector("#memorySubmissionSuccess");success.hidden=false;
-    success.innerHTML=`<h3 tabindex="-1">记忆已保存，已点亮${escapeHtml(submittedPoint.nameModern)}</h3><p>无需重复投稿，馆员审核后会出现在公众记忆。</p>${window.tuhuiAccount?.markup() || ""}<button type="button" class="btn primary" data-memory-postcard>生成专属明信片</button><button type="button" class="btn ghost" data-memory-finish>返回地图</button>`;
+    success.innerHTML=`<h3 tabindex="-1">记忆已保存，已点亮${escapeHtml(submittedPoint.nameModern)}</h3><p>无需重复投稿，馆员审核后会出现在公众记忆。</p>${window.tuhuiAccount?.markup() || ""}<button type="button" class="btn primary" data-memory-postcard>生成专属照片</button><button type="button" class="btn ghost" data-memory-finish>返回地图</button>`;
     success.querySelector("[data-memory-finish]").onclick=()=>{closeContributionModal();focusPersonalLitPoint(submittedPoint);showPersonalLightCelebration(submittedPoint,processingStarted);};
     // Local files let the newly saved contribution export even if temporary cloud URLs are not ready.
     const postcardItem = myContributionData?.items?.find(item => (item.id || item._id) === submissionId) || {
