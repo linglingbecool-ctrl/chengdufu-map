@@ -74,6 +74,36 @@ const listen = s => new Promise(r => s.listen(0, '127.0.0.1', r));
       const blob=await (await fetch('./sichuandaxue-current.jpeg')).blob();
       tuhuiPostcards.open({item:{pointName:'本地照片'},files:[new File([blob],'photo.jpg',{type:'image/jpeg'})],text:'本地文件测试'});
     });await ready();
+    // A stalled base map must fail visibly in the preview, preserve text, and allow retry.
+    await page.locator('.postcard-dialog[open] [data-close]').click();
+    await page.waitForFunction(() => !document.querySelector('.postcard-dialog'));
+    await page.evaluate(() => {
+      window.originalSetTimeout = window.setTimeout;
+      window.setTimeout = (fn, ms, ...args) => originalSetTimeout(fn, ms === 20000 || ms === 15000 ? 300 : ms, ...args);
+    });
+    let stalledMap;
+    await page.route('**/chengdu-map-1800.webp', route => {stalledMap = route;});
+    await page.evaluate(() => tuhuiPostcards.open({item:{pointName:'九眼桥',approximateTime:'2000'},text:'2000年，我和妈妈一同来到九眼桥。原投稿文字完整保留。'}));
+    await page.waitForFunction(() => document.querySelector('[data-placeholder]').textContent.includes('古地图加载失败'));
+    assert(await page.locator('[data-save]').isDisabled());
+    assert.equal(await page.locator('[data-download]').getAttribute('href'), null);
+    assert.match(await page.locator('[name=story]').inputValue(), /原投稿文字完整保留/);
+    await stalledMap.abort();await page.unroute('**/chengdu-map-1800.webp');
+    await page.evaluate(() => {window.setTimeout = window.originalSetTimeout;});
+    await page.locator('.postcard-editor button[type=submit]').click();await ready();
+    // Canvas export is also bounded when the browser never invokes toBlob's callback.
+    await page.evaluate(() => {
+      window.originalToBlob = HTMLCanvasElement.prototype.toBlob;
+      HTMLCanvasElement.prototype.toBlob = () => {};
+      window.setTimeout = (fn, ms, ...args) => originalSetTimeout(fn, ms === 15000 ? 300 : ms, ...args);
+    });
+    await page.locator('.postcard-editor button[type=submit]').click();
+    await page.waitForFunction(() => document.querySelector('[data-placeholder]').textContent.includes('导出超时'));
+    assert(await page.locator('[data-save]').isDisabled());
+    await page.evaluate(() => {HTMLCanvasElement.prototype.toBlob = window.originalToBlob;window.setTimeout = window.originalSetTimeout;});
+    await page.locator('.postcard-editor button[type=submit]').click();await ready();
+    assert.equal(await page.locator('.postcard-paper img').evaluate(i => i.naturalWidth), 3600);
+    console.log('PASS: stalled map and PNG export show visible errors, keep text, disable stale downloads, and recover on retry.');
     console.log('PASS: reproduced old cache failure; fresh CORS export, photo/text switching, mobile save, failed-download guard, local uploads, photo naming and no reverse.');
   } finally {
     await browser?.close();site.close();images.close();

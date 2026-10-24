@@ -4,6 +4,8 @@
   const W = 1536, H = 1024, SCALE = 3600 / W;
   const SERIF = '"Songti SC", "STSong", "SimSun", serif';
   const INK = "#4b2913", RED = "#792d20", RULE = "#bd9471";
+  // The map occupies 1725 px of the 3600 px export; 1800 px covers that slot.
+  const MAP_SRC = "./media/postcards/chengdu-map-1800.webp";
   // Display only: keep the server-issued memory identifier unchanged.
   const displayMemoryNumber = value => /^CD-\d{6,}$/.test(value || "")
     ? `CD—${value.slice(3).replace(/^0+(?=\d)/, "")}` : "";
@@ -89,6 +91,18 @@
       ctx.fillText(line, x, y);
       y += layout.lineHeight * (line === "" ? .45 : 1);
     }
+  }
+
+  function exportCanvas(canvas) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("照片导出超时，请点击“重新生成预览”重试。")), 15000);
+      try {
+        canvas.toBlob(blob => {
+          clearTimeout(timer);
+          if (blob) resolve(blob); else reject(new Error("图片导出失败，请重试。"));
+        }, "image/png");
+      } catch (error) {clearTimeout(timer); reject(error);}
+    });
   }
 
   function drawPostcard(canvas, {map, photo, mode, title, text, place, time, badge, memoryNumber}) {
@@ -256,10 +270,16 @@
       let canvas;
       try {
         if (!state.title) throw new Error("请填写照片标题。");
-        const [map, photo] = await Promise.all([getImage("./media/postcards/chengdu-map-3600.webp"), state.mode === "photo" ? getImage(sources[Number(fields.photo.value)]) : null]);
+        placeholder.textContent = status.textContent = state.mode === "photo"
+          ? "正在加载古图和投稿照片……" : "正在加载古地图……";
+        const [map, photo] = await Promise.all([
+          getImage(MAP_SRC).catch(() => {throw new Error("古地图加载失败或超时，请检查网络后点击“重新生成预览”。已填写的文字仍保留。");}),
+          state.mode === "photo" ? getImage(sources[Number(fields.photo.value)]) : null
+        ]);
         if (closed || current !== revision) return;
+        placeholder.textContent = status.textContent = "正在排版并导出照片……";
         canvas = drawPostcard(document.createElement("canvas"), {...state, map, photo, memoryNumber: item.memoryNumber});
-        const blob = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("图片导出失败，请重试。")), "image/png"));
+        const blob = await exportCanvas(canvas);
         if (closed || current !== revision) return;
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         previewUrl = URL.createObjectURL(blob); img.src = previewUrl; img.hidden = false; placeholder.hidden = true;
@@ -270,7 +290,7 @@
       } catch (error) {
         if (closed || current !== revision) return;
         status.textContent = error.name === "SecurityError" ? "照片暂时无法导出，请关闭后重新打开“我的记忆”刷新，或使用文字版。" : error.message;
-        placeholder.textContent = "请按右侧提示调整后重新生成。";
+        placeholder.textContent = status.textContent;
       } finally {
         if (canvas) {canvas.width = 0; canvas.height = 0;}
       }
