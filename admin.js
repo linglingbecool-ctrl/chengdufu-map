@@ -159,33 +159,32 @@ async function resolveImageUrls(items) {
 
   if (!fileIds.length) return items;
 
-  try {
-    const result = await cloudApp.getTempFileURL({
-      fileList: fileIds
-    });
-
-    const fileList = result?.fileList || result?.result?.fileList || [];
-    const urlMap = new Map();
-
-    fileList.forEach((file) => {
-      const fileId = file?.fileID || file?.fileId || file?.file_id;
-      const url = file?.tempFileURL || file?.tempFileUrl || file?.download_url;
-
-      if (fileId && url) {
-        urlMap.set(fileId, url);
-      }
-    });
-
-    return items.map((item) => ({
-      ...item,
-      imageUrls: (item.imageFileIds || [])
-        .map((id) => urlMap.get(id))
-        .filter(Boolean)
-    }));
-  } catch (error) {
-    console.warn("待审图片临时地址读取失败：", error);
-    return items;
+  const urlMap = new Map();
+  // CloudBase limits each request to 50 files. A page can contain 100 posts
+  // with up to 3 photos each; keep batches independent if one request fails.
+  for (let index = 0; index < fileIds.length; index += 50) {
+    try {
+      const result = await cloudApp.getTempFileURL({
+        fileList: fileIds.slice(index, index + 50)
+      });
+      const fileList = result?.fileList || result?.result?.fileList || [];
+      fileList.forEach((file) => {
+        const fileId = file?.fileID || file?.fileId || file?.file_id;
+        const url = file?.tempFileURL || file?.tempFileUrl || file?.download_url;
+        if (fileId && url) urlMap.set(fileId, url);
+      });
+    } catch (error) {
+      console.warn("投稿图片临时地址读取失败：", error);
+    }
   }
+
+  return items.map((item) => {
+    if (!Array.isArray(item.imageFileIds) || !item.imageFileIds.length) return item;
+    const imageUrls = item.imageFileIds.map((id, index) =>
+      urlMap.get(id) || item.imageUrls?.[index]
+    ).filter(Boolean);
+    return { ...item, imageUrls };
+  });
 }
 
 function revokeAdminAccess(message) {
@@ -495,7 +494,20 @@ function createReviewCard(item) {
         `
       )
       .join("");
-  } else {
+    imageContainer.querySelectorAll("img").forEach((img) => {
+      img.addEventListener("error", () => {
+        const message = document.createElement("p");
+        message.textContent = "这张照片加载失败，请点击“刷新投稿记录”重试。";
+        img.replaceWith(message);
+      }, { once: true });
+    });
+  }
+  const expectedImages = Math.max(Number(item.imageCount) || 0, item.imageFileIds?.length || 0);
+  if (expectedImages > imageUrls.length) {
+    const message = document.createElement("p");
+    message.textContent = "部分照片暂时读取失败，请点击“刷新投稿记录”重试。";
+    imageContainer.append(message);
+  } else if (!imageUrls.length) {
     imageContainer.remove();
   }
 
