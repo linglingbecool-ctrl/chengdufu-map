@@ -6332,7 +6332,7 @@ function ensureContributionModal() {
           <label class="contribution-field"><span>记忆发生的地点</span><select id="contributionPlace" required></select></label>
           <label class="contribution-field"><span>添加真实照片（可多次选择，最多3张）</span><input id="contributionImages" type="file" accept="image/*,.heic,.heif" multiple aria-describedby="contributionImageHelp contributionImageStatus"><small id="contributionImageHelp">每张最多20MB，上传前自动处理较大照片；不支持的格式会提示重选。</small></label>
           <p id="contributionImageStatus" class="contribution-status" role="status"></p><div class="contribution-preview" id="contributionPreview"></div>
-          <label class="contribution-field"><span>我的原始记忆</span><textarea id="contributionContent" rows="6" maxlength="1200" placeholder="那年，和谁一起，发生了什么……也可以只上传照片。"></textarea><small>原文单独保留，整理稿不会覆盖它。</small></label>
+          <label class="contribution-field"><span id="contributionContentLabel">我的原始记忆（必填）</span><textarea id="contributionContent" rows="6" maxlength="1200" required aria-describedby="contributionContentHelp" placeholder="那年，和谁一起，发生了什么……"></textarea><small id="contributionContentHelp" hidden>请用一两句话介绍照片拍摄的地点、时间或画面内容。</small><small>原文单独保留，整理稿不会覆盖它。</small></label>
           <div id="memoryCoverOptions"><p>不传照片，文字会自动生成封面图。</p><div id="memoryCoverPreview"></div></div>
           <h4>表达偏好</h4>
           <div class="writing-style-grid" id="writingStyleGrid" role="group" aria-label="表达偏好选择">${buildWritingStyleCards()}</div>
@@ -6604,7 +6604,13 @@ function syncMemoryCover() {
   const modal=document.querySelector("#contributionModal");
   const content=currentRewriteAccepted && currentRewriteDraft ? currentRewriteDraft : modal.querySelector("#contributionContent").value;
   modal.querySelector("#contributionPointName").textContent=activeContributionPoint ? `记忆地点：${pointPickerName(activeContributionPoint)}` : "选择记忆发生的地点";
-  modal.querySelector("#memoryCoverOptions").hidden=selectedContributionFiles.length>0;
+  const hasPhotos = selectedContributionFiles.length > 0;
+  modal.querySelector("#contributionContentLabel").textContent = hasPhotos ? "图片说明（必填）" : "我的原始记忆（必填）";
+  modal.querySelector("#contributionContentHelp").hidden = !hasPhotos;
+  modal.querySelector("#contributionContent").placeholder = hasPhotos
+    ? "请用一两句话介绍照片拍摄的地点、时间或画面内容。"
+    : "那年，和谁一起，发生了什么……";
+  modal.querySelector("#memoryCoverOptions").hidden=hasPhotos;
   modal.querySelector("#memoryCoverPreview").innerHTML=content.trim() ? renderPostCover({originalContent:content},activeContributionPoint || {}) : "";
 }
 function showMemoryStep(step) {
@@ -6624,13 +6630,26 @@ function showMemoryStep(step) {
   modal.querySelector(`[data-memory-step="${contributionStep}"] h3`).focus();
   modal.querySelector(".contribution-modal__dialog").scrollTop=0;
 }
+function validateContributionContent(modal) {
+  const input = modal.querySelector("#contributionContent");
+  if (input.value.trim()) return true;
+  if (contributionStep !== 0) showMemoryStep(0);
+  const status = modal.querySelector("#contributionStatus");
+  status.textContent = selectedContributionFiles.length
+    ? "请用一两句话介绍照片拍摄的地点、时间或画面内容。"
+    : "请填写一段记忆。";
+  input.focus();
+  return false;
+}
+
 function advanceMemoryStep() {
   const modal=document.querySelector("#contributionModal"), status=modal.querySelector("#contributionStatus");
   if(contributionStep===0) {
     const contact=modal.querySelector("#contributionContact").value.trim();
     if(contact && !isValidContributionContact(contact)){status.textContent="请检查联系方式，或留空。";return;}
   }
-  if(contributionStep===0 && (!activeContributionPoint || (!modal.querySelector("#contributionContent").value.trim() && !selectedContributionFiles.length))) {status.textContent="请选择地点，并至少填写一段记忆或添加一张照片。";return;}
+  if(contributionStep===0 && !activeContributionPoint) {status.textContent="请选择记忆发生的地点。";return;}
+  if(contributionStep===0 && !validateContributionContent(modal)) return;
   saveContributionDraft(); showMemoryStep(contributionStep+1);
 }
 
@@ -7006,21 +7025,7 @@ async function handleContributionSubmit(
       "is-error"
     );
 
-  if (
-    !content &&
-    files.length === 0
-  ) {
-    statusElement.textContent =
-      "请至少填写一段文字，或上传一张照片。";
-
-    statusElement
-      .classList
-      .add(
-        "is-error"
-      );
-
-    return;
-  }
+  if (!validateContributionContent(document.querySelector("#contributionModal"))) return;
 
   if (
     !consentToPublish
