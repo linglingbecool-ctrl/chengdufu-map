@@ -4,7 +4,7 @@
 // 版本：2026-08-12-V3-零模型智能整理接入
 // ===============================================
 
-const APP_VERSION = "20261021-history19-01";
+const APP_VERSION = "20261028-history-paragraphs";
 
 // 与 CloudBase source_fragments 完成哈希去重后的实数同步。
 const KNOWLEDGE_CORPUS_METRICS = Object.freeze({
@@ -3652,26 +3652,30 @@ let mapLabelObserver = null;
 function layoutMapLabels() {
   if (!markersEl || !markersEl.clientWidth || !markersEl.clientHeight) return;
   const width = markersEl.clientWidth, height = markersEl.clientHeight;
+  const inset = window.innerWidth <= 600 ? 6 : 3;
+  const gap = window.innerWidth <= 600 ? 3 : 2;
   const svg = markersEl.querySelector(".map-label-lines");
   if (!svg) return;
   svg.replaceChildren();
   const occupied = [];
   const hint = document.querySelector("#mapActionHint");
   if (hint) occupied.push({x:(width-hint.offsetWidth)/2, y:hint.offsetTop, w:hint.offsetWidth, h:hint.offsetHeight});
-  const buttons = [...markersEl.querySelectorAll(".map-marker")].sort((a,b) => Number(a.dataset.mapY)-Number(b.dataset.mapY));
+  // On phones, pack vertical labels by column so lower points are not pushed to the top.
+  const axis = window.innerWidth <= 600 ? "mapX" : "mapY";
+  const buttons = [...markersEl.querySelectorAll(".map-marker")].sort((a,b) => Number(a.dataset[axis])-Number(b.dataset[axis]));
   // Bounded search for the current 29 points. For a much larger collection, use clustering.
   for (const button of buttons) {
     const x=Number(button.dataset.mapX)/100*width, y=Number(button.dataset.mapY)/100*height;
     const w=button.offsetWidth, h=button.offsetHeight;
     let best;
     const xs=[x-w/2], ys=[y-h-5];
-    for(let left=3;left<=width-w-3;left+=w+3) xs.push(left);
-    for(let top=3;top<=height-h-3;top+=4) ys.push(top);
+    for(let left=inset;left<=width-w-inset;left+=w+3) xs.push(left);
+    for(let top=inset;top<=height-h-inset;top+=4) ys.push(top);
     for(const rawX of xs) for(const rawY of ys) {
-      const left=Math.max(3,Math.min(width-w-3,rawX));
-      const top=Math.max(3,Math.min(height-h-3,rawY));
+      const left=Math.max(inset,Math.min(width-w-inset,rawX));
+      const top=Math.max(inset,Math.min(height-h-inset,rawY));
       let overlap=0;
-      for(const r of occupied) overlap+=Math.max(0,Math.min(left+w+2,r.x+r.w)-Math.max(left-2,r.x))*Math.max(0,Math.min(top+h+2,r.y+r.h)-Math.max(top-2,r.y));
+      for(const r of occupied) overlap+=Math.max(0,Math.min(left+w+gap,r.x+r.w)-Math.max(left-gap,r.x))*Math.max(0,Math.min(top+h+gap,r.y+r.h)-Math.max(top-gap,r.y));
       const score=overlap*1000+Math.hypot(left+w/2-x,top+h-y);
       if(!best||score<best.score) best={x:left,y:top,w,h,score};
     }

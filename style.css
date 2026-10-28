@@ -7604,5 +7604,6 @@ body.scene-overlay-open {
 .official-intro-more .intro-collapse, .official-intro-more[open] .intro-expand { display:none; }
 .official-intro-more[open] .intro-collapse { display:inline; }
 @media(max-width:600px) {
-  #mapMarkers .map-marker { width:16px; min-height:36px; padding:4px 0; font-size:11px; line-height:13px; letter-spacing:.5px; }
+  #mapMarkers .map-marker { width:15px; min-height:32px; padding:3px 0; border-width:.5px; font-size:11px; line-height:12px; letter-spacing:0; }
+  #mapMarkers .map-marker.active, #mapMarkers .map-marker:focus-visible { outline-width:1px; }
 }
