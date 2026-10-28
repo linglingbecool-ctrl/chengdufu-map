@@ -7584,18 +7584,18 @@ body.scene-overlay-open {
 #mapMarkers .map-label-lines { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 #mapMarkers .map-label-lines line { stroke:#795842; stroke-width:.7; opacity:.65; }
 #mapMarkers .map-marker {
-  width:21px; height:auto; min-height:48px; padding:9px 3px;
-  border:1px solid var(--label-edge); border-radius:999px;
-  background:var(--label-bg); color:#432e20;
-  font-family:"Chengdu Map Kai","Kaiti SC","KaiTi",serif; font-size:13px; font-weight:400; line-height:13px;
+  width:19px; height:auto; min-height:48px; padding:9px 3px;
+  border:0; border-radius:999px;
+  background:var(--label-bg); color:#fff;
+  font-family:"Chengdu Map Kai","Kaiti SC","KaiTi",serif; font-size:12px; font-weight:400; line-height:13px;
   writing-mode:vertical-rl; text-orientation:upright; letter-spacing:1px; white-space:nowrap;
   transform:none; animation:none; filter:none; outline:none;
   box-shadow:0 1px 3px #39291822; transition:box-shadow 160ms ease;
 }
-#mapMarkers .status-existing { --label-bg:#c6d8c8; --label-edge:#557a65; }
-#mapMarkers .status-changed { --label-bg:#edc1ad; --label-edge:#a84f36; }
-#mapMarkers .status-uncertain { --label-bg:#ead29a; --label-edge:#97712c; }
-#mapMarkers .status-added, #mapMarkers .status-campus { --label-bg:#c1d3de; --label-edge:#536f80; }
+#mapMarkers .status-existing { --label-bg:#486f5e; }
+#mapMarkers .status-changed { --label-bg:#a94f39; }
+#mapMarkers .status-uncertain { --label-bg:#876821; }
+#mapMarkers .status-added, #mapMarkers .status-campus { --label-bg:#4b6d80; }
 #mapMarkers .map-marker::after { content:none; }
 #mapMarkers .map-marker:hover, #mapMarkers .map-marker.active, #mapMarkers .map-marker:focus-visible {
   outline:2px solid #432e20; outline-offset:2px; z-index:10;
@@ -7609,6 +7609,6 @@ body.scene-overlay-open {
 .official-intro-more .intro-collapse, .official-intro-more[open] .intro-expand { display:none; }
 .official-intro-more[open] .intro-collapse { display:inline; }
 @media(max-width:600px) {
-  #mapMarkers .map-marker { width:16px; min-height:38px; padding:4px 2px; border-width:.5px; font-size:11px; line-height:10px; letter-spacing:.5px; }
+  #mapMarkers .map-marker { width:14px; min-height:36px; padding:4px 2px; font-size:10px; line-height:10px; letter-spacing:.5px; }
   #mapMarkers .map-marker.active, #mapMarkers .map-marker:focus-visible { outline-width:1px; }
 }
