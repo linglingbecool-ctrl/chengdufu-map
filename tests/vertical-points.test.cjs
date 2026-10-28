@@ -8,6 +8,7 @@ const root=path.join(__dirname,'..'),points=JSON.parse(fs.readFileSync(path.join
  const url=process.env.POINT_PREVIEW_URL||'http://127.0.0.1:8780/';
  await page.route('**/*',route=>{
   const u=route.request().url();
+  if(u===url)return route.fulfill({contentType:"text/html",body:fs.readFileSync(path.join(root,"index.html"),"utf8").replaceAll('https://chengdufu-map-d4g459au02132689e-1459591635.tcloudbaseapp.com/site-assets/20261028-desktop02/',"./")});
   if(u.includes('cloudbase.full.js'))return route.fulfill({contentType:'text/javascript',body:"window.cloudbase={init:()=>({auth:{getSession:async()=>({error:new Error('read-only test')})},callFunction:async()=>({result:{ok:true,memories:[]}})})};"});
   if(!u.startsWith(new URL(url).origin))return route.abort();
   return route.continue();

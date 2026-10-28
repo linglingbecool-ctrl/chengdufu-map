@@ -14,6 +14,7 @@ async function serve(old) {
       let body = old && ['index.html', 'style.css'].includes(file)
         ? execFileSync('git', ['show', `b8a0c2f:${file}`], { cwd: root })
         : fs.readFileSync(path.join(root, file));
+      if (file === "index.html" && !old) body = Buffer.from(body.toString().replaceAll('https://chengdufu-map-d4g459au02132689e-1459591635.tcloudbaseapp.com/site-assets/20261028-desktop02/', "./"));
       const ext = path.extname(file);
       res.setHeader('Content-Type', {'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.woff':'font/woff'}[ext] || 'application/octet-stream');
       if (['.html','.js','.css','.json'].includes(ext)) {

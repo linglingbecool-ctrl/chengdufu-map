@@ -1218,6 +1218,8 @@ window.TUHUI_CONFIG = Object.freeze({
 // ===============================================
 
 const APP_VERSION = "20261028-history-paragraphs";
+// Resolve display assets beside the loaded script, including the static mirror.
+const STATIC_ASSET_BASE = new URL("./", document.currentScript?.src || location.href).href;
 
 // 与 CloudBase source_fragments 完成哈希去重后的实数同步。
 const KNOWLEDGE_CORPUS_METRICS = Object.freeze({
@@ -1777,7 +1779,7 @@ function renderPointMedia(point) {
     figures.push(`
       <figure>
         <img
-          src="./${escapeHtml(
+          src="${escapeHtml(
             oldImage
           )}"
           alt="${escapeHtml(
@@ -1798,7 +1800,7 @@ function renderPointMedia(point) {
     figures.push(`
       <figure>
         <img
-          src="./${escapeHtml(
+          src="${escapeHtml(
             point.currentImagePreview || point.currentImage
           )}"
           alt="${escapeHtml(
@@ -4700,7 +4702,7 @@ function renderPostCover(memory, point = {}) {
   const place=memory.pointName || point.nameModern || "成都";
   // A temporarily unavailable uploaded photo must not be mistaken for a text-only contribution.
   const textOnly=!actual && !(memory.imageFileIds?.length || Number(memory.imageCount)) && Boolean(content);
-  const image=actual || (textOnly ? memoryTextCover(content,place) : `./${point.oldImagePreview || point.oldImage || "media/optimized/chengdu-map-original.webp"}`);
+  const image=actual || (textOnly ? memoryTextCover(content,place) : (point.oldImagePreview || point.oldImage || "./media/optimized/chengdu-map-original.webp"));
   const label=actual || textOnly ? "" : "古图配图";
   return `<div class="memory-post-cover${textOnly ? " is-text-cover" : actual ? "" : " is-illustration"}"><img src="${escapeHtml(image)}" alt="${escapeHtml(place)}${textOnly ? "文字封面" : label || "记忆照片"}" loading="lazy">${label ? `<span>${label}</span>` : ""}</div>`;
 }
@@ -8636,7 +8638,7 @@ async function handleContributionSubmit(
 async function loadPoints() {
   const response =
     await fetch(
-      `./points.json?v=${APP_VERSION}`,
+      new URL(`points.json?v=${APP_VERSION}`, STATIC_ASSET_BASE).href,
       {
         method: "GET",
 
@@ -8675,7 +8677,13 @@ async function loadPoints() {
     `已读取 ${points.length} 个点位`
   );
 
-  return points;
+  return points.map(point => {
+    const resolved = { ...point };
+    for (const key of ["oldImagePreview", "currentImagePreview"]) {
+      if (resolved[key]) resolved[key] = new URL(resolved[key], STATIC_ASSET_BASE).href;
+    }
+    return resolved;
+  });
 }
 
 /* ===============================================
