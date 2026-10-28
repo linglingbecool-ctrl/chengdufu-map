@@ -7574,3 +7574,35 @@ body.scene-overlay-open {
 .ai-answer-references li small { display: block; margin-top: 2px; color: var(--ink-soft); font-size: .78rem; line-height: 1.65; }
 .ai-reference-link { border: 0; background: transparent; padding: 0; color: inherit; text-align: left; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .ai-reference-link:focus-visible { outline: 2px solid var(--qing-deep); outline-offset: 3px; }
+
+/* 20261028: vertical place labels; preserve existing map, filters and memory layers. */
+#mapMarkers .map-label-lines { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+#mapMarkers .map-label-lines line { stroke:#795842; stroke-width:.7; opacity:.65; }
+#mapMarkers .map-marker {
+  width:24px; height:auto; min-height:44px; padding:6px 2px;
+  border:1px solid var(--label-edge); border-radius:2px;
+  background:var(--label-bg); color:#432e20;
+  font-family:inherit; font-size:15px; font-weight:400; line-height:18px;
+  writing-mode:vertical-rl; text-orientation:upright; letter-spacing:1px; white-space:nowrap;
+  transform:none; animation:none; filter:none; outline:none;
+  box-shadow:0 1px 3px #39291822; transition:box-shadow 160ms ease;
+}
+#mapMarkers .status-existing { --label-bg:#c6d8c8; --label-edge:#557a65; }
+#mapMarkers .status-changed { --label-bg:#edc1ad; --label-edge:#a84f36; }
+#mapMarkers .status-uncertain { --label-bg:#ead29a; --label-edge:#97712c; }
+#mapMarkers .status-added, #mapMarkers .status-campus { --label-bg:#c1d3de; --label-edge:#536f80; }
+#mapMarkers .map-marker::after { content:none; }
+#mapMarkers .map-marker:hover, #mapMarkers .map-marker.active, #mapMarkers .map-marker:focus-visible {
+  outline:2px solid #432e20; outline-offset:2px; z-index:10;
+}
+/* Keep personal lighting and public-memory counts without changing category fills. */
+.map-hub[data-memory-layer="mine"] #mapMarkers .map-marker.my-memory-lit { box-shadow:0 0 0 3px #e5c77e,0 0 12px #c49a4560; }
+.map-hub[data-memory-layer="city"] #mapMarkers .map-marker.has-public-memory { box-shadow:0 0 0 3px #6f9b8b80; }
+#mapMarkers .map-marker::before { writing-mode:horizontal-tb; }
+.official-intro-more { border-bottom:0; padding-top:0; }
+.official-intro-more > summary { min-height:44px; line-height:44px; }
+.official-intro-more .intro-collapse, .official-intro-more[open] .intro-expand { display:none; }
+.official-intro-more[open] .intro-collapse { display:inline; }
+@media(max-width:600px) {
+  #mapMarkers .map-marker { width:18px; min-height:36px; padding:3px 1px; font-size:12px; line-height:14px; letter-spacing:0; }
+}

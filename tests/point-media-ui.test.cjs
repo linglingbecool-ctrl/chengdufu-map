@@ -19,7 +19,7 @@ const points = JSON.parse(fs.readFileSync('points.json', 'utf8'));
       for (const point of points) {
         await page.locator('#detailPointSelect').selectOption(point.id);
         const card = page.locator('.point-card--compact');
-        assert.equal((await card.locator('.official-intro p').allTextContents()).map(s=>s.trim()).join('\n'), point.extended);
+        assert.equal((await card.locator('.official-intro p').allTextContents()).join('').replace(/\s/g,''), point.extended.replace(/\s/g,''));
         assert.doesNotMatch(await card.innerText(), /资料说明/);
         assert.equal(await card.locator('.point-media img').count(), Number(!!point.oldImage)+Number(!!point.currentImage));
         await card.locator('.point-media img').evaluateAll(async images => {

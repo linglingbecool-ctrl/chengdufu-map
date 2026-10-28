@@ -262,7 +262,7 @@ const MAP_HUB_MODES = {
   explore: {
     label: "01 · 探古",
     caption: "六个核心点位正在古图上显影",
-    hint: "点击墨点，阅读古今点位档案"
+    hint: "点击地名，阅读古今点位档案"
   },
 
   ask: {
@@ -3610,6 +3610,15 @@ function pointSelectOptions(placeholder = "请选择地点") {
   return `<option value="">${escapeHtml(placeholder)}</option>` + labels.map(label=>`<optgroup label="${label}">${allPoints.filter(p=>getStatusLabel(p)===label).map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(pointPickerName(p))}</option>`).join("")}</optgroup>`).join("");
 }
 
+// Keep the full source text; only split its display at the first sentence boundary.
+function renderCollapsiblePointIntro(text) {
+  const content = String(text || "").trim();
+  const first = content.match(/^[\s\S]*?[。！？](?:[”’」』])?/);
+  const lead = first ? first[0] : content;
+  const rest = content.slice(lead.length).trim();
+  return `${renderParagraphs(lead)}${rest ? `<details class="detail-facts official-intro-more"><summary><span class="intro-expand">•• 展开全文</span><span class="intro-collapse">收起全文</span></summary>${renderParagraphs(rest)}</details>` : ""}`;
+}
+
 function renderDetail(point, shouldScroll = false) {
   if (!detailEl) return;
   const knowledge = CORE_POINT_KNOWLEDGE[point.id];
@@ -3620,7 +3629,7 @@ function renderDetail(point, shouldScroll = false) {
     <label class="detail-point-select">切换点位<select id="detailPointSelect" aria-label="选择点位查看介绍">${pointSelectOptions()}</select></label>
     <details class="detail-facts"><summary>地点信息</summary>${meta}</details>${timeline}
     ${renderPointMedia(point)}
-    <section class="official-intro"><h4>历史导读</h4>${renderParagraphs(point.extended || point.quick || "基础历史资料正在整理中，欢迎留下与此地有关的真实记忆。")}</section>
+    <section class="official-intro"><h4>历史导读</h4>${renderCollapsiblePointIntro(point.extended || point.quick || "基础历史资料正在整理中，欢迎留下与此地有关的真实记忆。")}</section>
     <button type="button" class="memory-btn" data-memory-button>留下我的城市记忆</button>
     ${renderMemorySection(point)}
   </article>`;
@@ -3638,6 +3647,41 @@ function renderDetail(point, shouldScroll = false) {
 /* ===============================================
    地图点位
    =============================================== */
+
+let mapLabelObserver = null;
+function layoutMapLabels() {
+  if (!markersEl || !markersEl.clientWidth || !markersEl.clientHeight) return;
+  const width = markersEl.clientWidth, height = markersEl.clientHeight;
+  const svg = markersEl.querySelector(".map-label-lines");
+  if (!svg) return;
+  svg.replaceChildren();
+  const occupied = [];
+  const hint = document.querySelector("#mapActionHint");
+  if (hint) occupied.push({x:(width-hint.offsetWidth)/2, y:hint.offsetTop, w:hint.offsetWidth, h:hint.offsetHeight});
+  const buttons = [...markersEl.querySelectorAll(".map-marker")].sort((a,b) => Number(a.dataset.mapY)-Number(b.dataset.mapY));
+  // Bounded search for the current 29 points. For a much larger collection, use clustering.
+  for (const button of buttons) {
+    const x=Number(button.dataset.mapX)/100*width, y=Number(button.dataset.mapY)/100*height;
+    const w=button.offsetWidth, h=button.offsetHeight;
+    let best;
+    const xs=[x-w/2], ys=[y-h-5];
+    for(let left=3;left<=width-w-3;left+=w+3) xs.push(left);
+    for(let top=3;top<=height-h-3;top+=4) ys.push(top);
+    for(const rawX of xs) for(const rawY of ys) {
+      const left=Math.max(3,Math.min(width-w-3,rawX));
+      const top=Math.max(3,Math.min(height-h-3,rawY));
+      let overlap=0;
+      for(const r of occupied) overlap+=Math.max(0,Math.min(left+w+2,r.x+r.w)-Math.max(left-2,r.x))*Math.max(0,Math.min(top+h+2,r.y+r.h)-Math.max(top-2,r.y));
+      const score=overlap*1000+Math.hypot(left+w/2-x,top+h-y);
+      if(!best||score<best.score) best={x:left,y:top,w,h,score};
+    }
+    occupied.push(best);
+    button.style.left=best.x+"px";button.style.top=best.y+"px";
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    for(const [key,value] of Object.entries({x1:x,y1:y,x2:best.x+w/2,y2:Math.max(best.y,Math.min(best.y+h,y))})) line.setAttribute(key,value);
+    svg.append(line);
+  }
+}
 
 function renderMarkers(points) {
   if (!markersEl) {
@@ -3686,6 +3730,9 @@ function renderMarkers(points) {
 
       button.dataset.pointId =
         point.id;
+      button.textContent = (point.nameModern || point.nameAncient || "历史点位").split(/[（(]/)[0];
+      button.dataset.mapX = String(x);
+      button.dataset.mapY = String(y);
 
       const corePointIndex =
         citywalkOrder.indexOf(
@@ -3858,6 +3905,15 @@ function renderMarkers(points) {
     );
   }
 
+  const lines = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  lines.classList.add("map-label-lines");
+  lines.setAttribute("aria-hidden", "true");
+  markersEl.prepend(lines);
+  if (!mapLabelObserver && typeof ResizeObserver !== "undefined") {
+    mapLabelObserver = new ResizeObserver(layoutMapLabels);
+    mapLabelObserver.observe(markersEl);
+  }
+  layoutMapLabels();
   renderPointPicker();
   updateMapMemoryLayerCounts();
 }
