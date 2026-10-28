@@ -1,3 +1,6 @@
+/* Reuse the same map file for the hero and map at each screen size. */
+:root { --map-background:url("./media/optimized/chengdu-map-960.webp"); }
+@media (min-width:601px) { :root { --map-background:url("./media/optimized/chengdu-map-1440.webp"); } }
 :root {
   --paper: #f4ead7;
   --paper-deep: #e5d2ad;
@@ -102,7 +105,7 @@ p {
       rgba(244, 234, 215, 0.95),
       rgba(229, 210, 173, 0.86)
     ),
-    url("./media/optimized/chengdu-map-960.webp") center / cover;
+    var(--map-background) center / cover;
 
   border-bottom: 1px solid var(--line);
 }
@@ -4420,7 +4423,7 @@ body.scene-overlay-open {
       rgba(30, 27, 23, 0.18) 54%,
       rgba(30, 27, 23, 0.48)
     ),
-    url("./media/optimized/chengdu-map-960.webp") center / cover;
+    var(--map-background) center / cover;
 }
 
 .site-hero::before {
@@ -4829,7 +4832,7 @@ body.scene-overlay-open {
   padding: 18px;
   background:
     linear-gradient(rgba(244,234,215,.96), rgba(229,210,173,.96)),
-    url("./media/optimized/chengdu-map-960.webp") center / cover;
+    var(--map-background) center / cover;
   opacity: 0;
   visibility: hidden;
   transform: translateY(18px);
