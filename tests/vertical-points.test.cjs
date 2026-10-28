@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('/Users/lingling/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root=path.join(__dirname,'..'),points=JSON.parse(fs.readFileSync(path.join(root,'points.json'),'utf8'));
 (async()=>{const browser=await chromium.launch({headless:true,channel:'chrome'});try{
- const page=await browser.newPage(),errors=[];
+ const page=await browser.newPage({deviceScaleFactor:Number(process.env.POINT_DEVICE_SCALE||1)}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  const url=process.env.POINT_PREVIEW_URL||'http://127.0.0.1:8780/';
  await page.route('**/*',route=>{
@@ -17,8 +17,9 @@ const root=path.join(__dirname,'..'),points=JSON.parse(fs.readFileSync(path.join
   await page.locator('#detailPointSelect').waitFor();await page.locator('#mapCanvas').scrollIntoViewIfNeeded();
   assert.equal(await page.locator('#mapMarkers .map-marker').count(),29);
   await page.waitForFunction(()=>document.querySelectorAll('.map-label-lines line').length===29);
-  const labels=await page.locator('#mapMarkers .map-marker').evaluateAll(els=>els.map(el=>({text:el.textContent,anchor:{x:Number(el.dataset.mapX),y:Number(el.dataset.mapY)},color:getComputedStyle(el).color,bg:getComputedStyle(el).backgroundColor,writing:getComputedStyle(el).writingMode,width:el.offsetWidth,rect:{x:el.offsetLeft,y:el.offsetTop,w:el.offsetWidth,h:el.offsetHeight}})));
-  assert(labels.every(x=>x.text&&x.writing==='vertical-rl'));assert.equal(new Set(labels.map(x=>x.color)).size,1);assert.equal(new Set(labels.map(x=>x.bg)).size,4);
+  assert.equal(await page.evaluate(async()=>{const fonts=await document.fonts.load('11px \"Chengdu Map Kai\"');return fonts.length>0&&fonts.every(f=>f.status==='loaded')}),true,'Bundled Kai font loads');
+  const labels=await page.locator('#mapMarkers .map-marker').evaluateAll(els=>els.map(el=>({text:el.textContent,anchor:{x:Number(el.dataset.mapX),y:Number(el.dataset.mapY)},padding:[getComputedStyle(el).paddingLeft,getComputedStyle(el).paddingRight].map(parseFloat),color:getComputedStyle(el).color,bg:getComputedStyle(el).backgroundColor,writing:getComputedStyle(el).writingMode,width:el.offsetWidth,rect:{x:el.offsetLeft,y:el.offsetTop,w:el.offsetWidth,h:el.offsetHeight}})));
+  assert(labels.every(x=>x.text&&x.writing==='vertical-rl'));assert(labels.every(x=>x.padding.every(v=>v>=2)),'Leave space on both sides of each label');assert.equal(new Set(labels.map(x=>x.color)).size,1);assert.equal(new Set(labels.map(x=>x.bg)).size,4);
   let collisions=0;for(let a=0;a<labels.length;a++)for(let b=a+1;b<labels.length;b++){const x=labels[a].rect,y=labels[b].rect;if(Math.min(x.x+x.w,y.x+y.w)>Math.max(x.x,y.x)&&Math.min(x.y+x.h,y.y+y.h)>Math.max(x.y,y.y))collisions++;}
   const bounds=await page.locator('#mapMarkers').evaluate(el=>({w:el.clientWidth,h:el.clientHeight}));
   assert(labels.every(({rect:r})=>r.x>=0&&r.y>=0&&r.x+r.w<=bounds.w+1&&r.y+r.h<=bounds.h+1));

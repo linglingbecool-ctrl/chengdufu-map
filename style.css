@@ -7576,13 +7576,18 @@ body.scene-overlay-open {
 .ai-reference-link:focus-visible { outline: 2px solid var(--qing-deep); outline-offset: 3px; }
 
 /* 20261028: vertical place labels; preserve existing map, filters and memory layers. */
+@font-face {
+  font-family:"Chengdu Map Kai";
+  src:url("./media/fonts/chengdu-map-kai.woff") format("woff");
+  font-style:normal; font-weight:400; font-display:swap;
+}
 #mapMarkers .map-label-lines { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 #mapMarkers .map-label-lines line { stroke:#795842; stroke-width:.7; opacity:.65; }
 #mapMarkers .map-marker {
-  width:22px; height:auto; min-height:44px; padding:7px 2px;
-  border:1px solid var(--label-edge); border-radius:2px;
+  width:21px; height:auto; min-height:48px; padding:9px 3px;
+  border:1px solid var(--label-edge); border-radius:999px;
   background:var(--label-bg); color:#432e20;
-  font-family:inherit; font-size:14px; font-weight:400; line-height:16px;
+  font-family:"Chengdu Map Kai","Kaiti SC","KaiTi",serif; font-size:13px; font-weight:400; line-height:13px;
   writing-mode:vertical-rl; text-orientation:upright; letter-spacing:1px; white-space:nowrap;
   transform:none; animation:none; filter:none; outline:none;
   box-shadow:0 1px 3px #39291822; transition:box-shadow 160ms ease;
@@ -7604,6 +7609,6 @@ body.scene-overlay-open {
 .official-intro-more .intro-collapse, .official-intro-more[open] .intro-expand { display:none; }
 .official-intro-more[open] .intro-collapse { display:inline; }
 @media(max-width:600px) {
-  #mapMarkers .map-marker { width:15px; min-height:32px; padding:3px 0; border-width:.5px; font-size:11px; line-height:12px; letter-spacing:0; }
+  #mapMarkers .map-marker { width:16px; min-height:38px; padding:4px 2px; border-width:.5px; font-size:11px; line-height:10px; letter-spacing:.5px; }
   #mapMarkers .map-marker.active, #mapMarkers .map-marker:focus-visible { outline-width:1px; }
 }

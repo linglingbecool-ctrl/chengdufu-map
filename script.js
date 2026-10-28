@@ -3653,7 +3653,7 @@ function layoutMapLabels() {
   if (!markersEl || !markersEl.clientWidth || !markersEl.clientHeight) return;
   const width = markersEl.clientWidth, height = markersEl.clientHeight;
   const inset = window.innerWidth <= 600 ? 6 : 3;
-  const gap = window.innerWidth <= 600 ? 3 : 2;
+  const gap = 2;
   const svg = markersEl.querySelector(".map-label-lines");
   if (!svg) return;
   svg.replaceChildren();
@@ -3918,6 +3918,8 @@ function renderMarkers(points) {
     mapLabelObserver.observe(markersEl);
   }
   layoutMapLabels();
+  // Repack once the bundled Kai subset replaces the system fallback.
+  document.fonts?.load('11px "Chengdu Map Kai"').then(layoutMapLabels).catch(() => {});
   renderPointPicker();
   updateMapMemoryLayerCounts();
 }
