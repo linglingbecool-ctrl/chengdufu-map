@@ -7453,7 +7453,7 @@ body.scene-overlay-open {
 .memory-post [data-like-status]:empty{display:none}
 .memory-post [data-like-status]{flex-basis:100%;font-size:.7rem}
 .memory-post-title{font-size:1.5rem;margin:18px 0 8px}
-.public-archive-card>.memory-post-cover{border-radius:8px;max-height:380px}
+.public-archive-card [data-public-memory-photos]>.memory-post-cover{border-radius:8px;max-height:380px}
 .public-memory-panel__content .public-archive-card{padding:20px}
 .public-archive-card .memory-card__images{margin:0 0 20px}
 .public-archive-card .public-archive-card__text p{font-size:1rem;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}

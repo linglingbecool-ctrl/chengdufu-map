@@ -1941,87 +1941,44 @@ function renderPointEvidenceCards(
 /**
  * 把 CloudBase fileID 转成临时图片地址。
  */
-async function resolveMemoryImageUrls(
-  memories
-) {
-  if (
-    !cloudApp ||
-    typeof cloudApp
-      .getTempFileURL
-      !== "function"
-  ) {
-    return memories;
+const memoryImageUrlCache = new Map();
+const MEMORY_IMAGE_URL_TTL = 5 * 60 * 1000;
+
+async function resolveMemoryImageUrls(memories) {
+  if (typeof cloudApp?.getTempFileURL !== "function") return memories;
+  const account = publicAccountEpoch;
+  const fileIds = [...new Set(memories.flatMap(memory => memory.imageFileIds || []).filter(Boolean))];
+  const urlMap = new Map();
+  const missing = [];
+  for (const id of fileIds) {
+    const cached = memoryImageUrlCache.get(id);
+    if (cached && cached.expires > Date.now()) urlMap.set(id, cached.url);
+    else { memoryImageUrlCache.delete(id); missing.push(id); }
   }
-
-  const fileIds =
-    Array.from(
-      new Set(
-        memories.flatMap(
-          (memory) =>
-            Array.isArray(
-              memory.imageFileIds
-            )
-              ? memory.imageFileIds
-                  .filter(Boolean)
-              : []
-        )
-      )
-    );
-
-  if (!fileIds.length) {
-    return memories;
-  }
-
-  try {
-    const fileList = [];
-    for(let index=0; index<fileIds.length; index+=50) {
-      const result = await cloudApp.getTempFileURL({fileList:fileIds.slice(index,index+50)});
-      fileList.push(...(result?.fileList || result?.result?.fileList || []));
-    }
-
-    const urlMap =
-      new Map();
-
-    fileList.forEach(
-      (item) => {
-        const fileId =
-          item?.fileID ||
-          item?.fileId ||
-          item?.file_id;
-
-        const url =
-          item?.tempFileURL ||
-          item?.tempFileUrl ||
-          item?.download_url;
-
-        if (
-          fileId &&
-          url
-        ) {
-          urlMap.set(
-            fileId,
-            url
-          );
+  // CloudBase accepts at most 50 files per request. Two batches at a time bound
+  // connection pressure while avoiding one slow batch delaying every other batch.
+  for (let index = 0; index < missing.length; index += 100) {
+    await Promise.all([missing.slice(index, index + 50), missing.slice(index + 50, index + 100)]
+      .filter(batch => batch.length).map(async fileList => {
+        try {
+          const result = await cloudApp.getTempFileURL({ fileList });
+          for (const item of result?.fileList || result?.result?.fileList || []) {
+            const id = item?.fileID || item?.fileId || item?.file_id;
+            const url = item?.tempFileURL || item?.tempFileUrl || item?.download_url;
+            if (id && url) {
+              urlMap.set(id, url);
+              if (account === publicAccountEpoch) memoryImageUrlCache.set(id, { url, expires: Date.now() + MEMORY_IMAGE_URL_TTL });
+            }
+          }
+        } catch (error) {
+          console.warn("部分城市记忆图片暂时无法读取：", error);
         }
-      }
-    );
-
-    return memories.map(memory => ({
-      ...memory,
-      imageUrls: (memory.imageFileIds || [])
-        .map(fileId => urlMap.get(fileId))
-        .filter(Boolean)
-    }));
+      }));
   }
-
-  catch (error) {
-    console.warn(
-      "城市记忆图片临时地址获取失败，仅展示文字：",
-      error
-    );
-
-    return memories;
-  }
+  return memories.map(memory => memory.imageFileIds?.length ? {
+    ...memory,
+    imageUrls: memory.imageFileIds.map((id, i) => urlMap.get(id) || memory.imageUrls?.[i] || "")
+  } : memory);
 }
 
 /**
@@ -2038,8 +1995,14 @@ let publicAccountEpoch = 0;
 let publicMemoriesLoadEpoch = -1;
 let publicMemoriesLoaded = false;
 let publicMemoriesError = "";
+let publicMemoriesLoadedAt = 0;
+let publicMemoriesLoadedEpoch = -1;
 
 async function loadApprovedMemories() {
+  // Only reuse this tab's successful, same-account response for 30 seconds.
+  // Never persist public records or let a cached image URL authorize a record.
+  if (publicMemoriesLoaded && publicMemoriesLoadedEpoch === publicReadEpoch &&
+      Date.now() - publicMemoriesLoadedAt < 30000) return true;
   if (publicMemoriesLoad) {
     const epoch = publicMemoriesLoadEpoch;
     const result = await publicMemoriesLoad;
@@ -2059,7 +2022,7 @@ async function loadApprovedMemories() {
       do {
         const result = normalizeFunctionResult(await cloudApp.callFunction({ name: "getPublicMemories", data: { limit: 100, cursor }, parse: true }));
         if (!result?.ok || !Array.isArray(result.memories)) throw new Error("公开记忆读取失败，请稍后重试。");
-        const page = await resolveMemoryImageUrls(result.memories);
+        const page = result.memories;
         page.forEach(memory => {
           if (memory.status === "approved" && memory.id) collected.set(memory.id, memory);
         });
@@ -2077,6 +2040,8 @@ async function loadApprovedMemories() {
       if (epoch !== publicReadEpoch) return false;
       approvedMemoriesByPoint = grouped;
       publicMemoriesLoaded = true;
+      publicMemoriesLoadedAt = Date.now();
+      publicMemoriesLoadedEpoch = epoch;
       publicMemoriesError = "";
       updateMapMemoryLayerCounts();
       return true;
@@ -4196,6 +4161,7 @@ async function openMyMemoryPanel() {
   }
 
   await Promise.all([loadMyContributions(), loadApprovedMemories()]);
+  await loadPublicMemoryImages();
 
   renderMyMemoryPanel();
 }
@@ -4294,7 +4260,7 @@ function openPublicMemoryImageViewer(button) {
   publicMemoryImageReturnFocus = button;
   publicMemoryImageState = {
     urls,
-    index: Math.max(0, Math.min(Number(button.dataset.publicImageIndex) || 0, urls.length - 1)),
+    index: Math.max(0, urls.indexOf(memory.imageUrls[Number(button.dataset.publicImageIndex) || 0])),
     pointName: memory.pointName || "成都"
   };
   const viewer = document.querySelector("#publicMemoryImageViewer");
@@ -4371,13 +4337,7 @@ async function setPublicMemoryLike(button) {
   }
 }
 
-function renderPublicArchiveCards(
-  point,
-  memories
-) {
-  return sortPublicMemories(memories)
-    .map(
-      (memory) => {
+function renderPublicMemoryPhotos(point, memory) {
         const images =
           Array.isArray(
             memory.imageUrls
@@ -4386,7 +4346,7 @@ function renderPublicArchiveCards(
             : [];
 
         const imageHtml =
-          images.length
+          images.some(Boolean)
             ? `
               <div
                 class="memory-card__images"
@@ -4398,7 +4358,7 @@ function renderPublicArchiveCards(
                       3
                     )
                     .map(
-                      (url, index) => `
+                      (url, index) => url ? `
                         <button
                           type="button"
                           class="memory-card__image-button"
@@ -4407,13 +4367,15 @@ function renderPublicArchiveCards(
                           aria-label="放大查看${escapeHtml(point.nameModern)}城市记忆照片，第${index + 1}张"
                         >
                           <img
-                            src="${escapeHtml(url)}"
+                            src="${escapeHtml(memoryPreviewUrl(url, 1200))}"
+                            data-memory-original="${escapeHtml(url)}"
+                            decoding="async"
                             alt="${escapeHtml(point.nameModern)}城市记忆照片"
                             loading="lazy"
                           >
                           <span aria-hidden="true">放大查看</span>
                         </button>
-                      `
+                      ` : ""
                     )
                     .join("")
                 }
@@ -4421,6 +4383,16 @@ function renderPublicArchiveCards(
             `
             : "";
 
+  return `<div data-public-memory-photos>${imageHtml || renderPostCover(memory, point)}</div>`;
+}
+
+function renderPublicArchiveCards(
+  point,
+  memories
+) {
+  return sortPublicMemories(memories)
+    .map(
+      (memory) => {
         const content = memoryDisplayText(memory);
 
         return `
@@ -4428,7 +4400,7 @@ function renderPublicArchiveCards(
             class="memory-card public-archive-card"
             data-public-memory-id="${escapeHtml(memory.id)}"
           >
-${imageHtml || renderPostCover(memory, point)}
+${renderPublicMemoryPhotos(point, memory)}
             <h3 class="memory-post-title">${escapeHtml(memory.pointName || point.nameModern)}</h3>
 
             <div
@@ -4697,14 +4669,27 @@ function memoryTextCover(text, place = "成都") {
   return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg).replace(/%E2%86%92/g, "");
 }
 
+function memoryPreviewUrl(url, width = 640) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" ||
+        parsed.hostname !== "6368-chengdufu-map-d4g459au02132689e-1459591635.tcb.qcloud.la") return url;
+    // Append without re-encoding the existing signed query string.
+    return url + (url.includes("?") ? "&" : "?") + `imageMogr2/thumbnail/${width}x/format/webp/quality/80`;
+  } catch { return url; }
+}
+
 function renderPostCover(memory, point = {}) {
-  const actual=memory.imageUrls?.[0], content=memoryDisplayText(memory);
+  const actual=memory.imageUrls?.find(Boolean), content=memoryDisplayText(memory);
+  if (!actual && (memory.imageFileIds?.length || Number(memory.imageCount))) {
+    return `<div class="memory-post-cover"><span>${memory.imageLoadFailed ? "照片暂未加载，请重新打开重试" : "照片加载中…"}</span></div>`;
+  }
   const place=memory.pointName || point.nameModern || "成都";
   // A temporarily unavailable uploaded photo must not be mistaken for a text-only contribution.
   const textOnly=!actual && !(memory.imageFileIds?.length || Number(memory.imageCount)) && Boolean(content);
-  const image=actual || (textOnly ? memoryTextCover(content,place) : (point.oldImagePreview || point.oldImage || "./media/optimized/chengdu-map-original.webp"));
+  const image=(actual ? memoryPreviewUrl(actual) : "") || (textOnly ? memoryTextCover(content,place) : (point.oldImagePreview || point.oldImage || "./media/optimized/chengdu-map-original.webp"));
   const label=actual || textOnly ? "" : "古图配图";
-  return `<div class="memory-post-cover${textOnly ? " is-text-cover" : actual ? "" : " is-illustration"}"><img src="${escapeHtml(image)}" alt="${escapeHtml(place)}${textOnly ? "文字封面" : label || "记忆照片"}" loading="lazy">${label ? `<span>${label}</span>` : ""}</div>`;
+  return `<div class="memory-post-cover${textOnly ? " is-text-cover" : actual ? "" : " is-illustration"}"><img src="${escapeHtml(image)}" alt="${escapeHtml(place)}${textOnly ? "文字封面" : label || "记忆照片"}" loading="lazy" decoding="async"${actual ? ` data-memory-original="${escapeHtml(actual)}"` : ""}>${label ? `<span>${label}</span>` : ""}</div>`;
 }
 
 function renderPublicPostCards(memories) {
@@ -4755,6 +4740,39 @@ function showPublicMemoryPost(id) {
 }
 
 
+let publicMemoryImagesLoad = null;
+let publicMemoryImagesSource = null;
+async function loadPublicMemoryImages() {
+  const source = approvedMemoriesByPoint;
+  if (publicMemoryImagesLoad && publicMemoryImagesSource === source) return publicMemoryImagesLoad;
+  const account = publicAccountEpoch;
+  const memories = [...source.values()].flat();
+  publicMemoryImagesSource = source;
+  const task = (async () => {
+    const resolved = await resolveMemoryImageUrls(memories);
+    if (account !== publicAccountEpoch || source !== approvedMemoriesByPoint) return;
+    resolved.forEach((item, i) => {
+      memories[i].imageUrls = item.imageUrls || [];
+      memories[i].imageLoadFailed = Boolean(item.imageFileIds?.length && !item.imageUrls?.some(Boolean));
+    });
+    document.querySelectorAll("#publicMemoryPanelContent [data-public-memory-id]").forEach(card => {
+      const memory = findPublicMemory(card.dataset.publicMemoryId);
+      if (!memory) return;
+      const point = allPoints.find(p => p.id === memory.pointId) || {nameModern:memory.pointName};
+      const photos = card.querySelector("[data-public-memory-photos]");
+      if (photos) photos.outerHTML = renderPublicMemoryPhotos(point, memory);
+      else {
+        const cover = card.querySelector(".memory-post-cover");
+        if (cover) cover.outerHTML = renderPostCover(memory, point);
+      }
+    });
+  })();
+  publicMemoryImagesLoad = task;
+  try { await task; } finally {
+    if (publicMemoryImagesLoad === task) publicMemoryImagesLoad = null;
+  }
+}
+
 async function openPublicMemoryPanel(point, trigger) {
   ensurePublicMemoryPanel();
   const token = ++publicArchiveViewToken;
@@ -4777,6 +4795,7 @@ async function openPublicMemoryPanel(point, trigger) {
   publicArchivePlaces = collectPublicMemoryPlaces();
   if (point && publicArchivePlaces.has(`id:${point.id}`)) showPublicMemoryPlace(`id:${point.id}`);
   else renderPublicMemoryPlaces();
+  void loadPublicMemoryImages();
 }
 
 function closePublicMemoryPanel() {
@@ -8686,6 +8705,15 @@ async function loadPoints() {
   });
 }
 
+// Image processing can fail for an individual legacy format; retry its original once.
+document.addEventListener("error", event => {
+  const image = event.target;
+  if (image?.tagName !== "IMG" || !image.dataset.memoryOriginal) return;
+  const original = image.dataset.memoryOriginal;
+  delete image.dataset.memoryOriginal;
+  if (image.src !== original) image.src = original;
+}, true);
+
 /* ===============================================
    初始化
    =============================================== */
@@ -8826,6 +8854,7 @@ window.addEventListener("tuhui:account-changed", async () => {
   if(workshop && !workshop.hidden && !workshop.querySelector("#contributionForm").hidden) closeContributionModal();
   myMemoryFilter="all";
   publicAccountEpoch += 1;
+  memoryImageUrlCache.clear();
   publicReadEpoch += 1;
   publicLikePending.clear();
   Array.from(approvedMemoriesByPoint.values()).flat().forEach(memory => { memory.likedByMe = false; });

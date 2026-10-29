@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const source=fs.readFileSync('script.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const extract=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
-const ctx=vm.createContext({escapeHtml:s=>String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'),allPoints:[{id:'a',nameModern:'测试点',oldImage:'map.jpg',currentImage:'current.jpg'}],publicLikePending:new Map()});
+const ctx=vm.createContext({URL,escapeHtml:s=>String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'),allPoints:[{id:'a',nameModern:'测试点',oldImage:'map.jpg',currentImage:'current.jpg'}],publicLikePending:new Map()});
 vm.runInContext(extract('function memoryLikeCount(', 'function findPublicMemory(')+extract('function memoryDisplayText(', 'function renderPublicFeed('),ctx);
 const records=[{id:'low',pointId:'a',originalContent:'低票',likeCount:1,imageUrls:['https://test.example/real.jpg']},{id:'high',pointId:'a',originalContent:'<img src=x onerror=alert(1)>',likeCount:5,coverStyle:'current'},{id:'mid',pointId:'a',originalContent:'中票',likeCount:3}];
 const before=JSON.stringify(records),html=ctx.renderPublicPostCards(records);
@@ -12,12 +12,12 @@ assert.match(html,/data:image\/svg\+xml/);assert.doesNotMatch(html,/current.jpg|
 assert.equal((html.match(/data-public-post=/g)||[]).length,3);
 assert.equal((html.match(/class="memory-feed-column"/g)||[]).length,2);
 assert.doesNotMatch(html,/审核状态|投稿类型|public-memory-types/);
-const points=JSON.parse(fs.readFileSync('points.json'));const old=JSON.parse(require('node:child_process').execFileSync('git',['show','5bd73a2:points.json'],{encoding:'utf8'}));
+const points=JSON.parse(fs.readFileSync('points.json'));const old=JSON.parse(require('node:child_process').execFileSync('git',['show','c7cb5f0:points.json'],{encoding:'utf8'}));
 // 地图下架不删除投稿；保留点位 ID、坐标及其余历史资料。
 const removedIds=new Set(['dafosi','chengduxianwenmiao','wenchanggong']);
 const renamed={tianyashi:'天涯石',mancheng:'满城（宽窄巷子、人民公园一带）',huayangxian:'华阳县治所（正府街一带）',chengdufuwenmiao:'成都府文庙（文翁路一带）'};
 // Image additions/previews are maintained separately; keep the historical text,
-// IDs and coordinates invariant against the original point-removal release.
+// IDs and coordinates invariant against the October 28 release, including the added and paragraph-formatted guides.
 const imageFields=new Set(['oldImage','currentImage','oldImagePreview','currentImagePreview','oldImageCaption','imageAttribution','imageSourceUrl','imageLicenseUrl']);
 const withoutImages=p=>Object.fromEntries(Object.entries(p).filter(([key])=>!imageFields.has(key)));
 for(const previous of old){
