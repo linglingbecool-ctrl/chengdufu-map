@@ -1947,7 +1947,7 @@ const MEMORY_IMAGE_URL_TTL = 5 * 60 * 1000;
 async function resolveMemoryImageUrls(memories) {
   if (typeof cloudApp?.getTempFileURL !== "function") return memories;
   const account = publicAccountEpoch;
-  const fileIds = [...new Set(memories.flatMap(memory => memory.imageFileIds || []).filter(Boolean))];
+  const fileIds = [...new Set(memories.flatMap(memory => Array.isArray(memory.imageFileIds) ? memory.imageFileIds : []).filter(Boolean))];
   const urlMap = new Map();
   const missing = [];
   for (const id of fileIds) {
@@ -1975,9 +1975,9 @@ async function resolveMemoryImageUrls(memories) {
         }
       }));
   }
-  return memories.map(memory => memory.imageFileIds?.length ? {
+  return memories.map(memory => Array.isArray(memory.imageFileIds) && memory.imageFileIds.length ? {
     ...memory,
-    imageUrls: memory.imageFileIds.map((id, i) => urlMap.get(id) || memory.imageUrls?.[i] || "")
+    imageUrls: memory.imageFileIds.map(id => urlMap.get(id)).filter(Boolean)
   } : memory);
 }
 
@@ -4260,7 +4260,7 @@ function openPublicMemoryImageViewer(button) {
   publicMemoryImageReturnFocus = button;
   publicMemoryImageState = {
     urls,
-    index: Math.max(0, urls.indexOf(memory.imageUrls[Number(button.dataset.publicImageIndex) || 0])),
+    index: Math.max(0, Math.min(Number(button.dataset.publicImageIndex) || 0, urls.length - 1)),
     pointName: memory.pointName || "成都"
   };
   const viewer = document.querySelector("#publicMemoryImageViewer");

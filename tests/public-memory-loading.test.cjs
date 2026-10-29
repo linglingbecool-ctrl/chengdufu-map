@@ -15,7 +15,7 @@ function harness(){let clock=100000,calls=0,images=0,active=0,peak=0;const batch
  assert.equal(h.batches.length,2);assert(h.batches.every(b=>b.fileList.length<=50));
  const result=b=>({fileList:b.fileList.map(fileID=>({fileID,tempFileURL:`https://example.org/${fileID.slice(8)}`}))});
  h.batches[0].resolve(result(h.batches[0]));h.batches[1].resolve({fileList:[]});await new Promise(r=>setImmediate(r));assert.equal(h.batches.length,3);h.batches[2].resolve(result(h.batches[2]));const resolved=await run;
- assert.equal(h.peak(),2);assert(resolved[0].imageUrls[0]);assert.equal(resolved[50].imageUrls[0],'');assert(resolved[100].imageUrls[0]);assert.equal(rows[0].imageUrls,undefined,'original records unchanged');
+ assert.equal(h.peak(),2);assert(resolved[0].imageUrls[0]);assert.equal(resolved[50].imageUrls.length,0);assert(resolved[100].imageUrls[0]);assert.equal(rows[0].imageUrls,undefined,'original records unchanged');
  await h.c.resolveMemoryImageUrls([rows[0]]);assert.equal(h.images(),3,'signed URL reused within tab');h.clock(300001);const expired=h.c.resolveMemoryImageUrls([rows[0]]);assert.equal(h.images(),4);h.batches[3].resolve(result(h.batches[3]));await expired;
  const ctx=vm.createContext({URL});vm.runInContext(slice('function memoryPreviewUrl(', 'function renderPostCover('),ctx);
  const original='https://6368-chengdufu-map-d4g459au02132689e-1459591635.tcb.qcloud.la/a.jpg?sign=a%2Fb';assert.equal(ctx.memoryPreviewUrl(original),original+'&imageMogr2/thumbnail/640x/format/webp/quality/80');assert.equal(ctx.memoryPreviewUrl('https://other.example/a.jpg'),'https://other.example/a.jpg');assert.equal(ctx.memoryPreviewUrl('data:image/svg+xml,x'),'data:image/svg+xml,x');
