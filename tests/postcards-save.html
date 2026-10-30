@@ -8,10 +8,12 @@
 <link rel="stylesheet" href="postcards.css">
 <script src="postcards.js"></script>
 <button id="run">运行保存流程自检</button>
+<button id="preview">查看保存界面</button>
 <pre id="result" role="status">使用本地测试内容，不连接云服务。</pre>
 <script>
 const $ = selector => document.querySelector(selector);
 const assert = (condition, message) => {if (!condition) throw new Error(message);};
+$('#preview').onclick = () => tuhuiPostcards.open({item:{pointName:'四川大学',memoryNumber:'CD-000123'},text:'校园树影与城市记忆。'});
 const wait = async predicate => {
   const deadline = Date.now() + 20000;
   while (!predicate()) {
@@ -21,11 +23,18 @@ const wait = async predicate => {
 };
 $('#run').onclick = async () => {
   const NativeReader = window.FileReader;
+  const properties = ['userAgent','platform','share','canShare'];
+  const originals = new Map(properties.map(key => [key, Object.getOwnPropertyDescriptor(navigator, key)]));
+  const mock = (key, value) => Object.defineProperty(navigator, key, {configurable:true, value});
   $('#run').disabled = true;
   $('#result').textContent = '检查中……';
   try {
+    mock('userAgent', 'iPhone MicroMessenger'); mock('platform', 'iPhone'); mock('canShare', () => false);
     tuhuiPostcards.open({item:{pointName:'保存测试'}, text:'校园树影与城市记忆。'});
     await wait(() => !$('[data-save]').disabled);
+    assert(!$('[data-download]').getClientRects().length && !$('[data-retry]').getClientRects().length, '正常状态只显示一个保存入口');
+    assert(!$('.postcard-paper .postcard-upload'), '预览图下面不再显示上传入口');
+    assert($('.postcard-actions').nextElementSibling.classList.contains('postcard-upload'), '上传提示紧接保存按钮');
     $('[data-save]').click();
     await wait(() => $('.postcard-save-dialog img')?.naturalWidth);
     const picture = $('.postcard-save-dialog img');
@@ -48,6 +57,27 @@ $('#run').onclick = async () => {
     assert(!$('.postcard-dialog').textContent.includes('明信片'), '所有可见文案应统一为照片');
     assert($('[data-download]').download.endsWith('专属照片.png'), '下载文件名应统一为照片');
 
+    let shared, finishShare;
+    mock('canShare', data => data.files[0].type === 'image/png');
+    mock('share', data => {shared = data; return new Promise(resolve => {finishShare = resolve;});});
+    $('[data-save]').click();
+    assert(shared.files[0] instanceof File && shared.files[0].size > 0, '系统菜单收到实际照片文件');
+    assert($('[data-save]').disabled && !$('.postcard-save-dialog'), '系统菜单打开期间防止重复保存，无额外图片弹窗');
+    finishShare(); await wait(() => !$('[data-save]').disabled);
+    mock('share', async () => {throw new DOMException('Cancelled','AbortError');});
+    $('[data-save]').click(); await wait(() => !$('[data-save]').disabled);
+    assert(!$('.postcard-save-dialog') && $('.postcard-status').textContent.includes('已取消'), '取消系统菜单不再弹出保存窗口');
+    mock('share', async () => {throw new DOMException('Unavailable','NotAllowedError');});
+    $('[data-save]').click(); await wait(() => $('.postcard-save-dialog img')?.naturalWidth);
+    $('.postcard-save-dialog [data-close]').click(); await wait(() => !$('.postcard-save-dialog'));
+
+    let downloads = 0;
+    $('[data-download]').addEventListener('click', event => {event.preventDefault(); downloads++;});
+    mock('userAgent', 'Desktop'); mock('platform', 'Linux');
+    $('[data-save]').click();
+    assert(downloads === 1 && !$('.postcard-save-dialog'), '电脑点击同一保存按钮直接下载');
+    mock('userAgent', 'iPhone'); mock('platform', 'iPhone'); mock('canShare', () => false);
+
     let reader, aborted = false;
     window.FileReader = class {
       static LOADING = 1;
@@ -64,11 +94,12 @@ $('#run').onclick = async () => {
     $('[data-save]').click();
     window.dispatchEvent(new Event('tuhui:account-changed'));
     await wait(() => !$('.postcard-dialog'));
-    $('#result').textContent = 'PASS：原尺寸 PNG、关闭释放、焦点恢复、编辑禁用旧图、失败提示、取消读取、账号切换关闭。';
+    $('#result').textContent = 'PASS：单一保存入口、上传提示位置、系统文件保存、取消与失败回退、电脑下载、原尺寸 PNG、焦点恢复、编辑禁用旧图、取消读取、账号切换关闭。';
   } catch (error) {
     $('#result').textContent = 'FAIL：' + error.message;
   } finally {
     window.FileReader = NativeReader;
+    for (const key of properties) {const original = originals.get(key); if (original) Object.defineProperty(navigator,key,original); else delete navigator[key];}
     document.querySelectorAll('.postcard-dialog').forEach(dialog => dialog.close());
     $('#run').disabled = false;
   }

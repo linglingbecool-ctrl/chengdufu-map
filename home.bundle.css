@@ -7651,6 +7651,7 @@ body.scene-overlay-open {
 .postcard-upload { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-top: 16px; color: #604c39; font-size: .9rem; line-height: 1.7; }
 .postcard-upload .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; border: 1px solid #5865d7; border-radius: 4px; background: #5865d7; color: #fff; font: 600 15px/1.5 system-ui, sans-serif; text-align: center; text-decoration: none; box-shadow: none; }
 .postcard-upload .btn:hover { background: #4652bf; border-color: #4652bf; }
+.postcard-editor > .postcard-upload { margin-top: 0; }
 .postcard-dialog img[hidden] ~ .postcard-upload { display: none; }
 .postcard-dialog :focus-visible { outline: 3px solid #9a3e2d; outline-offset: 3px; }
 @media (max-width: 860px) {

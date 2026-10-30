@@ -948,7 +948,7 @@ window.TUHUI_CONFIG = Object.freeze({
     const dialog = document.createElement("dialog"); dialog.className = "postcard-dialog";
     dialog.setAttribute("aria-labelledby", "postcardTitle");
     dialog.innerHTML = `<header class="postcard-head"><div><p>一份可以带走的成都记忆</p><h2 id="postcardTitle">你的专属照片</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭照片">关闭 ×</button></header>
-      <div class="postcard-layout"><section class="postcard-paper" aria-label="照片预览"><img alt="专属照片预览，包含古地图、个人记忆及右上角所选徽章" hidden><p data-placeholder>正在生成预览……</p>${uploadLink}</section>
+      <div class="postcard-layout"><section class="postcard-paper" aria-label="照片预览"><img alt="专属照片预览，包含古地图、个人记忆及右上角所选徽章" hidden><p data-placeholder>正在生成预览……</p></section>
       <form class="postcard-editor">
       <fieldset><legend>照片版式</legend><label><input type="radio" name="layout" value="photo"> 古图＋照片</label><label><input type="radio" name="layout" value="text"> 古图＋文字</label></fieldset>
       <p data-photo-notice hidden>投稿照片暂未加载，请关闭后重新打开“我的记忆”刷新；也可先生成文字版。</p>
@@ -958,16 +958,16 @@ window.TUHUI_CONFIG = Object.freeze({
       <label data-text-field>照片文字<textarea name="story" rows="8" maxlength="10000"></textarea><small>初始载入完整记忆。这里只编辑照片，原投稿不变；超出篇幅时需自行确认摘录。</small></label>
       <label>右上角徽章<select name="badge" aria-describedby="postcardBadgeNote"></select><small id="postcardBadgeNote"></small></label>
       <p class="postcard-status" role="status" aria-live="polite"></p>
-      <div class="postcard-actions"><button type="button" class="btn primary" data-save disabled>保存到手机</button><a class="btn ghost" data-download aria-disabled="true" tabindex="-1">下载 PNG</a><button type="submit" class="btn ghost">重新生成预览</button></div>
       <small data-memory-number></small>
-      <small>PNG 图片 · 3600 × 2400。手机请点保存按钮，长按大图保存到相册。</small></form></div>`;
+      <div class="postcard-actions"><button type="button" class="btn primary" data-save disabled>保存照片到手机</button><a data-download hidden tabindex="-1"></a><button type="submit" class="btn ghost" data-retry hidden>重新生成预览</button></div>
+      ${uploadLink}</form></div>`;
     document.body.append(dialog); activeDialog = dialog;
     const form = dialog.querySelector("form"), fields = form.elements;
     const img = dialog.querySelector(".postcard-paper img"), placeholder = dialog.querySelector("[data-placeholder]");
     const status = dialog.querySelector(".postcard-status"), download = dialog.querySelector("[data-download]");
-    const save = dialog.querySelector("[data-save]");
+    const save = dialog.querySelector("[data-save]"), retry = dialog.querySelector("[data-retry]");
     dialog.querySelector("[data-memory-number]").textContent = /^CD-\d{6,}$/.test(item.memoryNumber || "")
-      ? `记忆编号 ${displayMemoryNumber(item.memoryNumber)} · 对应这份记忆，换版式、换照片或再次下载，编号不变。` : "";
+      ? `记忆编号 ${displayMemoryNumber(item.memoryNumber)}` : "";
     fields.title.value = `${(item.pointName || "成都").replace(/（[^）]*）|\([^)]*\)/g, "")}的记忆`;
     fields.place.value = item.pointName || "成都"; fields.time.value = item.approximateTime || "";
     fields.story.value = text;
@@ -979,8 +979,8 @@ window.TUHUI_CONFIG = Object.freeze({
     fields.badge.add(new Option("不显示徽章", ""));
     fields.badge.value = earned[0]?.key || "";
     dialog.querySelector("#postcardBadgeNote").textContent = earned.length ? "只显示你已获得的徽章，可选择其中一枚。" : "暂未解锁徽章；获得后可从“我的记忆”重新生成。";
-    let revision = 0, timer, previewUrl = "", closed = false, exportBlob = null, saveDialog = null;
-    save.onclick = () => {
+    let revision = 0, timer, previewUrl = "", closed = false, exportBlob = null, saveDialog = null, sharing = false;
+    function showSaveImage() {
       if (!exportBlob || saveDialog) return;
       const view = document.createElement("dialog");
       view.className = "postcard-dialog postcard-save-dialog";
@@ -994,9 +994,9 @@ window.TUHUI_CONFIG = Object.freeze({
       // Encode the high-resolution PNG only when saving, and release it when the dialog closes.
       // Use a plain image for native long-press menus; release it when the dialog closes.
       reader.onload = () => {if (view.open) picture.src = reader.result;};
-      reader.onerror = () => {message.textContent = "图片准备失败，请关闭后重试，或返回选择“下载 PNG”。";};
+      reader.onerror = () => {message.textContent = "图片准备失败，请关闭后重新点击保存。";};
       picture.onload = () => {picture.hidden = false; message.textContent = "图片已准备好，请长按下方图片保存。";};
-      picture.onerror = () => {message.textContent = "图片加载失败，请关闭后重试，或返回选择“下载 PNG”。";};
+      picture.onerror = () => {message.textContent = "图片加载失败，请关闭后重新点击保存。";};
       view.querySelector("[data-close]").onclick = () => view.close();
       view.addEventListener("keydown", event => event.stopPropagation());
       view.addEventListener("close", () => {
@@ -1007,6 +1007,31 @@ window.TUHUI_CONFIG = Object.freeze({
         if (!closed && save.isConnected) save.focus({preventScroll: true});
       }, {once: true});
       view.showModal(); reader.readAsDataURL(exportBlob);
+    }
+    save.onclick = async () => {
+      if (!exportBlob || saveDialog || sharing) return;
+      const mobile = /Android|iPhone|iPad|iPod|MicroMessenger/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (!mobile) {download.click(); return;}
+      const current = revision;
+      try {
+        const file = new File([exportBlob], download.download, {type: "image/png"});
+        if (navigator.share && navigator.canShare?.({files: [file]})) {
+          sharing = true; save.disabled = true;
+          status.textContent = "请在系统菜单中选择保存图片。";
+          // Call synchronously from the tap; awaiting preparation loses user activation on iOS.
+          await navigator.share({files: [file]});
+          if (!closed && current === revision) status.textContent = "如需打印，可在下方上传照片。";
+          return;
+        }
+      } catch (error) {
+        if (closed || current !== revision) return;
+        if (error.name === "AbortError") {status.textContent = "已取消，可再次点击保存。"; return;}
+        // Embedded browsers may expose share() but reject files; retain the working image fallback.
+      } finally {
+        sharing = false;
+        if (!closed && exportBlob) save.disabled = false;
+      }
+      if (!closed && current === revision) showSaveImage();
     };
     const images = new Map();
     const getImage = src => {
@@ -1015,7 +1040,7 @@ window.TUHUI_CONFIG = Object.freeze({
     };
     function invalidate() {
       revision++; clearTimeout(timer);
-      exportBlob = null; save.disabled = true; saveDialog?.close();
+      exportBlob = null; save.disabled = true; retry.hidden = true; saveDialog?.close();
       download.removeAttribute("href"); download.setAttribute("aria-disabled", "true"); download.tabIndex = -1;
       img.hidden = true; placeholder.hidden = false; placeholder.textContent = "正在生成预览……";
       status.textContent = "正在生成预览……";
@@ -1023,7 +1048,6 @@ window.TUHUI_CONFIG = Object.freeze({
       dialog.querySelector("[data-photo-field]").hidden = fields.layout.value !== "photo";
       dialog.querySelector("[data-text-field]").hidden = fields.layout.value !== "text";
       save.textContent = "保存照片到手机";
-      download.textContent = "下载照片 PNG";
       img.alt = "专属照片：馆藏古图、个人记忆及所选徽章";
     }
     async function render() {
@@ -1046,14 +1070,15 @@ window.TUHUI_CONFIG = Object.freeze({
         if (closed || current !== revision) return;
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         previewUrl = URL.createObjectURL(blob); img.src = previewUrl; img.hidden = false; placeholder.hidden = true;
-        exportBlob = blob; save.disabled = false;
+        exportBlob = blob; save.disabled = sharing;
         download.href = previewUrl; download.download = `舆上成都-${(state.place || "城市记忆").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").slice(0, 40)}-${state.mode === "photo" ? "古图与照片" : "古图与文字"}-专属照片.png`;
-        download.setAttribute("aria-disabled", "false"); download.tabIndex = 0;
-        status.textContent = state.mode === "photo" ? "预览已更新，照片完整呈现，可下载保存。" : "预览已更新，当前文字完整排入，可下载保存。";
+        download.setAttribute("aria-disabled", "false");
+        status.textContent = "照片已生成，可以保存。";
       } catch (error) {
         if (closed || current !== revision) return;
         status.textContent = error.name === "SecurityError" ? "照片暂时无法导出，请关闭后重新打开“我的记忆”刷新，或使用文字版。" : error.message;
         placeholder.textContent = status.textContent;
+        retry.hidden = false;
       } finally {
         if (canvas) {canvas.width = 0; canvas.height = 0;}
       }
