@@ -34,9 +34,10 @@ $('#run').onclick = async () => {
     await wait(() => !$('[data-save]').disabled);
     assert(!$('[data-download]').getClientRects().length && !$('[data-retry]').getClientRects().length, '正常状态只显示一个保存入口');
     assert(!$('.postcard-paper .postcard-upload'), '预览图下面不再显示上传入口');
-    assert($('.postcard-actions').nextElementSibling.classList.contains('postcard-upload'), '上传提示紧接保存按钮');
+    assert(!$('.postcard-upload') && !$('.postcard-dialog a[href*="tuanyuanlib"]'), '不再显示打印上传入口');
     $('[data-save]').click();
     await wait(() => $('.postcard-save-dialog img')?.naturalWidth);
+    assert(!$('.postcard-upload'), '保存窗口不再显示打印上传入口');
     const picture = $('.postcard-save-dialog img');
     assert(picture.src.startsWith('data:image/png;base64,'), '应显示可长按的 PNG 图片');
     assert(picture.naturalWidth === 3600 && picture.naturalHeight === 2400, '应保留完整导出尺寸');
@@ -94,7 +95,7 @@ $('#run').onclick = async () => {
     $('[data-save]').click();
     window.dispatchEvent(new Event('tuhui:account-changed'));
     await wait(() => !$('.postcard-dialog'));
-    $('#result').textContent = 'PASS：单一保存入口、上传提示位置、系统文件保存、取消与失败回退、电脑下载、原尺寸 PNG、焦点恢复、编辑禁用旧图、取消读取、账号切换关闭。';
+    $('#result').textContent = 'PASS：单一保存入口、移除打印上传入口、系统文件保存、取消与失败回退、电脑下载、原尺寸 PNG、焦点恢复、编辑禁用旧图、取消读取、账号切换关闭。';
   } catch (error) {
     $('#result').textContent = 'FAIL：' + error.message;
   } finally {

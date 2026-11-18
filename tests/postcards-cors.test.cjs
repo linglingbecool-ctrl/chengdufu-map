@@ -10,6 +10,8 @@ const images = http.createServer((req, res) => {
   if (req.headers.origin) res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
   // Intentionally omit Vary: Origin to reproduce the gallery cache failure.
   res.setHeader('Cache-Control', 'public, max-age=3600');
+  if (req.url === '/assets/postcards.js') {res.setHeader('Content-Type', 'application/javascript');res.end(fs.readFileSync(path.join(root, 'postcards.js')));return;}
+  if (req.url === '/assets/media/postcards/chengdu-map-1800.webp') {res.setHeader('Content-Type', 'image/webp');res.end(fs.readFileSync(path.join(root, 'media/postcards/chengdu-map-1800.webp')));return;}
   if (req.url === '/broken.jpg') {res.writeHead(404).end();return;}
   res.setHeader('Content-Type', 'image/jpeg');res.end(photo);
 });
@@ -33,6 +35,11 @@ const listen = s => new Promise(r => s.listen(0, '127.0.0.1', r));
     await page.click('#run');
     await page.waitForFunction(() => /^(PASS|FAIL)/.test(document.querySelector('#result').textContent));
     assert.match(await page.locator('#result').textContent(), /^PASS/);
+    // Explicitly exercise the mobile image-save fallback; viewport alone does not change UA.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'userAgent', {configurable:true,value:'iPhone MicroMessenger'});
+      Object.defineProperty(navigator, 'canShare', {configurable:true,value:()=>false});
+    });
     const origin = `http://127.0.0.1:${images.address().port}`;
     const url = origin + '/photo.jpg';
     const cache = await page.evaluate(async url => {
@@ -97,12 +104,24 @@ const listen = s => new Promise(r => s.listen(0, '127.0.0.1', r));
       HTMLCanvasElement.prototype.toBlob = () => {};
       window.setTimeout = (fn, ms, ...args) => originalSetTimeout(fn, ms === 15000 ? 300 : ms, ...args);
     });
-    await page.locator('.postcard-editor button[type=submit]').click();
+    await page.locator('[name=title]').fill('导出超时测试');
     await page.waitForFunction(() => document.querySelector('[data-placeholder]').textContent.includes('导出超时'));
     assert(await page.locator('[data-save]').isDisabled());
     await page.evaluate(() => {HTMLCanvasElement.prototype.toBlob = window.originalToBlob;window.setTimeout = window.originalSetTimeout;});
     await page.locator('.postcard-editor button[type=submit]').click();await ready();
     assert.equal(await page.locator('.postcard-paper img').evaluate(i => i.naturalWidth), 3600);
+    // Simulate production: JS on the mirror, while the page-origin map is unavailable.
+    const mirrored = await browser.newPage();
+    await mirrored.goto(`http://127.0.0.1:${site.address().port}/tests/postcards-save.html`);
+    await mirrored.route(`http://127.0.0.1:${site.address().port}/media/postcards/**`, route => route.abort());
+    await mirrored.addScriptTag({url: origin + '/assets/postcards.js'});
+    await mirrored.evaluate(() => tuhuiPostcards.open({item:{pointName:'镜像测试'},text:'底图应从脚本所在镜像加载。'}));
+    await mirrored.waitForFunction(() => !document.querySelector('[data-save]').disabled);
+    assert(requests.some(r => r.path === '/assets/media/postcards/chengdu-map-1800.webp' && r.cors));
+    assert.equal(await mirrored.locator('.postcard-paper img').evaluate(i => i.naturalWidth), 3600);
+    assert.equal(await mirrored.locator('.postcard-upload').count(), 0);
+    await mirrored.close();
+    console.log('PASS: mirrored map produces a full-resolution export with the page-origin map blocked.');
     console.log('PASS: stalled map and PNG export show visible errors, keep text, disable stale downloads, and recover on retry.');
     console.log('PASS: reproduced old cache failure; fresh CORS export, photo/text switching, mobile save, failed-download guard, local uploads, photo naming and no reverse.');
   } finally {

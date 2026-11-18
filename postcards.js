@@ -5,8 +5,8 @@
   const SERIF = '"Songti SC", "STSong", "SimSun", serif';
   const INK = "#4b2913", RED = "#792d20", RULE = "#bd9471";
   // The map occupies 1725 px of the 3600 px export; 1800 px covers that slot.
-  const MAP_SRC = "./media/postcards/chengdu-map-1800.webp";
-  const uploadLink = `<div class="postcard-upload"><span>需要打印实体照片</span><a class="btn" href="https://lsicbu.tuanyuanlib.com/#/index/orgdetail?actId=2113440017668902912" target="_blank" rel="noopener noreferrer" aria-label="上传照片（新页面打开）">上传照片</a></div>`;
+  // Resolve beside the loaded bundle so exports use the same mirror as the map.
+  const MAP_SRC = new URL("./media/postcards/chengdu-map-1800.webp", typeof document !== "undefined" ? (document.currentScript?.src || document.baseURI) : "http://localhost/").href;
   // Display only: keep the server-issued memory identifier unchanged.
   const displayMemoryNumber = value => /^CD-\d{6,}$/.test(value || "")
     ? `CD—${value.slice(3).replace(/^0+(?=\d)/, "")}` : "";
@@ -198,7 +198,7 @@
       <p class="postcard-status" role="status" aria-live="polite"></p>
       <small data-memory-number></small>
       <div class="postcard-actions"><button type="button" class="btn primary" data-save disabled>保存照片到手机</button><a data-download hidden tabindex="-1"></a><button type="submit" class="btn ghost" data-retry hidden>重新生成预览</button></div>
-      ${uploadLink}</form></div>`;
+      </form></div>`;
     document.body.append(dialog); activeDialog = dialog;
     const form = dialog.querySelector("form"), fields = form.elements;
     const img = dialog.querySelector(".postcard-paper img"), placeholder = dialog.querySelector("[data-placeholder]");
@@ -224,7 +224,7 @@
       view.className = "postcard-dialog postcard-save-dialog";
       view.setAttribute("aria-labelledby", "postcardSaveTitle");
       view.innerHTML = `<header class="postcard-head"><div><h2 id="postcardSaveTitle">把这份记忆留在相册里</h2></div><button type="button" class="btn ghost" data-close aria-label="关闭保存图片">关闭 ×</button></header>
-        <p role="status">正在准备图片……</p><img hidden alt="可长按保存的完整照片">${uploadLink}
+        <p role="status">正在准备图片……</p><img hidden alt="可长按保存的完整照片">
         <p class="postcard-save-help">若没有保存选项，请从微信右上角菜单选择在 Safari 中打开，再生成照片并保存。</p>`;
       document.body.append(view); saveDialog = view;
       const picture = view.querySelector("img"), message = view.querySelector('[role="status"]');
@@ -258,7 +258,7 @@
           status.textContent = "请在系统菜单中选择保存图片。";
           // Call synchronously from the tap; awaiting preparation loses user activation on iOS.
           await navigator.share({files: [file]});
-          if (!closed && current === revision) status.textContent = "如需打印，可在下方上传照片。";
+          if (!closed && current === revision) status.textContent = "已完成系统分享操作，可再次点击保存。";
           return;
         }
       } catch (error) {
